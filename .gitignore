@@ -1,0 +1,19 @@
+# Vercel
+.vercel/
+
+# Variables de entorno (por si algún día se usan)
+.env
+.env.*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Dependencias
+node_modules/

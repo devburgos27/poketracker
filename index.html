@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PokéTracker · Tu colección de cartas Pokémon</title>
+  <meta name="description" content="Lleva el registro de tu colección de cartas Pokémon TCG: busca un Pokémon, mira todas sus cartas y marca las que tienes.">
+  <link rel="stylesheet" href="css/estilos.css">
+  <!-- Precarga la conexión a la API de cartas para que la primera búsqueda sea más rápida -->
+  <link rel="preconnect" href="https://api.tcgdex.net">
+  <link rel="preconnect" href="https://assets.tcgdex.net">
+</head>
+<body>
+
+  <header class="cabecera">
+    <div class="contenedor cabecera__fila">
+      <h1 class="logo">Poké<span>Tracker</span></h1>
+
+      <!-- Sesión: formulario de login o usuario conectado -->
+      <div class="sesion">
+        <form id="form-login" class="form-login">
+          <label for="email" class="visualmente-oculto">Correo electrónico</label>
+          <input id="email" name="email" type="email" placeholder="tu@correo.com" autocomplete="email" required>
+          <button type="submit" class="boton boton--secundario">Entrar</button>
+        </form>
+
+        <div id="sesion-activa" class="sesion-activa" hidden>
+          <span id="usuario-email" class="sesion-activa__email"></span>
+          <button id="btn-salir" type="button" class="boton boton--texto">Salir</button>
+        </div>
+      </div>
+    </div>
+    <div class="contenedor">
+      <p id="mensaje-login" class="mensaje" role="status" hidden></p>
+    </div>
+  </header>
+
+  <main class="contenedor">
+
+    <section class="intro">
+      <h2>Busca un Pokémon y mira todas sus cartas</h2>
+      <p id="aviso-login" class="intro__aviso">
+        Entra con tu correo para ir marcando las cartas que ya tienes.
+      </p>
+
+      <form id="form-busqueda" class="form-busqueda" role="search">
+        <label for="pokemon" class="visualmente-oculto">Nombre del Pokémon</label>
+        <input id="pokemon" name="pokemon" type="search" placeholder="Ej: Joltik, Pikachu, Charizard" autocomplete="off" required>
+        <button id="btn-buscar" type="submit" class="boton">Buscar</button>
+      </form>
+      <p class="intro__ayuda">Los nombres van en inglés, tal como aparecen en las cartas.</p>
+    </section>
+
+    <p id="estado" class="estado" role="status" aria-live="polite"></p>
+
+    <section id="grilla" class="grilla" aria-label="Resultados"></section>
+
+  </main>
+
+  <footer class="pie contenedor">
+    <p>Datos e imágenes de cartas: <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>.
+       Pokémon y sus marcas pertenecen a Nintendo, Game Freak y The Pokémon Company. Proyecto sin fines comerciales.</p>
+  </footer>
+
+  <!-- Vista ampliada de una carta -->
+  <dialog id="dialogo-carta" class="dialogo" aria-labelledby="dialogo-titulo">
+    <div class="dialogo__contenido">
+      <p id="dialogo-titulo" class="dialogo__titulo"></p>
+      <img id="dialogo-imagen" src="" alt="">
+      <button id="dialogo-cerrar" type="button" class="boton boton--secundario">Cerrar</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
