@@ -51,23 +51,54 @@
 
   <main class="contenedor">
 
-    <section class="intro">
-      <h2>Busca un Pokémon y mira todas sus cartas</h2>
-      <p id="aviso-login" class="intro__aviso">
-        Entra con tu correo para ir marcando las cartas que ya tienes.
-      </p>
+    <!-- Navegación: solo aparece con sesión iniciada -->
+    <nav id="navegacion" class="navegacion" aria-label="Secciones" hidden>
+      <button type="button" class="navegacion__boton" data-vista="buscar" aria-current="page">Buscar</button>
+      <button type="button" class="navegacion__boton" data-vista="coleccion">Mi colección</button>
+    </nav>
 
-      <form id="form-busqueda" class="form-busqueda" role="search">
-        <label for="pokemon" class="visualmente-oculto">Nombre del Pokémon</label>
-        <input id="pokemon" name="pokemon" type="search" placeholder="Ej: Joltik, Pikachu, Charizard" autocomplete="off" required>
-        <button id="btn-buscar" type="submit" class="boton">Buscar</button>
-      </form>
-      <p class="intro__ayuda">Los nombres van en inglés, tal como aparecen en las cartas.</p>
-    </section>
+    <!-- Vista: buscar cartas -->
+    <div id="vista-buscar">
+      <section class="intro">
+        <h2>Busca un Pokémon y mira todas sus cartas</h2>
+        <p id="aviso-login" class="intro__aviso">
+          Entra para ir marcando las cartas que ya tienes.
+        </p>
 
-    <p id="estado" class="estado" role="status" aria-live="polite"></p>
+        <form id="form-busqueda" class="form-busqueda" role="search">
+          <label for="pokemon" class="visualmente-oculto">Nombre del Pokémon</label>
+          <input id="pokemon" name="pokemon" type="search" placeholder="Ej: Joltik, Pikachu, Charizard" autocomplete="off" required>
+          <button id="btn-buscar" type="submit" class="boton">Buscar</button>
+        </form>
+        <p class="intro__ayuda">Los nombres van en inglés, tal como aparecen en las cartas.</p>
+      </section>
 
-    <section id="grilla" class="grilla" aria-label="Resultados"></section>
+      <p id="estado" class="estado" role="status" aria-live="polite"></p>
+
+      <!-- Filtro por estado: solo con sesión y con resultados -->
+      <div id="filtros" class="filtros" role="group" aria-label="Filtrar resultados" hidden>
+        <button type="button" class="filtros__boton" data-filtro="todas" aria-pressed="true">Todas</button>
+        <button type="button" class="filtros__boton" data-filtro="tengo" aria-pressed="false">Tengo</button>
+        <button type="button" class="filtros__boton" data-filtro="falta" aria-pressed="false">Me falta</button>
+      </div>
+
+      <section id="grilla" class="grilla" aria-label="Resultados"></section>
+    </div>
+
+    <!-- Vista: mi colección -->
+    <div id="vista-coleccion" hidden>
+      <section class="intro">
+        <h2>Mi colección</h2>
+        <form id="form-coleccion" class="form-busqueda" role="search">
+          <label for="filtro-coleccion" class="visualmente-oculto">Filtrar por Pokémon</label>
+          <input id="filtro-coleccion" name="filtro" type="search" placeholder="Filtrar por Pokémon (ej: Joltik)" autocomplete="off">
+        </form>
+      </section>
+
+      <p id="estado-coleccion" class="estado" role="status" aria-live="polite"></p>
+
+      <section id="grilla-coleccion" class="grilla" aria-label="Mi colección"></section>
+    </div>
 
   </main>
 

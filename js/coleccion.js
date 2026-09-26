@@ -24,6 +24,48 @@ export async function cargarIdsTengo() {
 }
 
 /**
+ * Lista las cartas del usuario, ordenadas por Pokémon y luego por
+ * cuándo se agregaron. Si se indica un texto, filtra las que lo
+ * contienen en el nombre ("jolt" → Joltik, N's Joltik), sin
+ * distinguir mayúsculas.
+ *
+ * Devuelve las cartas en el mismo formato que api.js, así la
+ * interfaz las dibuja con la misma tarjeta.
+ *
+ * @param {string} [texto]
+ */
+export async function listarColeccion(texto = '') {
+  let consulta = supabase
+    .from('coleccion')
+    .select('id_carta, nombre_pokemon, nombre_set, numero, imagen_url')
+    .order('nombre_pokemon')
+    .order('created_at');
+
+  if (texto) consulta = consulta.ilike('nombre_pokemon', `%${texto}%`);
+
+  const { data, error } = await consulta;
+  if (error) throw error;
+  return data.map(adaptarFila);
+}
+
+/** Convierte una fila de la tabla al formato "carta" de la app. */
+function adaptarFila(fila) {
+  // Se guarda la imagen chica (low.webp); la grande sale cambiando el sufijo
+  const chica = fila.imagen_url ?? '';
+  return {
+    id: fila.id_carta,
+    nombre: fila.nombre_pokemon,
+    numero: fila.numero ?? '',
+    rareza: '',
+    nombreSet: fila.nombre_set ?? '',
+    totalSet: null,
+    fechaSet: '',
+    imagenChica: chica,
+    imagenGrande: chica.replace(/\/low\.webp$/, '/high.webp'),
+  };
+}
+
+/**
  * Guarda una carta como "Tengo". Se copian nombre, set, número e
  * imagen para poder mostrar la colección sin volver a la API.
  */

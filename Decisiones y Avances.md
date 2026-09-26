@@ -37,8 +37,12 @@ index.html · css/estilos.css · js/{config, supabase, api, auth, coleccion, ui,
   - Par de botones con `aria-pressed` bajo cada carta, solo con sesión. Cambio optimista: se revierte si Supabase falla.
   - La colección (ids) se carga una vez al entrar y se mantiene en memoria; resumen "Tienes X, te faltan Y".
   - `nombre_pokemon` guarda el nombre de la carta tal cual (ej. "N's Joltik"); `imagen_url` = imagen chica.
-- [ ] Bloque 3: vista general con filtros por estado y por Pokémon.
-  - Filtro por Pokémon: "contiene" sin distinguir mayúsculas (`ilike '%joltik%'`), así "Joltik" incluye "N's Joltik".
+- [ ] Bloque 3: filtros por estado y "Mi colección" (código listo; falta probarlo).
+  - Como Supabase solo guarda lo que tengo, "Me falta" solo existe dentro de una búsqueda. Por eso son dos partes:
+  - **Filtro por estado en la búsqueda:** pestañas "Todas (N)" / "Tengo (N)" / "Me falta (N)" sobre la grilla, solo con sesión. Se filtra en el navegador; los conteos cambian al marcar; en "Tengo" o "Me falta" la carta marcada sale de la vista. Una búsqueda nueva vuelve a "Todas".
+  - **Mi colección:** navegación "Buscar" / "Mi colección" (mostrar/ocultar secciones, sin router). `listarColeccion()` en coleccion.js, orden por `nombre_pokemon` y `created_at`. Filtro por Pokémon con `.ilike('nombre_pokemon', '%texto%')` y debounce de 300 ms, así "Joltik" incluye "N's Joltik". Misma tarjeta que la búsqueda; "Me falta" la quita de la colección.
+  - `imagen_url` guarda la imagen chica (low.webp); la vista ampliada usa high.webp cambiando el sufijo.
+  - Límite conocido: Supabase devuelve como máximo 1000 filas por consulta (cargarIdsTengo y listarColeccion). Si una colección pasa de 1000 cartas, habrá que paginar.
 - [ ] Publicar en Vercel. Al publicar:
   - Agregar la URL de Vercel en Google Cloud (orígenes autorizados de JavaScript).
   - Agregar la URL de Vercel en Supabase (Authentication → URL Configuration → Redirect URLs).

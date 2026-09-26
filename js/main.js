@@ -13,31 +13,86 @@ import * as ui from './ui.js';
 
 let cartasActuales = [];   // resultado de la última búsqueda
 let busquedaActual = '';
+let filtro = 'todas';      // pestaña activa: 'todas' | 'tengo' | 'falta'
 let idsTengo = null;       // Set de ids de cartas que tengo; null = sin sesión
-let alCambiarCarta = null; // guarda "Tengo" / "Me falta" (lo define el login)
+let coleccion = null;      // módulo coleccion.js (se carga junto con el login)
 
-/** Vuelve a dibujar la grilla con el estado actual. */
-function dibujar() {
-  const marcado = idsTengo ? { idsTengo, alCambiar: alCambiarCarta } : null;
-  ui.mostrarCartas(cartasActuales, marcado);
+let cartasColeccion = [];  // lo que se ve en "Mi colección"
+let textoColeccion = '';   // filtro por Pokémon de "Mi colección"
+let ultimoPedido = 0;      // para descartar respuestas viejas de Supabase
+
+// --- Resultados de búsqueda -----------------------------------
+
+const FILTROS = {
+  todas: () => true,
+  tengo: (c) => idsTengo.has(c.id),
+  falta: (c) => !idsTengo.has(c.id),
+};
+
+const VACIO_POR_FILTRO = {
+  tengo: 'Todavía no tienes ninguna de estas cartas.',
+  falta: '¡Tienes todas estas cartas!',
+};
+
+/** Dibuja la grilla de búsqueda según la sesión y la pestaña activa. */
+function dibujarBusqueda() {
+  if (!idsTengo) {
+    ui.mostrarFiltros(null);
+    ui.mostrarCartas(cartasActuales);
+  } else {
+    actualizarConteos();
+    ui.mostrarCartas(
+      cartasActuales.filter(FILTROS[filtro]),
+      { idsTengo, alCambiar: cambiarDesdeBusqueda },
+      VACIO_POR_FILTRO[filtro],
+    );
+  }
   mostrarResumen();
 }
 
-/** "20 cartas encontradas para "Joltik" · Tienes 3, te faltan 17" */
+/** Actualiza los números de las pestañas sin redibujar las cartas. */
+function actualizarConteos() {
+  const total = cartasActuales.length;
+  if (!idsTengo || total === 0) {
+    ui.mostrarFiltros(null);
+    return;
+  }
+  const tengo = cartasActuales.filter(FILTROS.tengo).length;
+  ui.mostrarFiltros({ todas: total, tengo, falta: total - tengo }, filtro);
+}
+
+/** "20 cartas encontradas para "Joltik"" */
 function mostrarResumen() {
   const total = cartasActuales.length;
   if (total === 0) return;
-
   const texto = total === 1 ? 'carta encontrada' : 'cartas encontradas';
-  let resumen = `${total} ${texto} para "${busquedaActual}"`;
-  if (idsTengo) {
-    const tengo = cartasActuales.filter((c) => idsTengo.has(c.id)).length;
-    resumen += ` · Tienes ${tengo}, te faltan ${total - tengo}`;
-  }
-  ui.mensajeEstado(resumen);
+  ui.mensajeEstado(`${total} ${texto} para "${busquedaActual}"`);
 }
 
-// --- Búsqueda de cartas ---------------------------------------
+/** Guarda "Tengo" / "Me falta" en Supabase y en idsTengo. */
+async function guardarCambio(carta, tengo) {
+  if (tengo) {
+    await coleccion.marcarTengo(carta);
+    idsTengo?.add(carta.id);
+  } else {
+    await coleccion.marcarMeFalta(carta.id);
+    idsTengo?.delete(carta.id);
+  }
+}
+
+async function cambiarDesdeBusqueda(carta, tengo) {
+  try {
+    await guardarCambio(carta, tengo);
+  } catch (error) {
+    console.error(error);
+    ui.mensajeEstado('No se pudo guardar el cambio. Inténtalo de nuevo.', 'error');
+    throw error; // la tarjeta vuelve a su estado anterior
+  }
+  mostrarResumen();
+  // En "Todas" la carta se queda donde está; en "Tengo" o "Me falta" sale de la vista
+  if (filtro === 'todas') actualizarConteos();
+  else dibujarBusqueda();
+}
 
 document.querySelector('#form-busqueda').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -48,7 +103,8 @@ document.querySelector('#form-busqueda').addEventListener('submit', async (e) =>
   ui.mensajeEstado(`Buscando cartas de ${nombre}…`);
   cartasActuales = [];
   busquedaActual = nombre;
-  dibujar();
+  filtro = 'todas';
+  dibujarBusqueda();
 
   try {
     cartasActuales = await buscarCartas(nombre);
@@ -59,7 +115,7 @@ document.querySelector('#form-busqueda').addEventListener('submit', async (e) =>
         'error',
       );
     } else {
-      dibujar();
+      dibujarBusqueda();
     }
   } catch (error) {
     console.error(error);
@@ -72,7 +128,101 @@ document.querySelector('#form-busqueda').addEventListener('submit', async (e) =>
   }
 });
 
+document.querySelector('#filtros').addEventListener('click', (e) => {
+  const boton = e.target.closest('[data-filtro]');
+  if (!boton || boton.dataset.filtro === filtro) return;
+  filtro = boton.dataset.filtro;
+  dibujarBusqueda();
+});
+
 ui.prepararDialogo();
+
+// --- Navegación: Buscar / Mi colección ------------------------
+
+function irA(vista) {
+  ui.mostrarVista(vista);
+  if (vista === 'coleccion') cargarColeccion();
+  else dibujarBusqueda(); // refleja lo que se haya quitado en "Mi colección"
+}
+
+document.querySelector('#navegacion').addEventListener('click', (e) => {
+  const boton = e.target.closest('[data-vista]');
+  if (boton) irA(boton.dataset.vista);
+});
+
+// --- Mi colección ---------------------------------------------
+
+async function cargarColeccion() {
+  const pedido = ++ultimoPedido;
+  const texto = textoColeccion;
+  ui.mensajeColeccion('Cargando tu colección…');
+
+  try {
+    const cartas = await coleccion.listarColeccion(texto);
+    if (pedido !== ultimoPedido) return; // llegó una respuesta más nueva
+    cartasColeccion = cartas;
+    // Por si se agregaron cartas desde otra pestaña o dispositivo
+    cartas.forEach((c) => idsTengo?.add(c.id));
+    dibujarColeccion();
+  } catch (error) {
+    if (pedido !== ultimoPedido) return;
+    console.error(error);
+    ui.mensajeColeccion('No pudimos cargar tu colección. Inténtalo de nuevo.', 'error');
+  }
+}
+
+function dibujarColeccion() {
+  const total = cartasColeccion.length;
+  const vacio = textoColeccion
+    ? `No tienes cartas de "${textoColeccion}".`
+    : 'Aún no tienes cartas. Busca un Pokémon y marca las que tengas.';
+
+  ui.mostrarColeccion(cartasColeccion, { idsTengo, alCambiar: cambiarDesdeColeccion }, vacio);
+
+  if (total === 0) {
+    ui.mensajeColeccion('');
+  } else {
+    const cartas = total === 1 ? 'carta' : 'cartas';
+    ui.mensajeColeccion(textoColeccion
+      ? `${total} ${cartas} de "${textoColeccion}"`
+      : `${total} ${cartas} en tu colección`);
+  }
+}
+
+async function cambiarDesdeColeccion(carta, tengo) {
+  try {
+    await guardarCambio(carta, tengo);
+  } catch (error) {
+    console.error(error);
+    ui.mensajeColeccion('No se pudo quitar la carta. Inténtalo de nuevo.', 'error');
+    throw error;
+  }
+  // "Me falta" la quita de la colección
+  if (!tengo) {
+    cartasColeccion = cartasColeccion.filter((c) => c.id !== carta.id);
+    dibujarColeccion();
+  }
+}
+
+// Filtra mientras se escribe, esperando 300 ms de pausa para no
+// consultar a Supabase en cada tecla
+let esperaFiltro;
+const formColeccion = document.querySelector('#form-coleccion');
+
+formColeccion.addEventListener('input', (e) => {
+  clearTimeout(esperaFiltro);
+  esperaFiltro = setTimeout(() => {
+    textoColeccion = e.target.value.trim();
+    cargarColeccion();
+  }, 300);
+});
+
+formColeccion.addEventListener('submit', (e) => {
+  e.preventDefault();
+  clearTimeout(esperaFiltro);
+  textoColeccion = formColeccion.filtro.value.trim();
+  cargarColeccion();
+});
 
 // --- Sesión ---------------------------------------------------
 // Se carga con import() dinámico: si falla, solo se pierde el login.
@@ -90,21 +240,11 @@ iniciarLogin().catch((error) => {
 });
 
 async function iniciarLogin() {
-  const [{ entrarConGoogle, enviarEnlace, cerrarSesion, alCambiarSesion }, coleccion] = await Promise.all([
+  const [{ entrarConGoogle, enviarEnlace, cerrarSesion, alCambiarSesion }, modColeccion] = await Promise.all([
     import('./auth.js'),
     import('./coleccion.js'),
   ]);
-
-  alCambiarCarta = async (carta, tengo) => {
-    if (tengo) {
-      await coleccion.marcarTengo(carta);
-      idsTengo?.add(carta.id);
-    } else {
-      await coleccion.marcarMeFalta(carta.id);
-      idsTengo?.delete(carta.id);
-    }
-    mostrarResumen();
-  };
+  coleccion = modColeccion;
 
   let usuarioId = null;
 
@@ -119,7 +259,12 @@ async function iniciarLogin() {
 
     if (!usuario) {
       idsTengo = null;
-      dibujar();
+      ultimoPedido++; // descarta una carga de "Mi colección" en curso
+      cartasColeccion = [];
+      textoColeccion = '';
+      formColeccion.reset();
+      ui.mostrarNavegacion(false);
+      irA('buscar');
       return;
     }
 
@@ -130,7 +275,8 @@ async function iniciarLogin() {
         const ids = await coleccion.cargarIdsTengo();
         if (usuarioId !== nuevoId) return; // salió mientras cargaba
         idsTengo = ids;
-        dibujar();
+        ui.mostrarNavegacion(true);
+        dibujarBusqueda();
       } catch (error) {
         console.error(error);
         ui.mensajeLogin('No pudimos cargar tu colección. Recarga la página para intentarlo de nuevo.', 'error');

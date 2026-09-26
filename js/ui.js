@@ -28,6 +28,23 @@ export function mensajeLogin(texto, tipo = 'info') {
   el.hidden = !texto;
 }
 
+// --- Navegación -----------------------------------------------
+
+/** Muestra u oculta la barra "Buscar" / "Mi colección". */
+export function mostrarNavegacion(visible) {
+  $('#navegacion').hidden = !visible;
+}
+
+/** Cambia de vista: 'buscar' o 'coleccion'. */
+export function mostrarVista(vista) {
+  $('#vista-buscar').hidden = vista !== 'buscar';
+  $('#vista-coleccion').hidden = vista !== 'coleccion';
+  document.querySelectorAll('.navegacion__boton').forEach((btn) => {
+    if (btn.dataset.vista === vista) btn.setAttribute('aria-current', 'page');
+    else btn.removeAttribute('aria-current');
+  });
+}
+
 // --- Búsqueda -------------------------------------------------
 
 /** Texto de estado sobre la grilla: "Buscando…", "12 cartas", errores. */
@@ -44,19 +61,64 @@ export function buscando(activo) {
   $('#grilla').setAttribute('aria-busy', String(activo));
 }
 
+/**
+ * Pestañas "Todas (N)" / "Tengo (N)" / "Me falta (N)".
+ * Con conteos = null se ocultan (sin sesión o sin resultados).
+ *
+ * @param {null | {todas: number, tengo: number, falta: number}} conteos
+ * @param {'todas'|'tengo'|'falta'} activo
+ */
+export function mostrarFiltros(conteos, activo = 'todas') {
+  const filtros = $('#filtros');
+  filtros.hidden = !conteos;
+  if (!conteos) return;
+
+  const nombres = { todas: 'Todas', tengo: 'Tengo', falta: 'Me falta' };
+  filtros.querySelectorAll('[data-filtro]').forEach((btn) => {
+    const clave = btn.dataset.filtro;
+    btn.textContent = `${nombres[clave]} (${conteos[clave]})`;
+    btn.setAttribute('aria-pressed', String(clave === activo));
+  });
+}
+
+// --- Mi colección ---------------------------------------------
+
+/** Texto de estado de "Mi colección": "Cargando…", "12 cartas", errores. */
+export function mensajeColeccion(texto, tipo = 'info') {
+  const el = $('#estado-coleccion');
+  el.textContent = texto;
+  el.dataset.tipo = tipo;
+}
+
+/** Dibuja las cartas de "Mi colección" (mismos parámetros que mostrarCartas). */
+export function mostrarColeccion(cartas, marcado, textoVacio) {
+  dibujarGrilla($('#grilla-coleccion'), cartas, marcado, textoVacio);
+}
+
 // --- Grilla de cartas -----------------------------------------
 
 /**
- * Dibuja todas las cartas en la grilla.
+ * Dibuja las cartas de la búsqueda en la grilla.
  *
  * @param {Array} cartas
  * @param {null | {
  *   idsTengo: Set<string>,
  *   alCambiar: (carta: object, tengo: boolean) => Promise<void>
  * }} marcado  null si no hay sesión: las cartas se ven sin botones.
+ * @param {string} [textoVacio]  mensaje si no hay cartas que mostrar
  */
-export function mostrarCartas(cartas, marcado = null) {
-  const grilla = $('#grilla');
+export function mostrarCartas(cartas, marcado = null, textoVacio = '') {
+  dibujarGrilla($('#grilla'), cartas, marcado, textoVacio);
+}
+
+function dibujarGrilla(grilla, cartas, marcado, textoVacio) {
+  if (cartas.length === 0 && textoVacio) {
+    const vacio = document.createElement('p');
+    vacio.className = 'grilla__vacio';
+    vacio.textContent = textoVacio;
+    grilla.replaceChildren(vacio);
+    return;
+  }
   grilla.replaceChildren(...cartas.map((carta) => crearTarjeta(carta, marcado)));
 }
 
@@ -114,7 +176,8 @@ function crearTarjeta(carta, marcado) {
 /**
  * Par de botones "Tengo" / "Me falta". El que está presionado
  * (aria-pressed) indica el estado actual de la carta.
- * El cambio se muestra al instante y se revierte si Supabase falla.
+ * El cambio se muestra al instante y se revierte si alCambiar falla
+ * (el mensaje de error lo muestra quien llama).
  */
 function crearMarcado(carta, tarjeta, { idsTengo, alCambiar }) {
   const grupo = document.createElement('div');
@@ -137,10 +200,8 @@ function crearMarcado(carta, tarjeta, { idsTengo, alCambiar }) {
     btnTengo.disabled = btnFalta.disabled = true;
     try {
       await alCambiar(carta, tengo);
-    } catch (error) {
-      console.error(error);
+    } catch {
       pintar(!tengo);
-      mensajeEstado('No se pudo guardar el cambio. Inténtalo de nuevo.', 'error');
     } finally {
       btnTengo.disabled = btnFalta.disabled = false;
     }
