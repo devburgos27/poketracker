@@ -14,7 +14,7 @@ const $ = (selector) => document.querySelector(selector);
 /** Muestra el formulario de login o el correo del usuario conectado. */
 export function mostrarSesion(usuario) {
   const conectado = Boolean(usuario);
-  $('#form-login').hidden = conectado;
+  $('#login').hidden = conectado;
   $('#sesion-activa').hidden = !conectado;
   $('#usuario-email').textContent = usuario?.email ?? '';
   $('#aviso-login').hidden = conectado;
@@ -46,14 +46,22 @@ export function buscando(activo) {
 
 // --- Grilla de cartas -----------------------------------------
 
-/** Dibuja todas las cartas en la grilla. */
-export function mostrarCartas(cartas) {
+/**
+ * Dibuja todas las cartas en la grilla.
+ *
+ * @param {Array} cartas
+ * @param {null | {
+ *   idsTengo: Set<string>,
+ *   alCambiar: (carta: object, tengo: boolean) => Promise<void>
+ * }} marcado  null si no hay sesión: las cartas se ven sin botones.
+ */
+export function mostrarCartas(cartas, marcado = null) {
   const grilla = $('#grilla');
-  grilla.replaceChildren(...cartas.map(crearTarjeta));
+  grilla.replaceChildren(...cartas.map((carta) => crearTarjeta(carta, marcado)));
 }
 
 /** Crea la tarjeta de una carta. */
-function crearTarjeta(carta) {
+function crearTarjeta(carta, marcado) {
   const tarjeta = document.createElement('article');
   tarjeta.className = 'carta';
 
@@ -98,8 +106,60 @@ function crearTarjeta(carta) {
   detalle.textContent = [numero, anio].filter(Boolean).join(' · ');
 
   info.append(set, detalle);
+  if (marcado) info.append(crearMarcado(carta, tarjeta, marcado));
   tarjeta.append(boton, info);
   return tarjeta;
+}
+
+/**
+ * Par de botones "Tengo" / "Me falta". El que está presionado
+ * (aria-pressed) indica el estado actual de la carta.
+ * El cambio se muestra al instante y se revierte si Supabase falla.
+ */
+function crearMarcado(carta, tarjeta, { idsTengo, alCambiar }) {
+  const grupo = document.createElement('div');
+  grupo.className = 'marcado';
+  grupo.setAttribute('role', 'group');
+  grupo.setAttribute('aria-label', `¿Tienes ${carta.nombre} ${carta.numero}?`);
+
+  const btnTengo = crearBotonMarcado('Tengo', 'marcado__tengo');
+  const btnFalta = crearBotonMarcado('Me falta', 'marcado__falta');
+
+  const pintar = (tengo) => {
+    btnTengo.setAttribute('aria-pressed', String(tengo));
+    btnFalta.setAttribute('aria-pressed', String(!tengo));
+    tarjeta.classList.toggle('carta--tengo', tengo);
+  };
+
+  const cambiar = async (tengo) => {
+    if (idsTengo.has(carta.id) === tengo) return;
+    pintar(tengo);
+    btnTengo.disabled = btnFalta.disabled = true;
+    try {
+      await alCambiar(carta, tengo);
+    } catch (error) {
+      console.error(error);
+      pintar(!tengo);
+      mensajeEstado('No se pudo guardar el cambio. Inténtalo de nuevo.', 'error');
+    } finally {
+      btnTengo.disabled = btnFalta.disabled = false;
+    }
+  };
+
+  btnTengo.addEventListener('click', () => cambiar(true));
+  btnFalta.addEventListener('click', () => cambiar(false));
+
+  pintar(idsTengo.has(carta.id));
+  grupo.append(btnTengo, btnFalta);
+  return grupo;
+}
+
+function crearBotonMarcado(texto, clase) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `marcado__boton ${clase}`;
+  btn.textContent = texto;
+  return btn;
 }
 
 // --- Vista ampliada -------------------------------------------

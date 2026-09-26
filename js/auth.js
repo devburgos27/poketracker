@@ -23,6 +23,20 @@ export async function enviarEnlace(email) {
   if (error) throw error;
 }
 
+/**
+ * Lleva al usuario a la pantalla de Google para elegir su cuenta.
+ * Al aceptar, Google lo devuelve a esta misma página ya conectado.
+ */
+export async function entrarConGoogle() {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + window.location.pathname,
+    },
+  });
+  if (error) throw error;
+}
+
 /** Cierra la sesión del usuario actual. */
 export async function cerrarSesion() {
   const { error } = await supabase.auth.signOut();

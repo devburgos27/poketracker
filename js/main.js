@@ -9,6 +9,34 @@
 import { buscarCartas } from './api.js';
 import * as ui from './ui.js';
 
+// --- Estado de la pantalla -----------------------------------
+
+let cartasActuales = [];   // resultado de la última búsqueda
+let busquedaActual = '';
+let idsTengo = null;       // Set de ids de cartas que tengo; null = sin sesión
+let alCambiarCarta = null; // guarda "Tengo" / "Me falta" (lo define el login)
+
+/** Vuelve a dibujar la grilla con el estado actual. */
+function dibujar() {
+  const marcado = idsTengo ? { idsTengo, alCambiar: alCambiarCarta } : null;
+  ui.mostrarCartas(cartasActuales, marcado);
+  mostrarResumen();
+}
+
+/** "20 cartas encontradas para "Joltik" · Tienes 3, te faltan 17" */
+function mostrarResumen() {
+  const total = cartasActuales.length;
+  if (total === 0) return;
+
+  const texto = total === 1 ? 'carta encontrada' : 'cartas encontradas';
+  let resumen = `${total} ${texto} para "${busquedaActual}"`;
+  if (idsTengo) {
+    const tengo = cartasActuales.filter((c) => idsTengo.has(c.id)).length;
+    resumen += ` · Tienes ${tengo}, te faltan ${total - tengo}`;
+  }
+  ui.mensajeEstado(resumen);
+}
+
 // --- Búsqueda de cartas ---------------------------------------
 
 document.querySelector('#form-busqueda').addEventListener('submit', async (e) => {
@@ -18,20 +46,20 @@ document.querySelector('#form-busqueda').addEventListener('submit', async (e) =>
 
   ui.buscando(true);
   ui.mensajeEstado(`Buscando cartas de ${nombre}…`);
-  ui.mostrarCartas([]);
+  cartasActuales = [];
+  busquedaActual = nombre;
+  dibujar();
 
   try {
-    const cartas = await buscarCartas(nombre);
+    cartasActuales = await buscarCartas(nombre);
 
-    if (cartas.length === 0) {
+    if (cartasActuales.length === 0) {
       ui.mensajeEstado(
         `No encontramos cartas de "${nombre}". Revisa que el nombre esté en inglés (ej: Pikachu, Joltik, Charizard).`,
         'error',
       );
     } else {
-      const texto = cartas.length === 1 ? 'carta encontrada' : 'cartas encontradas';
-      ui.mensajeEstado(`${cartas.length} ${texto} para "${nombre}"`);
-      ui.mostrarCartas(cartas);
+      dibujar();
     }
   } catch (error) {
     console.error(error);
@@ -49,19 +77,80 @@ ui.prepararDialogo();
 // --- Sesión ---------------------------------------------------
 // Se carga con import() dinámico: si falla, solo se pierde el login.
 
+// Va antes de iniciarLogin() para limpiar la URL antes de que
+// Supabase intente leerla.
+mostrarErrorDeRetorno();
+
 iniciarLogin().catch((error) => {
   console.error('No se pudo cargar el login:', error);
   // Desactiva el formulario para que no recargue la página al enviarlo
-  document.querySelectorAll('#form-login input, #form-login button')
+  document.querySelectorAll('#login input, #login button')
     .forEach((el) => { el.disabled = true; });
   ui.mensajeLogin('El inicio de sesión no está disponible en este momento.', 'error');
 });
 
 async function iniciarLogin() {
-  const { enviarEnlace, cerrarSesion, alCambiarSesion } = await import('./auth.js');
+  const [{ entrarConGoogle, enviarEnlace, cerrarSesion, alCambiarSesion }, coleccion] = await Promise.all([
+    import('./auth.js'),
+    import('./coleccion.js'),
+  ]);
+
+  alCambiarCarta = async (carta, tengo) => {
+    if (tengo) {
+      await coleccion.marcarTengo(carta);
+      idsTengo?.add(carta.id);
+    } else {
+      await coleccion.marcarMeFalta(carta.id);
+      idsTengo?.delete(carta.id);
+    }
+    mostrarResumen();
+  };
+
+  let usuarioId = null;
 
   alCambiarSesion((usuario) => {
     ui.mostrarSesion(usuario);
+
+    // Supabase avisa también al renovar el token: solo se recarga
+    // la colección si de verdad cambió el usuario.
+    const nuevoId = usuario?.id ?? null;
+    if (nuevoId === usuarioId) return;
+    usuarioId = nuevoId;
+
+    if (!usuario) {
+      idsTengo = null;
+      dibujar();
+      return;
+    }
+
+    // setTimeout: Supabase recomienda no llamar a la base de datos
+    // dentro de este aviso, porque puede quedar bloqueado.
+    setTimeout(async () => {
+      try {
+        const ids = await coleccion.cargarIdsTengo();
+        if (usuarioId !== nuevoId) return; // salió mientras cargaba
+        idsTengo = ids;
+        dibujar();
+      } catch (error) {
+        console.error(error);
+        ui.mensajeLogin('No pudimos cargar tu colección. Recarga la página para intentarlo de nuevo.', 'error');
+      }
+    }, 0);
+  });
+
+  document.querySelector('#btn-google').addEventListener('click', async (e) => {
+    const boton = e.currentTarget;
+    boton.disabled = true;
+    ui.mensajeLogin('Abriendo Google…');
+
+    try {
+      // Si todo va bien, el navegador se va a Google y no vuelve aquí
+      await entrarConGoogle();
+    } catch (error) {
+      console.error(error);
+      ui.mensajeLogin('No se pudo abrir el inicio de sesión con Google. Inténtalo otra vez.', 'error');
+      boton.disabled = false;
+    }
   });
 
   document.querySelector('#form-login').addEventListener('submit', async (e) => {
@@ -92,6 +181,29 @@ async function iniciarLogin() {
       console.error(error);
     }
   });
+}
+
+/**
+ * Si Supabase devolvió al usuario con un error en la URL
+ * (#error=...&error_code=...), lo muestra y limpia la dirección.
+ * Pasa, por ejemplo, con un enlace mágico ya usado o vencido.
+ */
+function mostrarErrorDeRetorno() {
+  // Normalmente viene en el hash (#); por si acaso se revisa también la query (?)
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const query = new URLSearchParams(window.location.search);
+  const fuente = params.has('error') ? params : query.has('error') ? query : null;
+  if (!fuente) return;
+
+  console.error('Error al volver del login:', fuente.get('error_description'));
+  ui.mensajeLogin(
+    fuente.get('error_code') === 'otp_expired'
+      ? 'El enlace ya se usó o expiró. Pide uno nuevo.'
+      : 'No se pudo iniciar sesión. Inténtalo de nuevo.',
+    'error',
+  );
+
+  history.replaceState(null, '', window.location.pathname);
 }
 
 /** Mensajes de error de Supabase en palabras simples. */
