@@ -411,6 +411,41 @@ button:focus-visible {
   border-top: 1px solid var(--borde);
 }
 
+.pie p { margin: 0; }
+.pie p + p { margin-top: 0.5rem; }
+
+/* --- Página de privacidad ---------------------------------- */
+.logo--enlace {
+  color: var(--texto);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.legal {
+  max-width: 680px;
+  margin-inline: auto;
+  padding-block: 2.5rem 3rem;
+}
+.legal h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  letter-spacing: -0.02em;
+}
+.legal__fecha {
+  margin: 0.25rem 0 2rem;
+  font-size: 0.9rem;
+  color: var(--texto-suave);
+}
+.legal h2 {
+  margin: 2rem 0 0.5rem;
+  font-size: 1.15rem;
+}
+.legal p,
+.legal li { color: var(--texto); }
+.legal p { margin: 0 0 0.75rem; }
+.legal ul { margin: 0 0 0.75rem; padding-left: 1.25rem; }
+.legal li + li { margin-top: 0.5rem; }
+
 /* --- Móvil ------------------------------------------------- */
 @media (max-width: 600px) {
   .sesion,

@@ -27,7 +27,7 @@ Actualizado: 2026-09-26
 - Ojo: el correo integrado de Supabase tiene un límite bajo de envíos por hora.
 
 ## Estructura
-index.html · css/estilos.css · js/{config, supabase, api, auth, coleccion, ui, main}.js · sql/schema.sql · README.md · .gitignore
+index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, auth, coleccion, ui, main}.js · sql/schema.sql · README.md · .gitignore
 
 ## Avance
 - [x] Bloque 1: login con enlace mágico + búsqueda con grilla y vista ampliada (TCGdex).

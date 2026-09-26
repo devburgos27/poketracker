@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacidad · PokéTracker</title>
+  <meta name="description" content="Qué datos guarda PokéTracker, para qué se usan y cómo borrarlos.">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+  <header class="cabecera">
+    <div class="contenedor cabecera__fila">
+      <a href="./" class="logo logo--enlace">Poké<span>Tracker</span></a>
+      <a href="./" class="boton boton--secundario">← Volver al inicio</a>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <article class="legal">
+      <h1>Política de privacidad</h1>
+      <p class="legal__fecha">Última actualización: 26 de septiembre de 2026</p>
+
+      <p>
+        PokéTracker es un proyecto personal y sin fines comerciales para llevar el registro
+        de tu colección de cartas Pokémon. Esta página explica, en simple, qué datos se guardan
+        y qué se hace con ellos.
+      </p>
+
+      <h2>Qué datos se guardan</h2>
+      <p>Buscar cartas no requiere cuenta y no guarda nada. Si inicias sesión, se guardan:</p>
+      <ul>
+        <li>
+          <strong>Tu correo electrónico</strong>, el que usas para entrar con Google o con el
+          enlace mágico. Si entras con Google, Google también entrega tu nombre y tu foto de
+          perfil; quedan registrados junto a tu cuenta, pero PokéTracker no los usa ni los muestra.
+        </li>
+        <li>
+          <strong>Las cartas que marcas como "Tengo"</strong>: el identificador de cada carta,
+          su nombre, set, número, la dirección de su imagen y la fecha en que la marcaste.
+        </li>
+      </ul>
+      <p>
+        Para mantener tu sesión abierta, tu navegador guarda un token de acceso en su
+        almacenamiento local. El sitio no usa cookies de publicidad ni herramientas de analítica.
+      </p>
+
+      <h2>Para qué se usan</h2>
+      <p>
+        Solo para mostrarte tu colección y saber qué cartas te faltan.
+        Tus datos no se comparten ni se venden a nadie.
+      </p>
+
+      <h2>Dónde se guardan</h2>
+      <p>
+        En <a href="https://supabase.com" target="_blank" rel="noopener">Supabase</a>, un servicio
+        de base de datos y autenticación. La base de datos tiene reglas de seguridad (Row Level
+        Security) que permiten a cada usuario ver, agregar y borrar solo sus propias cartas:
+        otros usuarios no pueden ver las tuyas. Como responsable del proyecto, tengo acceso
+        técnico a la base de datos para mantenerla, pero no reviso ni uso tus datos para
+        nada más.
+      </p>
+
+      <h2>Cómo borrar tus datos</h2>
+      <p>
+        Puedes quitar cualquier carta de tu colección cuando quieras desde la misma aplicación.
+        Si quieres borrar tu cuenta y todos tus datos, escribe a
+        <a href="mailto:dev.burgos27@gmail.com">dev.burgos27@gmail.com</a> desde el correo con el
+        que iniciaste sesión. Al borrar la cuenta se borran también todas tus cartas.
+      </p>
+
+      <h2>Datos de cartas y marcas</h2>
+      <p>
+        Las imágenes y los datos de las cartas vienen de
+        <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>, una API abierta.
+        Al buscar, tu navegador se conecta directamente a TCGdex para obtenerlos.
+        Pokémon y sus marcas pertenecen a Nintendo, Game Freak y The Pokémon Company.
+        PokéTracker no está afiliado a ninguna de ellas.
+      </p>
+
+      <h2>Cambios en esta política</h2>
+      <p>
+        Si esta política cambia, se actualizará esta página y la fecha de arriba.
+      </p>
+    </article>
+  </main>
+
+  <footer class="pie contenedor">
+    <p><a href="./">Volver al inicio</a></p>
+  </footer>
+
+</body>
+</html>

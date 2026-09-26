@@ -21,6 +21,7 @@ No hay servidor propio ni paso de compilación: es un sitio estático.
 
 ```
 index.html
+privacidad.html política de privacidad
 css/estilos.css
 js/
   config.js     URL y llave pública de Supabase
