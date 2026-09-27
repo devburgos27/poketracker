@@ -28,6 +28,45 @@ export function mensajeLogin(texto, tipo = 'info') {
   el.hidden = !texto;
 }
 
+// --- Tema claro / oscuro --------------------------------------
+// La preferencia se guarda en localStorage ('pt-tema'). Sin nada
+// guardado manda el sistema. El <head> aplica el tema guardado
+// antes de pintar; aquí solo se maneja el botón.
+
+const CLAVE_TEMA = 'pt-tema';
+const temaOscuroSistema = window.matchMedia('(prefers-color-scheme: dark)');
+
+function temaActual() {
+  return document.documentElement.dataset.tema
+    ?? (temaOscuroSistema.matches ? 'oscuro' : 'claro');
+}
+
+/** Sincroniza el botón y la barra del navegador con el tema activo. */
+function pintarTema() {
+  const oscuro = temaActual() === 'oscuro';
+  $('#btn-tema').setAttribute('aria-pressed', String(oscuro));
+  // Toma el fondo de la cabecera del CSS, así no se repiten colores aquí
+  const fondo = getComputedStyle(document.documentElement).getPropertyValue('--superficie').trim();
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', fondo);
+}
+
+/** Prepara el botón ☀️/🌙 de la cabecera. */
+export function prepararSelectorTema() {
+  $('#btn-tema').addEventListener('click', () => {
+    const nuevo = temaActual() === 'oscuro' ? 'claro' : 'oscuro';
+    document.documentElement.dataset.tema = nuevo;
+    try {
+      localStorage.setItem(CLAVE_TEMA, nuevo);
+    } catch {
+      // Sin almacenamiento (modo privado estricto): el tema dura hasta recargar
+    }
+    pintarTema();
+  });
+  // Si no hay preferencia guardada y el sistema cambia, se sigue al sistema
+  temaOscuroSistema.addEventListener('change', pintarTema);
+  pintarTema();
+}
+
 // --- Navegación -----------------------------------------------
 
 /** Muestra u oculta la barra "Buscar" / "Mi colección". */
@@ -39,7 +78,7 @@ export function mostrarNavegacion(visible) {
 export function mostrarVista(vista) {
   $('#vista-buscar').hidden = vista !== 'buscar';
   $('#vista-coleccion').hidden = vista !== 'coleccion';
-  document.querySelectorAll('.navegacion__boton').forEach((btn) => {
+  document.querySelectorAll('#navegacion [data-vista]').forEach((btn) => {
     if (btn.dataset.vista === vista) btn.setAttribute('aria-current', 'page');
     else btn.removeAttribute('aria-current');
   });

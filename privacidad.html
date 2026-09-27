@@ -5,13 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacidad · PokéTracker</title>
   <meta name="description" content="Qué datos guarda PokéTracker, para qué se usan y cómo borrarlos.">
+  <meta name="theme-color" content="#ffffff">
+  <!-- Aplica el tema guardado en la app antes de pintar -->
+  <script>try{var t=localStorage.getItem('pt-tema');if(t==='claro'||t==='oscuro')document.documentElement.dataset.tema=t}catch(e){}</script>
   <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
 
   <header class="cabecera">
     <div class="contenedor cabecera__fila">
-      <a href="./" class="logo logo--enlace">Poké<span>Tracker</span></a>
+      <a href="./" class="logo logo--enlace">
+        <svg class="logo__rayo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2 4 14h6l-2 8 10-12h-6z"/></svg>
+        <span>Poké<span class="logo__marca">Tracker</span></span>
+      </a>
       <a href="./" class="boton boton--secundario">← Volver al inicio</a>
     </div>
   </header>
@@ -19,7 +25,7 @@
   <main class="contenedor">
     <article class="legal">
       <h1>Política de privacidad</h1>
-      <p class="legal__fecha">Última actualización: 26 de septiembre de 2026</p>
+      <p class="legal__fecha">Última actualización: 27 de septiembre de 2026</p>
 
       <p>
         PokéTracker es un proyecto personal y sin fines comerciales para llevar el registro
@@ -28,12 +34,16 @@
       </p>
 
       <h2>Qué datos se guardan</h2>
-      <p>Buscar cartas no requiere cuenta y no guarda nada. Si inicias sesión, se guardan:</p>
+      <p>
+        Buscar cartas no requiere cuenta y no guarda nada. Para marcar tus cartas hay que
+        iniciar sesión, y la única forma de hacerlo es con tu cuenta de Google. Si inicias sesión,
+        se guardan:
+      </p>
       <ul>
         <li>
-          <strong>Tu correo electrónico</strong>, el que usas para entrar con Google o con el
-          enlace mágico. Si entras con Google, Google también entrega tu nombre y tu foto de
-          perfil; quedan registrados junto a tu cuenta, pero PokéTracker no los usa ni los muestra.
+          <strong>El correo de tu cuenta de Google.</strong> Google también entrega tu nombre y
+          tu foto de perfil; quedan registrados junto a tu cuenta, pero PokéTracker no los usa
+          ni los muestra. PokéTracker nunca recibe tu contraseña de Google.
         </li>
         <li>
           <strong>Las cartas que marcas como "Tengo"</strong>: el identificador de cada carta,
@@ -42,7 +52,7 @@
       </ul>
       <p>
         Para mantener tu sesión abierta, tu navegador guarda un token de acceso en su
-        almacenamiento local. El sitio no usa cookies de publicidad ni herramientas de analítica.
+        almacenamiento local. También guarda ahí si prefieres el tema claro u oscuro. El sitio no usa cookies de publicidad ni herramientas de analítica.
       </p>
 
       <h2>Para qué se usan</h2>

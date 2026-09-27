@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PokéTracker · Tu colección de cartas Pokémon</title>
   <meta name="description" content="Lleva el registro de tu colección de cartas Pokémon TCG: busca un Pokémon, mira todas sus cartas y marca las que tienes.">
+  <meta name="theme-color" content="#ffffff">
+  <!-- Aplica el tema guardado antes de pintar, para que no parpadee -->
+  <script>try{var t=localStorage.getItem('pt-tema');if(t==='claro'||t==='oscuro')document.documentElement.dataset.tema=t}catch(e){}</script>
   <link rel="stylesheet" href="css/estilos.css">
   <!-- Precarga la conexión a la API de cartas para que la primera búsqueda sea más rápida -->
   <link rel="preconnect" href="https://api.tcgdex.net">
@@ -14,11 +17,14 @@
 
   <header class="cabecera">
     <div class="contenedor cabecera__fila">
-      <h1 class="logo">Poké<span>Tracker</span></h1>
+      <h1 class="logo">
+        <svg class="logo__rayo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 2 4 14h6l-2 8 10-12h-6z"/></svg>
+        <span>Poké<span class="logo__marca">Tracker</span></span>
+      </h1>
 
-      <!-- Sesión: formulario de login o usuario conectado -->
+      <!-- Sesión: botón de Google o usuario conectado -->
       <div class="sesion">
-        <div id="login" class="login">
+        <div id="login">
           <button id="btn-google" type="button" class="boton boton--google">
             <svg class="boton--google__logo" viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -28,14 +34,6 @@
             </svg>
             Entrar con Google
           </button>
-
-          <p class="login__separador">o recibe un enlace por correo</p>
-
-          <form id="form-login" class="form-login">
-            <label for="email" class="visualmente-oculto">Correo electrónico</label>
-            <input id="email" name="email" type="email" placeholder="tu@correo.com" autocomplete="email" required>
-            <button type="submit" class="boton boton--secundario">Enviar enlace</button>
-          </form>
         </div>
 
         <div id="sesion-activa" class="sesion-activa" hidden>
@@ -43,6 +41,18 @@
           <button id="btn-salir" type="button" class="boton boton--texto">Salir</button>
         </div>
       </div>
+
+      <!-- Tema claro / oscuro: pressed = oscuro -->
+      <button id="btn-tema" type="button" class="boton boton--icono selector-tema"
+              aria-label="Tema oscuro" aria-pressed="false" title="Cambiar tema">
+        <svg class="selector-tema__sol" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <svg class="selector-tema__luna" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+          <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>
+        </svg>
+      </button>
     </div>
     <div class="contenedor">
       <p id="mensaje-login" class="mensaje" role="status" hidden></p>
@@ -52,9 +62,9 @@
   <main class="contenedor">
 
     <!-- Navegación: solo aparece con sesión iniciada -->
-    <nav id="navegacion" class="navegacion" aria-label="Secciones" hidden>
-      <button type="button" class="navegacion__boton" data-vista="buscar" aria-current="page">Buscar</button>
-      <button type="button" class="navegacion__boton" data-vista="coleccion">Mi colección</button>
+    <nav id="navegacion" class="navegacion pestanas" aria-label="Secciones" hidden>
+      <button type="button" class="pestanas__item" data-vista="buscar" aria-current="page">Buscar</button>
+      <button type="button" class="pestanas__item" data-vista="coleccion">Mi colección</button>
     </nav>
 
     <!-- Vista: buscar cartas -->
@@ -76,10 +86,10 @@
       <p id="estado" class="estado" role="status" aria-live="polite"></p>
 
       <!-- Filtro por estado: solo con sesión y con resultados -->
-      <div id="filtros" class="filtros" role="group" aria-label="Filtrar resultados" hidden>
-        <button type="button" class="filtros__boton" data-filtro="todas" aria-pressed="true">Todas</button>
-        <button type="button" class="filtros__boton" data-filtro="tengo" aria-pressed="false">Tengo</button>
-        <button type="button" class="filtros__boton" data-filtro="falta" aria-pressed="false">Me falta</button>
+      <div id="filtros" class="filtros pestanas" role="group" aria-label="Filtrar resultados" hidden>
+        <button type="button" class="pestanas__item" data-filtro="todas" aria-pressed="true">Todas</button>
+        <button type="button" class="pestanas__item" data-filtro="tengo" aria-pressed="false">Tengo</button>
+        <button type="button" class="pestanas__item" data-filtro="falta" aria-pressed="false">Me falta</button>
       </div>
 
       <section id="grilla" class="grilla" aria-label="Resultados"></section>

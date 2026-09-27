@@ -1,31 +1,17 @@
 // =============================================================
-// Login con enlace mágico (Supabase Auth)
+// Login con Google (Supabase Auth)
 // =============================================================
-// El usuario escribe su correo, Supabase le envía un enlace y al
-// hacer clic vuelve a la app ya conectado. No hay contraseñas que
+// Es la única forma de entrar: el usuario elige su cuenta en
+// Google y vuelve a la app ya conectado. No hay contraseñas que
 // guardar ni que recordar.
 // =============================================================
 
 import { supabase } from './supabase.js';
 
 /**
- * Envía el enlace mágico al correo indicado.
- * Si el correo no existe todavía, Supabase crea el usuario.
- */
-export async function enviarEnlace(email) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      // Vuelve exactamente a la página donde está el usuario
-      emailRedirectTo: window.location.origin + window.location.pathname,
-    },
-  });
-  if (error) throw error;
-}
-
-/**
  * Lleva al usuario a la pantalla de Google para elegir su cuenta.
  * Al aceptar, Google lo devuelve a esta misma página ya conectado.
+ * Si el usuario no existe todavía, Supabase lo crea.
  */
 export async function entrarConGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({

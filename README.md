@@ -4,7 +4,7 @@ Mini sistema web para coleccionistas de cartas **Pokémon TCG**: busca un Pokém
 
 ### 👉 [Abrir PokéTracker](https://poketracker-ten.vercel.app)
 
-Buscar cartas no requiere cuenta. Para marcar las tuyas, entra con Google o con un enlace mágico por correo.
+Buscar cartas no requiere cuenta. Para marcar las tuyas, entra con tu cuenta de Google.
 
 ## Tecnologías
 
@@ -16,7 +16,8 @@ No hay servidor propio ni paso de compilación: es un sitio estático.
 
 - **Cartas:** se consultan en vivo a la API GraphQL de TCGdex (gratis, sin API key). Todas esas llamadas están aisladas en `js/api.js`. Esto ya se puso a prueba: el proyecto partió con pokemontcg.io, que anunció su cierre para marzo de 2027, y migrar a TCGdex solo requirió reescribir ese archivo.
 - **Colección:** bajo cada carta hay botones **Tengo** / **Me falta**. En Supabase se guardan **solo las cartas que el usuario tiene**. "Me falta" se calcula comparando las cartas de la API con las guardadas, así que los resultados de una búsqueda se pueden filtrar en "Todas", "Tengo" y "Me falta". La pestaña **Mi colección** lista todas tus cartas y se puede filtrar por Pokémon.
-- **Usuarios:** login sin contraseña con Supabase Auth: "Entrar con Google" como opción principal, o un enlace mágico por correo.
+- **Usuarios:** login con Google (Supabase Auth). Es la única forma de entrar: la app no maneja contraseñas.
+- **Tema claro y oscuro:** sigue la preferencia del sistema y se puede cambiar con el botón ☀️/🌙 de la cabecera; la elección se guarda en el navegador.
 - **Seguridad:** reglas RLS en la base de datos garantizan que cada usuario solo pueda ver y modificar sus propias cartas (ver `sql/schema.sql`).
 - **Privacidad:** [`privacidad.html`](https://poketracker-ten.vercel.app/privacidad.html), enlazada al pie de la app, explica qué datos se guardan, para qué y cómo borrarlos.
 - **Hosting:** Vercel, como sitio estático.
@@ -31,7 +32,7 @@ js/
   config.js     URL y llave pública de Supabase
   supabase.js   cliente de Supabase
   api.js        adaptador de la API de cartas
-  auth.js       login (Google y enlace mágico) y sesión
+  auth.js       login con Google y sesión
   coleccion.js  listar, guardar y quitar cartas de tu colección
   ui.js         todo lo que se dibuja en pantalla
   main.js       punto de entrada

@@ -136,6 +136,7 @@ document.querySelector('#filtros').addEventListener('click', (e) => {
 });
 
 ui.prepararDialogo();
+ui.prepararSelectorTema();
 
 // --- Navegación: Buscar / Mi colección ------------------------
 
@@ -233,14 +234,12 @@ mostrarErrorDeRetorno();
 
 iniciarLogin().catch((error) => {
   console.error('No se pudo cargar el login:', error);
-  // Desactiva el formulario para que no recargue la página al enviarlo
-  document.querySelectorAll('#login input, #login button')
-    .forEach((el) => { el.disabled = true; });
+  document.querySelector('#btn-google').disabled = true;
   ui.mensajeLogin('El inicio de sesión no está disponible en este momento.', 'error');
 });
 
 async function iniciarLogin() {
-  const [{ entrarConGoogle, enviarEnlace, cerrarSesion, alCambiarSesion }, modColeccion] = await Promise.all([
+  const [{ entrarConGoogle, cerrarSesion, alCambiarSesion }, modColeccion] = await Promise.all([
     import('./auth.js'),
     import('./coleccion.js'),
   ]);
@@ -299,25 +298,12 @@ async function iniciarLogin() {
     }
   });
 
-  document.querySelector('#form-login').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = e.target.email.value.trim();
-    if (!email) return;
-
-    const boton = e.target.querySelector('button');
-    boton.disabled = true;
-    ui.mensajeLogin('Enviando enlace…');
-
-    try {
-      await enviarEnlace(email);
-      ui.mensajeLogin(`Listo. Revisa ${email} y abre el enlace para entrar.`, 'exito');
-      e.target.reset();
-    } catch (error) {
-      console.error(error);
-      ui.mensajeLogin(traducirErrorLogin(error), 'error');
-    } finally {
-      boton.disabled = false;
-    }
+  // Si vuelve con "Atrás" desde Google, el navegador puede restaurar la
+  // página tal como quedó (botón desactivado, "Abriendo Google…")
+  window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    document.querySelector('#btn-google').disabled = false;
+    ui.mensajeLogin('');
   });
 
   document.querySelector('#btn-salir').addEventListener('click', async () => {
@@ -331,8 +317,8 @@ async function iniciarLogin() {
 
 /**
  * Si Supabase devolvió al usuario con un error en la URL
- * (#error=...&error_code=...), lo muestra y limpia la dirección.
- * Pasa, por ejemplo, con un enlace mágico ya usado o vencido.
+ * (#error=...), lo muestra y limpia la dirección.
+ * Pasa, por ejemplo, si el usuario cancela en la pantalla de Google.
  */
 function mostrarErrorDeRetorno() {
   // Normalmente viene en el hash (#); por si acaso se revisa también la query (?)
@@ -342,20 +328,7 @@ function mostrarErrorDeRetorno() {
   if (!fuente) return;
 
   console.error('Error al volver del login:', fuente.get('error_description'));
-  ui.mensajeLogin(
-    fuente.get('error_code') === 'otp_expired'
-      ? 'El enlace ya se usó o expiró. Pide uno nuevo.'
-      : 'No se pudo iniciar sesión. Inténtalo de nuevo.',
-    'error',
-  );
+  ui.mensajeLogin('No se pudo iniciar sesión con Google. Inténtalo de nuevo.', 'error');
 
   history.replaceState(null, '', window.location.pathname);
-}
-
-/** Mensajes de error de Supabase en palabras simples. */
-function traducirErrorLogin(error) {
-  if (error.status === 429) {
-    return 'Se enviaron demasiados correos seguidos. Espera unos minutos e inténtalo de nuevo.';
-  }
-  return 'No se pudo enviar el enlace. Revisa el correo e inténtalo otra vez.';
 }

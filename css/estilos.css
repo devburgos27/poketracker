@@ -2,37 +2,136 @@
    PokéTracker — Estilos
    ============================================================= */
 
-/* --- Variables de diseño (colores, radios, sombras) -------- */
+/* --- Tokens: tema claro (por defecto) ---------------------- */
+/* El tema se elige con data-tema="claro" | "oscuro" en <html>.
+   Sin data-tema, manda la preferencia del sistema.
+   Contrastes verificados (WCAG): ver docs/roadmap.md. */
 :root {
-  --fondo: #f4f5f7;
-  --superficie: #ffffff;
-  --texto: #1d2230;
-  --texto-suave: #5b6275;
-  --borde: #dde0e6;
-  --acento: #e3350d;          /* rojo Pokébola */
-  --acento-hover: #c22c09;
-  --acento-texto: #ffffff;
-  --amarillo: #ffcb05;
-  --exito: #1e7e34;
-  --error: #b3261e;
+  color-scheme: light;
 
-  --radio: 12px;
-  --sombra: 0 1px 3px rgb(0 0 0 / 0.08), 0 4px 12px rgb(0 0 0 / 0.06);
+  --fondo: #f5f7fb;
+  --superficie: #ffffff;
+  --superficie-2: #ebeef5;      /* hover, pistas, relleno de carga */
+  --borde: #d5dbe7;             /* decorativo */
+  --borde-control: #7c879f;     /* inputs: 3:1 contra el fondo */
+  --texto: #121829;
+  --texto-suave: #525c73;
+
+  --primario: #ffd60a;          /* amarillo eléctrico: SOLO como fondo */
+  --primario-hover: #f5c400;
+  --sobre-primario: #121829;    /* texto sobre el amarillo */
+  --primario-borde: rgb(18 24 41 / 0.18);
+  --marca-texto: #8a5a00;       /* ámbar: texto e iconos de marca */
+  --info: #0a63b8;              /* azul eléctrico: enlaces */
+  --exito: #1b7a3a;
+  --sobre-exito: #ffffff;
+  --advertencia: #9a4a00;
+  --error: #b3261e;
+  --foco: #0a63b8;
+
+  --sombra: 0 1px 2px rgb(18 24 41 / 0.06), 0 4px 12px rgb(18 24 41 / 0.06);
+  --brillo: none;
+
+  /* Botón de Google: colores de su guía de marca */
+  --google-fondo: #ffffff;
+  --google-borde: #747775;
+  --google-texto: #1f1f1f;
+
+  /* Forma y espacio */
+  --radio-s: 8px;
+  --radio-m: 12px;
+  --radio-l: 16px;
+  --radio-pill: 999px;
+
+  --esp-1: 4px;
+  --esp-2: 8px;
+  --esp-3: 12px;
+  --esp-4: 16px;
+  --esp-5: 24px;
+  --esp-6: 32px;
+  --esp-7: 48px;
+
+  --texto-xs: 0.8rem;
+  --texto-s: 0.875rem;
+  --texto-m: 1rem;
+  --texto-l: 1.25rem;
+  --texto-xl: clamp(1.4rem, 4vw, 2rem);
+
+  --alto-toque: 44px;
+  --duracion: 150ms;
   --fuente: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --ancho-max: 1200px;
 }
 
+/* --- Tokens: tema oscuro ----------------------------------- */
+/* Los dos bloques de abajo deben ser IGUALES: uno aplica cuando el
+   usuario eligió oscuro, el otro cuando no eligió y el sistema es oscuro. */
+:root[data-tema="oscuro"] {
+  color-scheme: dark;
+
+  --fondo: #0b1020;
+  --superficie: #151b2e;
+  --superficie-2: #1e2640;
+  --borde: #2a3350;
+  --borde-control: #626f94;
+  --texto: #eef1f8;
+  --texto-suave: #9aa5c0;
+
+  --primario: #ffd60a;
+  --primario-hover: #ffe14d;
+  --sobre-primario: #0b1020;
+  --primario-borde: transparent;
+  --marca-texto: #ffd60a;
+  --info: #4cc3ff;
+  --exito: #4ade80;
+  --sobre-exito: #0b1020;
+  --advertencia: #ffa94d;
+  --error: #ff6b6b;
+  --foco: #ffd60a;
+
+  --sombra: 0 1px 3px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.3);
+  --brillo: 0 0 12px rgb(255 214 10 / 0.35);
+
+  --google-fondo: #131314;
+  --google-borde: #8e918f;
+  --google-texto: #e3e3e3;
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    --fondo: #12141a;
-    --superficie: #1c1f28;
-    --texto: #eceef3;
-    --texto-suave: #a3a9b8;
-    --borde: #2e3340;
-    --exito: #5cc97a;
-    --error: #ff8a80;
+  :root:not([data-tema="claro"]) {
+    color-scheme: dark;
+
+    --fondo: #0b1020;
+    --superficie: #151b2e;
+    --superficie-2: #1e2640;
+    --borde: #2a3350;
+    --borde-control: #626f94;
+    --texto: #eef1f8;
+    --texto-suave: #9aa5c0;
+
+    --primario: #ffd60a;
+    --primario-hover: #ffe14d;
+    --sobre-primario: #0b1020;
+    --primario-borde: transparent;
+    --marca-texto: #ffd60a;
+    --info: #4cc3ff;
+    --exito: #4ade80;
+    --sobre-exito: #0b1020;
+    --advertencia: #ffa94d;
+    --error: #ff6b6b;
+    --foco: #ffd60a;
+
     --sombra: 0 1px 3px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.3);
+    --brillo: 0 0 12px rgb(255 214 10 / 0.35);
+
+    --google-fondo: #131314;
+    --google-borde: #8e918f;
+    --google-texto: #e3e3e3;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --duracion: 0ms; }
 }
 
 /* --- Base -------------------------------------------------- */
@@ -49,13 +148,13 @@ body {
 }
 
 img { max-width: 100%; display: block; }
-a { color: var(--acento); }
+a { color: var(--info); }
 
 .contenedor {
   width: 100%;
   max-width: var(--ancho-max);
   margin-inline: auto;
-  padding-inline: 16px;
+  padding-inline: var(--esp-4);
 }
 
 /* Oculta un elemento a la vista pero lo deja para lectores de pantalla */
@@ -69,159 +168,204 @@ a { color: var(--acento); }
 
 [hidden] { display: none !important; }
 
-/* --- Botones y campos -------------------------------------- */
+:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+
+/* --- Botones ----------------------------------------------- */
+/* .boton = acción principal: amarillo con texto oscuro en ambos temas */
 .boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-2);
+  min-height: var(--alto-toque);
   font: inherit;
   font-weight: 600;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radio-pill);
   padding: 0.6rem 1.25rem;
-  background: var(--acento);
-  color: var(--acento-texto);
+  background: var(--primario);
+  color: var(--sobre-primario);
+  box-shadow: inset 0 0 0 1px var(--primario-borde);
   cursor: pointer;
-  transition: background 0.15s;
+  text-decoration: none;
   white-space: nowrap;
+  transition: background var(--duracion), box-shadow var(--duracion);
 }
-.boton:hover:not(:disabled) { background: var(--acento-hover); }
+.boton:hover:not(:disabled) {
+  background: var(--primario-hover);
+  box-shadow: inset 0 0 0 1px var(--primario-borde), var(--brillo);
+}
 .boton:disabled { opacity: 0.6; cursor: wait; }
 
 .boton--secundario {
   background: transparent;
   color: var(--texto);
-  border: 1px solid var(--borde);
+  box-shadow: inset 0 0 0 1px var(--borde-control);
 }
-.boton--secundario:hover:not(:disabled) { background: var(--fondo); }
+.boton--secundario:hover:not(:disabled) {
+  background: var(--superficie-2);
+  box-shadow: inset 0 0 0 1px var(--borde-control);
+}
 
 .boton--texto {
+  min-height: 0;
   background: none;
+  box-shadow: none;
   color: var(--texto-suave);
-  padding: 0.25rem 0.5rem;
+  padding: var(--esp-1) var(--esp-2);
 }
-.boton--texto:hover:not(:disabled) { background: none; color: var(--acento); }
+.boton--texto:hover:not(:disabled) {
+  background: none;
+  box-shadow: none;
+  color: var(--marca-texto);
+}
 
+/* Botón cuadrado con solo un ícono (ej: cambiar tema) */
+.boton--icono {
+  width: var(--alto-toque);
+  padding: 0;
+  background: transparent;
+  color: var(--texto-suave);
+  box-shadow: inset 0 0 0 1px var(--borde);
+}
+.boton--icono:hover:not(:disabled) {
+  background: var(--superficie-2);
+  color: var(--marca-texto);
+  box-shadow: inset 0 0 0 1px var(--borde);
+}
+
+/* Botón de Google: fondo neutro con el logo a color, como pide Google */
+.boton--google {
+  background: var(--google-fondo);
+  color: var(--google-texto);
+  box-shadow: inset 0 0 0 1px var(--google-borde);
+}
+.boton--google:hover:not(:disabled) {
+  background: var(--google-fondo);
+  box-shadow: inset 0 0 0 1px var(--google-borde), var(--sombra);
+}
+.boton--google__logo { flex-shrink: 0; }
+
+/* --- Campos ------------------------------------------------ */
 input {
   font: inherit;
   color: var(--texto);
   background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: 999px;
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-pill);
   padding: 0.6rem 1rem;
+  min-height: var(--alto-toque);
   min-width: 0;
 }
-input:focus-visible,
-button:focus-visible {
-  outline: 3px solid var(--amarillo);
-  outline-offset: 2px;
-}
+input::placeholder { color: var(--texto-suave); }
 
 /* --- Cabecera ---------------------------------------------- */
 .cabecera {
   background: var(--superficie);
   border-bottom: 1px solid var(--borde);
-  padding-block: 0.75rem;
+  padding-block: var(--esp-3);
 }
 .cabecera__fila {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: var(--esp-3);
 }
 
 .logo {
-  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 auto 0 0;       /* empuja sesión y tema a la derecha */
   font-size: 1.5rem;
   letter-spacing: -0.02em;
 }
-.logo span { color: var(--acento); }
-
-.login {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem 0.75rem;
+.logo__marca { color: var(--marca-texto); }
+.logo__rayo {
+  width: 0.8em;
+  height: 0.8em;
+  color: var(--marca-texto);
+  flex-shrink: 0;
 }
-.login__separador {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--texto-suave);
-}
-
-/* Botón de Google: fondo neutro con el logo a color, como pide Google */
-.boton--google {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  background: var(--superficie);
-  color: var(--texto);
-  border: 1px solid var(--borde);
-}
-.boton--google:hover:not(:disabled) { background: var(--fondo); }
-.boton--google__logo { flex-shrink: 0; }
-
-.form-login {
-  display: flex;
-  gap: 0.5rem;
-}
-.form-login input { width: 220px; }
 
 .sesion-activa {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  gap: var(--esp-2);
+  min-width: 0;
+  font-size: var(--texto-s);
 }
-.sesion-activa__email { color: var(--texto-suave); }
+.sesion-activa__email {
+  color: var(--texto-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Muestra el sol o la luna según el tema activo */
+.selector-tema__luna { display: none; }
+.selector-tema[aria-pressed="true"] .selector-tema__sol { display: none; }
+.selector-tema[aria-pressed="true"] .selector-tema__luna { display: block; }
 
 .mensaje {
-  margin: 0.5rem 0 0;
-  font-size: 0.9rem;
+  margin: var(--esp-2) 0 0;
+  font-size: var(--texto-s);
   color: var(--texto-suave);
 }
 .mensaje[data-tipo="exito"] { color: var(--exito); }
 .mensaje[data-tipo="error"] { color: var(--error); }
 
-/* --- Navegación: Buscar / Mi colección --------------------- */
-.navegacion {
+/* --- Pestañas: navegación y filtros ------------------------ */
+/* La pestaña activa se marca con aria-current (navegación)
+   o aria-pressed (filtros). */
+.pestanas {
   display: flex;
   justify-content: center;
-  gap: 0.25rem;
-  padding-top: 1.25rem;
+  flex-wrap: wrap;
+  gap: var(--esp-2);
 }
-.navegacion__boton {
+.pestanas__item {
   font: inherit;
+  font-size: var(--texto-s);
   font-weight: 600;
-  min-height: 44px;
-  padding: 0.5rem 1.1rem;
-  border: none;
-  border-bottom: 3px solid transparent;
-  background: none;
+  min-height: var(--alto-toque);
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-pill);
+  background: var(--superficie);
   color: var(--texto-suave);
   cursor: pointer;
+  transition: background var(--duracion), color var(--duracion);
 }
-.navegacion__boton:hover { color: var(--texto); }
-.navegacion__boton[aria-current="page"] {
-  color: var(--texto);
-  border-bottom-color: var(--acento);
+.pestanas__item:hover { color: var(--texto); background: var(--superficie-2); }
+.pestanas__item[aria-current="page"],
+.pestanas__item[aria-pressed="true"] {
+  background: var(--primario);
+  border-color: var(--primario);
+  color: var(--sobre-primario);
 }
+
+.navegacion { padding-top: var(--esp-5); }
+.filtros { margin-bottom: var(--esp-5); }
 
 /* --- Intro y buscador -------------------------------------- */
 .intro {
   text-align: center;
-  padding-block: 2.5rem 1rem;
+  padding-block: 2.5rem var(--esp-4);
 }
 .intro h2 {
-  margin: 0 0 0.5rem;
-  font-size: clamp(1.4rem, 4vw, 2rem);
+  margin: 0 0 var(--esp-2);
+  font-size: var(--texto-xl);
 }
-.intro__aviso { margin: 0 0 1.25rem; color: var(--texto-suave); }
-.intro__ayuda { margin: 0.5rem 0 0; font-size: 0.85rem; color: var(--texto-suave); }
+.intro__aviso { margin: 0 0 var(--esp-5); color: var(--texto-suave); }
+.intro__ayuda { margin: var(--esp-2) 0 0; font-size: var(--texto-s); color: var(--texto-suave); }
 
 .form-busqueda {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--esp-2);
   max-width: 520px;
   margin-inline: auto;
 }
@@ -230,62 +374,48 @@ button:focus-visible {
 /* --- Estado ------------------------------------------------ */
 .estado {
   min-height: 1.5em;
-  margin: 1rem 0;
+  margin: var(--esp-4) 0;
   text-align: center;
   color: var(--texto-suave);
 }
 .estado[data-tipo="error"] { color: var(--error); }
-
-/* --- Filtro por estado: Todas / Tengo / Me falta ----------- */
-.filtros {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-}
-.filtros__boton {
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  min-height: 40px;
-  padding: 0.4rem 1rem;
-  border: 1px solid var(--borde);
-  border-radius: 999px;
-  background: var(--superficie);
-  color: var(--texto-suave);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.filtros__boton:hover { color: var(--texto); }
-.filtros__boton[aria-pressed="true"] {
-  background: var(--texto);
-  border-color: var(--texto);
-  color: var(--superficie);
-}
 
 /* --- Grilla de cartas -------------------------------------- */
 .grilla {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 1.25rem;
-  padding-bottom: 3rem;
+  padding-bottom: var(--esp-7);
 }
 
-/* Mensaje cuando no hay cartas que mostrar (ocupa toda la fila) */
+/* Estado vacío: ocupa toda la fila, con un motivo de telaraña y rayo */
 .grilla__vacio {
   grid-column: 1 / -1;
-  margin: 1rem 0;
-  padding: 2rem 1rem;
+  margin: var(--esp-4) 0;
+  padding: var(--esp-6) var(--esp-4);
   text-align: center;
   color: var(--texto-suave);
   border: 2px dashed var(--borde);
-  border-radius: var(--radio);
+  border-radius: var(--radio-m);
+}
+.grilla__vacio::before {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto var(--esp-3);
+  background: var(--marca-texto);
+  -webkit-mask: var(--motivo-telarana) center / contain no-repeat;
+  mask: var(--motivo-telarana) center / contain no-repeat;
+}
+:root {
+  /* Telaraña hexagonal con un rayo al centro (dibujo propio) */
+  --motivo-telarana: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M46 24 35 43.05H13L2 24 13 4.95h22z'/%3E%3Cpath d='M38 24 31 36.12H17L10 24l7-12.12h14z' opacity='.6'/%3E%3Cpath d='M38 24h8M31 36.12l4 6.93M17 36.12l-4 6.93M10 24H2M17 11.88l-4-6.93M31 11.88l4-6.93'/%3E%3Cpath d='M26 14 18 26h5l-2 8 9-13h-5z' fill='black' stroke='none'/%3E%3C/svg%3E");
 }
 
 .carta {
   background: var(--superficie);
-  border-radius: var(--radio);
+  border-radius: var(--radio-m);
   box-shadow: var(--sombra);
   overflow: hidden;
   display: flex;
@@ -302,8 +432,8 @@ button:focus-visible {
   width: 100%;
   height: auto;
   aspect-ratio: 245 / 342;
-  border-radius: 8px;
-  background: var(--borde);   /* se ve mientras la imagen carga */
+  border-radius: var(--radio-s);
+  background: var(--superficie-2);   /* se ve mientras la imagen carga */
   transition: transform 0.2s;
 }
 .carta__imagen:hover img { transform: scale(1.03); }
@@ -313,18 +443,18 @@ button:focus-visible {
   aspect-ratio: 245 / 342;
   display: grid;
   place-items: center;
-  padding: 1rem;
-  border-radius: 8px;
+  padding: var(--esp-4);
+  border-radius: var(--radio-s);
   border: 2px dashed var(--borde);
   color: var(--texto-suave);
-  font-size: 0.8rem;
+  font-size: var(--texto-xs);
   text-align: center;
 }
 
 .carta__info { padding: 0.6rem 0.75rem 0.75rem; }
 .carta__set {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--texto-s);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -332,7 +462,7 @@ button:focus-visible {
 }
 .carta__detalle {
   margin: 0.1rem 0 0;
-  font-size: 0.8rem;
+  font-size: var(--texto-xs);
   color: var(--texto-suave);
 }
 
@@ -342,45 +472,47 @@ button:focus-visible {
 .marcado {
   display: flex;
   margin-top: 0.6rem;
-  border: 1px solid var(--borde);
-  border-radius: 999px;
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-pill);
   overflow: hidden;
 }
 
 .marcado__boton {
   flex: 1;
   font: inherit;
-  font-size: 0.8rem;
+  font-size: var(--texto-xs);
   font-weight: 600;
   min-height: 36px;
-  padding: 0.35rem 0.25rem;
+  padding: 0.35rem var(--esp-1);
   border: none;
   background: none;
   color: var(--texto-suave);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition: background var(--duracion), color var(--duracion);
 }
-.marcado__boton + .marcado__boton { border-left: 1px solid var(--borde); }
-.marcado__boton:hover:not(:disabled) { color: var(--texto); background: var(--fondo); }
+.marcado__boton + .marcado__boton { border-left: 1px solid var(--borde-control); }
+.marcado__boton:hover:not(:disabled) { color: var(--texto); background: var(--superficie-2); }
 .marcado__boton:disabled { cursor: wait; }
 .marcado__boton:focus-visible { outline-offset: -3px; }
 
+/* ✓ además del color, para no depender solo de él */
+.marcado__tengo[aria-pressed="true"]::before { content: "✓ "; }
 .marcado__tengo[aria-pressed="true"],
 .marcado__tengo[aria-pressed="true"]:hover:not(:disabled) {
   background: var(--exito);
-  color: var(--superficie);
+  color: var(--sobre-exito);
 }
 .marcado__falta[aria-pressed="true"],
 .marcado__falta[aria-pressed="true"]:hover:not(:disabled) {
-  background: var(--borde);
+  background: var(--superficie-2);
   color: var(--texto);
 }
 
 /* --- Vista ampliada ---------------------------------------- */
 .dialogo {
   border: none;
-  border-radius: var(--radio);
+  border-radius: var(--radio-l);
   padding: 0;
   background: var(--superficie);
   color: var(--texto);
@@ -392,27 +524,27 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
+  gap: var(--esp-3);
+  padding: var(--esp-4);
 }
 .dialogo__titulo { margin: 0; font-weight: 600; text-align: center; }
 .dialogo img {
   max-height: 70vh;
   width: auto;
-  border-radius: 12px;
+  border-radius: var(--radio-m);
 }
 
 /* --- Pie --------------------------------------------------- */
 .pie {
-  padding-block: 1.5rem 2rem;
-  font-size: 0.8rem;
+  padding-block: var(--esp-5) var(--esp-6);
+  font-size: var(--texto-xs);
   color: var(--texto-suave);
   text-align: center;
   border-top: 1px solid var(--borde);
 }
 
 .pie p { margin: 0; }
-.pie p + p { margin-top: 0.5rem; }
+.pie p + p { margin-top: var(--esp-2); }
 
 /* --- Página de privacidad ---------------------------------- */
 .logo--enlace {
@@ -424,7 +556,7 @@ button:focus-visible {
 .legal {
   max-width: 680px;
   margin-inline: auto;
-  padding-block: 2.5rem 3rem;
+  padding-block: 2.5rem var(--esp-7);
 }
 .legal h1 {
   margin: 0;
@@ -432,31 +564,31 @@ button:focus-visible {
   letter-spacing: -0.02em;
 }
 .legal__fecha {
-  margin: 0.25rem 0 2rem;
-  font-size: 0.9rem;
+  margin: var(--esp-1) 0 var(--esp-6);
+  font-size: var(--texto-s);
   color: var(--texto-suave);
 }
 .legal h2 {
-  margin: 2rem 0 0.5rem;
+  margin: var(--esp-6) 0 var(--esp-2);
   font-size: 1.15rem;
 }
 .legal p,
 .legal li { color: var(--texto); }
-.legal p { margin: 0 0 0.75rem; }
-.legal ul { margin: 0 0 0.75rem; padding-left: 1.25rem; }
-.legal li + li { margin-top: 0.5rem; }
+.legal p { margin: 0 0 var(--esp-3); }
+.legal ul { margin: 0 0 var(--esp-3); padding-left: 1.25rem; }
+.legal li + li { margin-top: var(--esp-2); }
 
 /* --- Móvil ------------------------------------------------- */
 @media (max-width: 600px) {
-  .sesion,
-  .login,
-  .form-login,
+  /* Fila 1: logo + tema. Fila 2: sesión a todo el ancho */
+  .sesion {
+    order: 1;
+    flex-basis: 100%;
+  }
   .boton--google { width: 100%; }
-  .login { flex-direction: column; align-items: stretch; }
-  .login__separador { text-align: center; }
-  .form-login input { flex: 1; width: auto; }
+  .sesion-activa { justify-content: space-between; }
   .grilla {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 0.75rem;
+    gap: var(--esp-3);
   }
 }

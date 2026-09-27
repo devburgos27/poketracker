@@ -13,10 +13,9 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     // Mantiene la sesión abierta aunque cierres el navegador
     persistSession: true,
-    // Lee el token que viene en la URL al volver del enlace mágico
+    // Lee el token que viene en la URL al volver de Google
     detectSessionInUrl: true,
-    // "implicit" permite abrir el enlace del correo incluso
-    // en otro navegador o dispositivo
+    // "implicit": el token vuelve en el hash (#access_token=...)
     flowType: 'implicit',
   },
 });
