@@ -279,6 +279,18 @@ input {
 }
 input::placeholder { color: var(--texto-suave); }
 
+select {
+  font: inherit;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-s);
+  padding: 0.4rem 0.6rem;
+  min-height: var(--alto-toque);
+  min-width: 0;
+}
+select:disabled { opacity: 0.6; }
+
 /* --- Cabecera ---------------------------------------------- */
 .cabecera {
   background: var(--superficie);
@@ -486,6 +498,7 @@ input::placeholder { color: var(--texto-suave); }
 }
 
 .carta {
+  position: relative;       /* para la insignia ×N */
   background: var(--superficie);
   border-radius: var(--radio-m);
   box-shadow: var(--sombra);
@@ -521,6 +534,22 @@ input::placeholder { color: var(--texto-suave); }
   color: var(--texto-suave);
   font-size: var(--texto-xs);
   text-align: center;
+}
+
+/* "×2": más de una copia. Amarillo con texto oscuro en ambos temas */
+.carta__copias {
+  position: absolute;
+  top: var(--esp-2);
+  right: var(--esp-2);
+  padding: 0.1rem 0.55rem;
+  border-radius: var(--radio-pill);
+  background: var(--primario);
+  color: var(--sobre-primario);
+  /* Anillo del color de la tarjeta: la separa del borde amarillo de muchas cartas */
+  box-shadow: 0 0 0 2px var(--superficie), var(--sombra);
+  font-size: var(--texto-s);
+  font-weight: 700;
+  pointer-events: none;     /* el clic llega a la imagen de abajo */
 }
 
 .carta__info { padding: 0.6rem 0.75rem 0.75rem; }
@@ -581,30 +610,102 @@ input::placeholder { color: var(--texto-suave); }
   color: var(--texto);
 }
 
-/* --- Vista ampliada ---------------------------------------- */
+/* --- Detalle de carta ------------------------------------- */
 .dialogo {
   border: none;
   border-radius: var(--radio-l);
   padding: 0;
   background: var(--superficie);
   color: var(--texto);
-  max-width: min(92vw, 480px);
+  width: min(92vw, 820px);
+  max-height: 92vh;
+  overflow: auto;
 }
 .dialogo::backdrop { background: rgb(0 0 0 / 0.7); }
 
-.dialogo__contenido {
+.detalle__contenido { padding: var(--esp-4) var(--esp-5) var(--esp-5); }
+
+.detalle__cabecera {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-4);
+}
+.detalle__titulo { margin: 0; font-size: var(--texto-l); }
+
+/* Imagen a la izquierda y datos a la derecha; en móvil, uno bajo el otro */
+.detalle__cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: var(--esp-5);
+  align-items: start;
+}
+/* Recuadro fijo: la imagen chica, la grande y "Imagen no disponible"
+   ocupan lo mismo, así el contenido no salta al cambiar entre ellas */
+.detalle__imagen img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 245 / 342;
+  object-fit: contain;
+  border-radius: var(--radio-m);
+  background: var(--superficie-2);
+}
+
+.detalle__datos {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--esp-1) var(--esp-4);
+  margin: 0 0 var(--esp-5);
+}
+.detalle__datos dt { color: var(--texto-suave); }
+.detalle__datos dd { margin: 0; font-weight: 600; }
+
+.detalle__copias h3 { margin: 0 0 var(--esp-3); font-size: var(--texto-m); }
+.detalle__aviso { margin: 0; color: var(--texto-suave); }
+
+/* − N + */
+.contador {
+  display: inline-flex;
   align-items: center;
   gap: var(--esp-3);
-  padding: var(--esp-4);
 }
-.dialogo__titulo { margin: 0; font-weight: 600; text-align: center; }
-.dialogo img {
-  max-height: 70vh;
-  width: auto;
-  border-radius: var(--radio-m);
+.contador .boton--icono { font-size: var(--texto-l); }
+.contador__numero {
+  min-width: 2ch;
+  font-size: var(--texto-l);
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
+
+/* Lista de copias: título, idioma, condición y Quitar */
+.copias {
+  list-style: none;
+  margin: var(--esp-4) 0 0;
+  padding: 0;
+}
+.copia {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  align-items: end;
+  gap: var(--esp-2) var(--esp-3);
+  padding: var(--esp-3) 0;
+  border-top: 1px solid var(--borde);
+}
+.copia__titulo {
+  grid-column: 1 / -1;
+  font-size: var(--texto-s);
+  font-weight: 700;
+}
+.copia__campo {
+  display: grid;
+  gap: var(--esp-1);
+  font-size: var(--texto-xs);
+  color: var(--texto-suave);
+}
+.copia__quitar { min-height: var(--alto-toque); }
+.copias__vacia { color: var(--texto-suave); }
 
 /* --- Pie --------------------------------------------------- */
 .pie {
@@ -700,4 +801,10 @@ input::placeholder { color: var(--texto-suave); }
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: var(--esp-3);
   }
+
+  .detalle__contenido { padding: var(--esp-3) var(--esp-4) var(--esp-4); }
+  .detalle__cuerpo { grid-template-columns: 1fr; }
+  .detalle__imagen { max-width: 240px; margin-inline: auto; }
+  .copia { grid-template-columns: 1fr 1fr; }
+  .copia__quitar { grid-column: 1 / -1; justify-self: start; }
 }

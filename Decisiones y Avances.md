@@ -4,6 +4,12 @@ Actualizado: 2026-09-27
 
 ## Decisiones tomadas
 - **Modelo de datos:** en Supabase se guardan SOLO las cartas que el usuario tiene. "Me falta" = cartas de la API − cartas guardadas. Marcar = INSERT, desmarcar = DELETE. Sin columna `estado`.
+- **Copias** (Bloque 6, migración `sql/002_copias.sql`): tabla `copias` con FK a `coleccion` (on delete cascade). Cantidad = número de copias; idioma y condición van **por copia** (opcionales, códigos `en/ja/…/otro` y `NM/LP/MP/HP/DMG`; la app los muestra en español). `coleccion` sigue siendo una fila por carta y suma `set_id` (para progreso por expansión).
+  - "Tengo" = fila en `coleccion` + 1 copia. Quitar la última copia = "Me falta" (borra la fila y, en cascada, sus copias).
+  - Las copias se cuentan con el embed `copias(count)` en la misma consulta.
+  - Transición: una fila sin copias cuenta como 1; la copia se crea en el primer cambio.
+  - RLS de `copias`: solo el dueño; insert/update verifican que `coleccion_id` sea del mismo usuario. `UPDATE` solo sobre `idioma` y `condicion` (permiso por columna).
+  - `sql/schema.sql` = estado final para proyectos nuevos; los existentes ejecutan las migraciones `sql/00N_*.sql`.
 - **Login solo con Google** (desde 2026-09-27; antes también había enlace mágico por correo): Supabase Auth con flowType implicit, `signInWithOAuth`, redirectTo = página actual.
   - Si Google/Supabase vuelve con `#error=...` (por ejemplo, el usuario canceló), la app lo lee al cargar (antes de iniciar Supabase), muestra un mensaje genérico y limpia la URL. RLS: cada usuario ve, agrega y borra solo sus filas. Sin policy de UPDATE por ahora.
 - **Temas claro/oscuro:** tokens CSS en `:root`; `data-tema="claro"|"oscuro"` en `<html>` fuerza uno, sin atributo manda el sistema. Preferencia en `localStorage` (`pt-tema`), aplicada con un script inline en el `<head>` para que no parpadee. Amarillo `#FFD60A` solo como fondo con texto oscuro; en tema claro el texto de marca es ámbar `#8A5A00`.
@@ -54,5 +60,6 @@ index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, a
   - [x] Google Cloud: origen autorizado de JavaScript https://poketracker-ten.vercel.app.
   - [x] Supabase: Site URL = https://poketracker-ten.vercel.app y Redirect URL https://poketracker-ten.vercel.app/** (se mantienen las de 127.0.0.1 y localhost para desarrollo).
   - [x] Google Auth Platform: marca completada (página principal, privacidad.html, dominio autorizado) y app publicada; ya no está en modo Prueba. Probado entrando con otra cuenta de Google en incógnito.
+- [x] Bloque 6: migración `002_copias.sql` (escrita y probada en PGlite; la ejecuta el usuario), detalle de carta con "Tus copias" (− N +, idioma y condición por copia), insignia ×N en las tarjetas.
 - [x] Bloque 5: rutas hash, barra de navegación (inferior en móvil), Inicio (presentación sin sesión; accesos rápidos y últimas 6 cartas con sesión), Colección con invitación a entrar.
 - [x] Bloque 4: sistema de diseño (tokens de color, radio, espacio y tipografía), tema claro/oscuro con botón en la cabecera, pestañas unificadas (`.pestanas`), login solo con Google, privacidad.html con ambos temas.

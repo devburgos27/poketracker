@@ -12,7 +12,7 @@
 // rutas: el router arranca después de que Supabase los procesa.
 // =============================================================
 
-import { buscarCartas } from './api.js';
+import { buscarCartas, obtenerCarta } from './api.js';
 import * as ui from './ui.js';
 
 // --- Estado de la pantalla -----------------------------------
@@ -25,7 +25,8 @@ let pedidoBusqueda = 0;    // para descartar respuestas de búsquedas viejas
 const busquedasGuardadas = new Map();
 const MAX_BUSQUEDAS_GUARDADAS = 10;
 let filtro = 'todas';      // pestaña activa: 'todas' | 'tengo' | 'falta'
-let idsTengo = null;       // Set de ids de cartas que tengo; null = sin sesión
+// Cartas que tengo: id de carta → { filaId, copias }; null = sin sesión
+let misCartas = null;
 let coleccion = null;      // módulo coleccion.js (se carga junto con el login)
 
 let cartasColeccion = [];  // lo que se ve en "Mi colección"
@@ -39,8 +40,8 @@ let rutaActual = null;     // pantalla visible: 'inicio' | 'buscar' | 'coleccion
 
 const FILTROS = {
   todas: () => true,
-  tengo: (c) => idsTengo.has(c.id),
-  falta: (c) => !idsTengo.has(c.id),
+  tengo: (c) => misCartas.has(c.id),
+  falta: (c) => !misCartas.has(c.id),
 };
 
 const VACIO_POR_FILTRO = {
@@ -50,14 +51,14 @@ const VACIO_POR_FILTRO = {
 
 /** Dibuja la grilla de búsqueda según la sesión y la pestaña activa. */
 function dibujarBusqueda() {
-  if (!idsTengo) {
+  if (!misCartas) {
     ui.mostrarFiltros(null);
     ui.mostrarCartas(cartasActuales);
   } else {
     actualizarConteos();
     ui.mostrarCartas(
       cartasActuales.filter(FILTROS[filtro]),
-      { idsTengo, alCambiar: cambiarDesdeBusqueda },
+      { misCartas, alCambiar: cambiarDesdeBusqueda },
       VACIO_POR_FILTRO[filtro],
     );
   }
@@ -67,7 +68,7 @@ function dibujarBusqueda() {
 /** Actualiza los números de las pestañas sin redibujar las cartas. */
 function actualizarConteos() {
   const total = cartasActuales.length;
-  if (!idsTengo || total === 0) {
+  if (!misCartas || total === 0) {
     ui.mostrarFiltros(null);
     return;
   }
@@ -83,14 +84,14 @@ function mostrarResumen() {
   ui.mensajeEstado(`${total} ${texto} para "${busquedaActual}"`);
 }
 
-/** Guarda "Tengo" / "Me falta" en Supabase y en idsTengo. */
+/** Guarda "Tengo" / "Me falta" en Supabase y en misCartas. */
 async function guardarCambio(carta, tengo) {
   if (tengo) {
-    await coleccion.marcarTengo(carta);
-    idsTengo?.add(carta.id);
+    const guardada = await coleccion.marcarTengo(carta);
+    misCartas?.set(carta.id, guardada);
   } else {
     await coleccion.marcarMeFalta(carta.id);
-    idsTengo?.delete(carta.id);
+    misCartas?.delete(carta.id);
   }
 }
 
@@ -202,7 +203,6 @@ document.querySelector('#filtros').addEventListener('click', (e) => {
   dibujarBusqueda();
 });
 
-ui.prepararDialogo();
 ui.prepararSelectorTema();
 
 // --- Inicio: agregadas recientemente --------------------------
@@ -210,7 +210,7 @@ ui.prepararSelectorTema();
 const CANTIDAD_RECIENTES = 6;
 
 async function cargarRecientes() {
-  if (!idsTengo) return; // sin sesión, Inicio solo muestra la presentación
+  if (!misCartas) return; // sin sesión, Inicio solo muestra la presentación
   const pedido = ++ultimoPedido;
   ui.mensajeInicio('Cargando tus cartas…');
 
@@ -218,7 +218,7 @@ async function cargarRecientes() {
     const cartas = await coleccion.listarRecientes(CANTIDAD_RECIENTES);
     if (pedido !== ultimoPedido) return; // llegó una respuesta más nueva
     cartasRecientes = cartas;
-    cartas.forEach((c) => idsTengo?.add(c.id));
+    cartas.forEach((c) => misCartas?.set(c.id, c.guardada));
     dibujarRecientes();
   } catch (error) {
     if (pedido !== ultimoPedido) return;
@@ -231,7 +231,7 @@ function dibujarRecientes() {
   ui.mensajeInicio('');
   ui.mostrarRecientes(
     cartasRecientes,
-    { idsTengo, alCambiar: cambiarDesdeLista },
+    { misCartas, alCambiar: cambiarDesdeLista },
     'Todavía no tienes cartas. Busca un Pokémon y marca las que tengas.',
   );
 }
@@ -239,7 +239,7 @@ function dibujarRecientes() {
 // --- Mi colección ---------------------------------------------
 
 async function cargarColeccion() {
-  if (!idsTengo) return; // sin sesión se ve la invitación a entrar
+  if (!misCartas) return; // sin sesión se ve la invitación a entrar
   const pedido = ++ultimoPedido;
   const texto = textoColeccion;
   ui.mensajeColeccion('Cargando tu colección…');
@@ -249,7 +249,7 @@ async function cargarColeccion() {
     if (pedido !== ultimoPedido) return; // llegó una respuesta más nueva
     cartasColeccion = cartas;
     // Por si se agregaron cartas desde otra pestaña o dispositivo
-    cartas.forEach((c) => idsTengo?.add(c.id));
+    cartas.forEach((c) => misCartas?.set(c.id, c.guardada));
     dibujarColeccion();
   } catch (error) {
     if (pedido !== ultimoPedido) return;
@@ -264,7 +264,7 @@ function dibujarColeccion() {
     ? `No tienes cartas de "${textoColeccion}".`
     : 'Aún no tienes cartas. Busca un Pokémon y marca las que tengas.';
 
-  ui.mostrarColeccion(cartasColeccion, { idsTengo, alCambiar: cambiarDesdeLista }, vacio);
+  ui.mostrarColeccion(cartasColeccion, { misCartas, alCambiar: cambiarDesdeLista }, vacio);
 
   if (total === 0) {
     ui.mensajeColeccion('');
@@ -312,6 +312,179 @@ formColeccion.addEventListener('submit', (e) => {
   clearTimeout(esperaFiltro);
   textoColeccion = formColeccion.filtro.value.trim();
   cargarColeccion();
+});
+
+// --- Detalle de carta: "Tus copias" ----------------------------
+// Cada cambio se ve al instante y se revierte si Supabase falla,
+// igual que Tengo / Me falta en las tarjetas.
+
+/** Copia que se muestra pero aún no existe en la base. */
+const copiaSinGuardar = () => ({ id: null, idioma: null, condicion: null });
+
+let detalle = null; // { carta, copias, cambio, cerrado } de la carta abierta
+
+function abrirDetalle(carta) {
+  const d = { carta, copias: null, cambio: false, cerrado: false };
+  detalle = d;
+  ui.abrirDetalle(carta);
+  completarDatos(d);
+  if (misCartas) cargarCopias(d);
+}
+
+/** La colección no guarda la rareza: se pide a la API al abrir el detalle. */
+async function completarDatos(d) {
+  if (d.carta.rareza) return;
+  try {
+    const completa = await obtenerCarta(d.carta.id);
+    if (d !== detalle || !completa) return;
+    d.carta = { ...d.carta, rareza: completa.rareza, totalSet: d.carta.totalSet ?? completa.totalSet };
+    ui.mostrarDatosDetalle(d.carta);
+  } catch (error) {
+    console.error(error); // sin rareza, el resto del detalle sirve igual
+  }
+}
+
+/**
+ * Una carta guardada sin copias (marcada con la versión anterior de
+ * la app, entre la migración y el deploy) cuenta como 1 copia. Esa
+ * copia se crea de verdad en el primer cambio.
+ */
+function conCopiaImplicita(copias) {
+  return copias.length ? copias : [copiaSinGuardar()];
+}
+
+async function cargarCopias(d) {
+  const guardada = misCartas.get(d.carta.id);
+  if (!guardada) {
+    d.copias = [];
+    ui.mostrarCopias(d.copias);
+    return;
+  }
+  try {
+    const copias = await coleccion.listarCopias(guardada.filaId);
+    if (d !== detalle) return;
+    d.copias = conCopiaImplicita(copias);
+    ui.mostrarCopias(d.copias);
+  } catch (error) {
+    if (d !== detalle) return;
+    console.error(error);
+    ui.mensajeDetalle('No pudimos cargar tus copias. Cierra y vuelve a abrir la carta.', 'error');
+  }
+}
+
+/**
+ * Aplica un cambio en "Tus copias".
+ * @param {Array} nuevas  las copias como deben quedar
+ * @param {() => Promise<Array|void>} guardar  lo guarda en Supabase; si
+ *   devuelve un arreglo, son las copias con sus ids reales
+ */
+async function cambiarCopias(nuevas, guardar) {
+  const d = detalle;
+  const antes = d.copias;
+  d.copias = nuevas;
+  ui.mensajeDetalle('');
+  ui.mostrarCopias(d.copias, true);
+
+  try {
+    d.copias = (await guardar()) ?? nuevas;
+    d.cambio = true;
+    const guardada = misCartas?.get(d.carta.id);
+    if (guardada) guardada.copias = d.copias.length;
+    if (d.cerrado) redibujarPantalla(); // se cerró mientras guardaba
+  } catch (error) {
+    console.error(error);
+    d.copias = antes;
+    if (d === detalle) ui.mensajeDetalle('No se pudo guardar el cambio. Inténtalo de nuevo.', 'error');
+  }
+  if (d === detalle && !d.cerrado) ui.mostrarCopias(d.copias);
+}
+
+/** "+": agrega una copia sin detalles (con 0 copias, es "Tengo"). */
+function sumarCopia() {
+  const d = detalle;
+  const guardada = misCartas.get(d.carta.id);
+  const nuevas = [...d.copias, copiaSinGuardar()];
+
+  cambiarCopias(nuevas, async () => {
+    if (!guardada) {
+      await guardarCambio(d.carta, true);
+      try {
+        return conCopiaImplicita(await coleccion.listarCopias(misCartas.get(d.carta.id).filaId));
+      } catch (error) {
+        // La carta ya quedó guardada: no se revierte por no poder listar
+        console.error(error);
+        return [copiaSinGuardar()];
+      }
+    }
+    // Se crea la nueva y, si la había, la copia implícita de una fila antigua
+    const sinGuardar = nuevas.filter((c) => c.id === null).length;
+    const creadas = await coleccion.agregarCopias(guardada.filaId, sinGuardar);
+    return [...nuevas.filter((c) => c.id !== null), ...creadas];
+  });
+}
+
+/** Quita una copia. Quitar la última es "Me falta". */
+function quitarCopia(copia) {
+  const d = detalle;
+  const nuevas = d.copias.filter((c) => c !== copia);
+
+  if (nuevas.length === 0) {
+    cambiarCopias([], async () => {
+      await guardarCambio(d.carta, false);
+      return [];
+    });
+    return;
+  }
+  cambiarCopias(nuevas, () => coleccion.quitarCopia(copia.id));
+}
+
+/** Cambia idioma o condición de una copia (valor null = sin indicar). */
+function cambiarDatoCopia(copia, campo, valor) {
+  const d = detalle;
+  const editada = { ...copia, [campo]: valor };
+  const nuevas = d.copias.map((c) => (c === copia ? editada : c));
+
+  cambiarCopias(nuevas, async () => {
+    if (copia.id !== null) {
+      await coleccion.actualizarCopia(copia.id, { [campo]: valor });
+      return undefined;
+    }
+    // Copia implícita de una fila antigua: se crea ahora, ya con el dato
+    const [creada] = await coleccion.agregarCopias(misCartas.get(d.carta.id).filaId, 1, { [campo]: valor });
+    return nuevas.map((c) => (c === editada ? creada : c));
+  });
+}
+
+/** Al cerrar: si algo cambió, se redibuja la pantalla (×N, Tengo / Me falta). */
+function alCerrarDetalle() {
+  const d = detalle;
+  if (!d) return;
+  d.cerrado = true;
+  if (d.cambio) redibujarPantalla();
+  ui.enfocarCarta(d.carta.id);
+}
+
+/** Vuelve a dibujar las cartas de la pantalla actual con misCartas. */
+function redibujarPantalla() {
+  if (rutaActual === 'buscar') {
+    dibujarBusqueda();
+    return;
+  }
+  if (!misCartas) return;
+  // Las cartas que ya no tengo salen de Colección e Inicio
+  cartasColeccion = cartasColeccion.filter((c) => misCartas.has(c.id));
+  cartasRecientes = cartasRecientes.filter((c) => misCartas.has(c.id));
+  if (rutaActual === 'coleccion') dibujarColeccion();
+  else if (rutaActual === 'inicio') dibujarRecientes();
+}
+
+ui.prepararDetalle({
+  alAbrir: abrirDetalle,
+  alCerrar: alCerrarDetalle,
+  alSumar: sumarCopia,
+  alRestar: () => quitarCopia(detalle.copias.at(-1)),
+  alCambiar: cambiarDatoCopia,
+  alQuitar: quitarCopia,
 });
 
 // --- Rutas ----------------------------------------------------
@@ -444,7 +617,8 @@ async function iniciarLogin() {
     usuarioId = nuevoId;
 
     if (!usuario) {
-      idsTengo = null;
+      misCartas = null;
+      ui.cerrarDetalle();
       ultimoPedido++; // descarta cargas de Supabase en curso
       cartasColeccion = [];
       cartasRecientes = [];
@@ -458,9 +632,9 @@ async function iniciarLogin() {
     // dentro de este aviso, porque puede quedar bloqueado.
     setTimeout(async () => {
       try {
-        const ids = await coleccion.cargarIdsTengo();
+        const cartas = await coleccion.cargarMisCartas();
         if (usuarioId !== nuevoId) return; // salió mientras cargaba
-        idsTengo = ids;
+        misCartas = cartas;
       } catch (error) {
         console.error(error);
         ui.mensajeLogin('No pudimos cargar tu colección. Recarga la página para intentarlo de nuevo.', 'error');

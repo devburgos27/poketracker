@@ -2,8 +2,8 @@
 // Adaptador de la API de cartas (TCGdex)
 // =============================================================
 // TODAS las llamadas a la API externa viven en este archivo.
-// El resto de la app solo conoce la función buscarCartas() y el
-// formato "carta" que devuelve.
+// El resto de la app solo conoce buscarCartas(), obtenerCarta() y
+// el formato "carta" que devuelven.
 //
 // Historia: el proyecto empezó con pokemontcg.io, pero esa API
 // cierra el 2027-03-01 y ya respondía con errores. Gracias a este
@@ -46,7 +46,7 @@ const SERIES_DIGITALES = new Set(['tcgp']);
  * @param {string} nombre
  * @returns {Promise<Array<{
  *   id: string, nombre: string, numero: string, rareza: string,
- *   nombreSet: string, totalSet: number|null, fechaSet: string,
+ *   setId: string, nombreSet: string, totalSet: number|null, fechaSet: string,
  *   imagenChica: string, imagenGrande: string
  * }>>}
  */
@@ -80,6 +80,44 @@ export async function buscarCartas(nombre) {
     .sort(compararCartas);
 }
 
+const CONSULTA_CARTA = `
+  query Carta($id: ID!) {
+    card(id: $id) {
+      id
+      localId
+      name
+      image
+      rarity
+      set { id name cardCount { official } }
+    }
+  }
+`;
+
+/**
+ * Trae una sola carta por su id (ej: "bw3-40"), en el mismo formato
+ * que buscarCartas(). Sirve para completar datos que la colección no
+ * guarda, como la rareza. Devuelve null si la carta no existe.
+ *
+ * @param {string} id
+ */
+export async function obtenerCarta(id) {
+  const respuesta = await fetch(GRAPHQL_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: CONSULTA_CARTA, variables: { id } }),
+  });
+
+  if (!respuesta.ok) {
+    throw new Error(`La API respondió con un error (${respuesta.status}).`);
+  }
+
+  const { data, errors } = await respuesta.json();
+  if (errors?.length) {
+    throw new Error(errors[0].message);
+  }
+  return data.card ? adaptarCarta(data.card) : null;
+}
+
 /**
  * Convierte una carta de TCGdex al formato propio de la app.
  */
@@ -92,6 +130,7 @@ function adaptarCarta(c, infoSet) {
     nombre: c.name,
     numero: c.localId,
     rareza: c.rarity ?? '',
+    setId: c.set?.id ?? '',
     nombreSet: c.set?.name ?? '',
     totalSet: c.set?.cardCount?.official ?? null,
     fechaSet: infoSet?.fecha ?? '',

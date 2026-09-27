@@ -182,7 +182,7 @@ export function mostrarColeccion(cartas, marcado, textoVacio) {
  *
  * @param {Array} cartas
  * @param {null | {
- *   idsTengo: Set<string>,
+ *   misCartas: Map<string, {filaId: number, copias: number}>,
  *   alCambiar: (carta: object, tengo: boolean) => Promise<void>
  * }} marcado  null si no hay sesión: las cartas se ven sin botones.
  * @param {string} [textoVacio]  mensaje si no hay cartas que mostrar
@@ -206,13 +206,16 @@ function dibujarGrilla(grilla, cartas, marcado, textoVacio) {
 function crearTarjeta(carta, marcado) {
   const tarjeta = document.createElement('article');
   tarjeta.className = 'carta';
+  tarjeta.dataset.id = carta.id;
+  const copias = marcado?.misCartas.get(carta.id)?.copias ?? 0;
 
-  // Botón con la imagen: al hacer clic se ve en grande
+  // Botón con la imagen: abre el detalle de la carta
   const boton = document.createElement('button');
   boton.type = 'button';
   boton.className = 'carta__imagen';
-  boton.setAttribute('aria-label', `Ver ${carta.nombre} en grande`);
-  boton.addEventListener('click', () => verEnGrande(carta));
+  const etiquetaCopias = copias > 1 ? ` (${copias} copias)` : '';
+  boton.setAttribute('aria-label', `Ver detalle de ${carta.nombre}${etiquetaCopias}`);
+  boton.addEventListener('click', () => alAbrirCarta(carta));
 
   if (carta.imagenChica) {
     const img = document.createElement('img');
@@ -229,7 +232,16 @@ function crearTarjeta(carta, marcado) {
     vacia.className = 'carta__sin-imagen';
     vacia.textContent = 'Imagen no disponible';
     boton.append(vacia);
-    boton.disabled = true;
+  }
+
+  // "×2" sobre la imagen cuando hay más de una copia
+  // (el lector de pantalla ya lo oye en la etiqueta del botón)
+  if (copias > 1) {
+    const insignia = document.createElement('span');
+    insignia.className = 'carta__copias';
+    insignia.setAttribute('aria-hidden', 'true');
+    insignia.textContent = `×${copias}`;
+    tarjeta.append(insignia);
   }
 
   // Datos de la carta
@@ -259,7 +271,7 @@ function crearTarjeta(carta, marcado) {
  * El cambio se muestra al instante y se revierte si alCambiar falla
  * (el mensaje de error lo muestra quien llama).
  */
-function crearMarcado(carta, tarjeta, { idsTengo, alCambiar }) {
+function crearMarcado(carta, tarjeta, { misCartas, alCambiar }) {
   const grupo = document.createElement('div');
   grupo.className = 'marcado';
   grupo.setAttribute('role', 'group');
@@ -272,10 +284,17 @@ function crearMarcado(carta, tarjeta, { idsTengo, alCambiar }) {
     btnTengo.setAttribute('aria-pressed', String(tengo));
     btnFalta.setAttribute('aria-pressed', String(!tengo));
     tarjeta.classList.toggle('carta--tengo', tengo);
+    if (!tengo) tarjeta.querySelector('.carta__copias')?.remove(); // ya no hay copias
   };
 
   const cambiar = async (tengo) => {
-    if (idsTengo.has(carta.id) === tengo) return;
+    if (misCartas.has(carta.id) === tengo) return;
+    // "Me falta" borra todas las copias: con más de una, se confirma
+    const copias = misCartas.get(carta.id)?.copias ?? 0;
+    if (!tengo && copias > 1
+        && !window.confirm(`¿Quitar las ${copias} copias de ${carta.nombre} de tu colección?`)) {
+      return;
+    }
     pintar(tengo);
     btnTengo.disabled = btnFalta.disabled = true;
     try {
@@ -290,7 +309,7 @@ function crearMarcado(carta, tarjeta, { idsTengo, alCambiar }) {
   btnTengo.addEventListener('click', () => cambiar(true));
   btnFalta.addEventListener('click', () => cambiar(false));
 
-  pintar(idsTengo.has(carta.id));
+  pintar(misCartas.has(carta.id));
   grupo.append(btnTengo, btnFalta);
   return grupo;
 }
@@ -303,23 +322,227 @@ function crearBotonMarcado(texto, clase) {
   return btn;
 }
 
-// --- Vista ampliada -------------------------------------------
+// --- Detalle de carta ----------------------------------------
+// Imagen grande, datos y "Tus copias". Los datos y las acciones los
+// maneja main.js; aquí solo se dibuja.
 
-/** Abre la carta en alta resolución dentro de un <dialog>. */
-function verEnGrande(carta) {
-  const dialogo = $('#dialogo-carta');
-  const img = $('#dialogo-imagen');
-  img.src = carta.imagenGrande;
-  img.alt = `${carta.nombre} — ${carta.nombreSet} ${carta.numero}`;
-  $('#dialogo-titulo').textContent = `${carta.nombre} · ${carta.nombreSet} ${carta.numero}`;
-  dialogo.showModal();
-}
+const IDIOMAS = {
+  en: 'Inglés', ja: 'Japonés', es: 'Español', ko: 'Coreano', de: 'Alemán',
+  fr: 'Francés', pt: 'Portugués', it: 'Italiano', zh: 'Chino', otro: 'Otro',
+};
+const CONDICIONES = {
+  NM: 'Excelente', LP: 'Muy buena', MP: 'Buena', HP: 'Regular', DMG: 'Dañada',
+};
 
-/** Prepara el cierre del diálogo (botón y clic fuera de la carta). */
-export function prepararDialogo() {
+let alAbrirCarta = () => {};
+let accionesCopias = null;
+let focoPendiente = null; // control que tenía el foco antes de guardar
+
+/**
+ * Conecta el detalle con main.js.
+ * @param {{
+ *   alAbrir: (carta: object) => void,
+ *   alCerrar: () => void,
+ *   alSumar: () => void,
+ *   alRestar: () => void,
+ *   alCambiar: (copia: object, campo: 'idioma'|'condicion', valor: string|null) => void,
+ *   alQuitar: (copia: object) => void,
+ * }} acciones
+ */
+export function prepararDetalle(acciones) {
+  alAbrirCarta = acciones.alAbrir;
+  accionesCopias = acciones;
+
   const dialogo = $('#dialogo-carta');
   $('#dialogo-cerrar').addEventListener('click', () => dialogo.close());
   dialogo.addEventListener('click', (e) => {
-    if (e.target === dialogo) dialogo.close();
+    if (e.target === dialogo) dialogo.close(); // clic fuera del contenido
   });
+  dialogo.addEventListener('close', acciones.alCerrar);
+  $('#copias-sumar').addEventListener('click', acciones.alSumar);
+  $('#copias-restar').addEventListener('click', acciones.alRestar);
+
+  // Si la imagen visible no carga, el recuadro "Imagen no disponible"
+  // en vez del ícono de imagen rota con el texto alternativo
+  $('#detalle-imagen').addEventListener('error', mostrarSinImagen);
+}
+
+let imagenPedida = 0; // para ignorar la imagen grande de una carta anterior
+
+function mostrarImagen(src) {
+  const img = $('#detalle-imagen');
+  img.src = src;
+  img.hidden = false;
+  $('#detalle-sin-imagen').hidden = true;
+}
+
+function mostrarSinImagen() {
+  const img = $('#detalle-imagen');
+  img.hidden = true;
+  img.removeAttribute('src');
+  $('#detalle-sin-imagen').hidden = false;
+}
+
+/**
+ * Imagen del detalle: primero la chica (ya está en caché por la
+ * grilla) y, cuando la grande termina de cargar, se cambia por ella.
+ * Si la grande falla, queda la chica; si fallan ambas, el recuadro
+ * "Imagen no disponible". Las dos ocupan el mismo recuadro fijo.
+ */
+function cargarImagenDetalle(carta) {
+  const pedido = ++imagenPedida;
+  $('#detalle-imagen').alt = `${carta.nombre} — ${carta.nombreSet} ${carta.numero}`;
+
+  if (carta.imagenChica) mostrarImagen(carta.imagenChica);
+  else mostrarSinImagen();
+  if (!carta.imagenGrande) return;
+
+  // La grande se descarga aparte; decode() espera a que esté lista
+  // para pintarse, así el cambio no deja un instante en blanco
+  const grande = new Image();
+  grande.src = carta.imagenGrande;
+  grande.decode()
+    .then(() => {
+      if (pedido === imagenPedida) mostrarImagen(carta.imagenGrande);
+    })
+    .catch(() => {
+      // Falló la grande: se queda la chica (o el recuadro si tampoco cargó)
+    });
+}
+
+/** Abre el detalle con los datos que ya se tienen de la carta. */
+export function abrirDetalle(carta) {
+  cargarImagenDetalle(carta);
+  mostrarDatosDetalle(carta);
+  mensajeDetalle('');
+  focoPendiente = null;
+  mostrarCopias(null);
+  $('#dialogo-carta').showModal();
+}
+
+/** Cierra el detalle (por ejemplo, al cerrar sesión). */
+export function cerrarDetalle() {
+  const dialogo = $('#dialogo-carta');
+  if (dialogo.open) dialogo.close();
+}
+
+/** Nombre, expansión, número y rareza (se llama de nuevo si llega la rareza). */
+export function mostrarDatosDetalle(carta) {
+  $('#detalle-titulo').textContent = carta.nombre;
+
+  const numero = carta.totalSet ? `${carta.numero}/${carta.totalSet}` : carta.numero;
+  const anio = carta.fechaSet ? ` (${carta.fechaSet.slice(0, 4)})` : '';
+  const datos = [
+    ['Expansión', carta.nombreSet ? carta.nombreSet + anio : ''],
+    ['Número', numero],
+    ['Rareza', carta.rareza],
+  ].filter(([, valor]) => valor);
+
+  $('#detalle-datos').replaceChildren(...datos.flatMap(([nombre, valor]) => {
+    const dt = document.createElement('dt');
+    dt.textContent = nombre;
+    const dd = document.createElement('dd');
+    dd.textContent = valor;
+    return [dt, dd];
+  }));
+}
+
+/** Mensaje de "Tus copias" (errores al guardar). */
+export function mensajeDetalle(texto, tipo = 'info') {
+  const el = $('#estado-detalle');
+  el.textContent = texto;
+  el.dataset.tipo = tipo;
+  el.hidden = !texto;
+}
+
+/**
+ * Dibuja "Tus copias": el contador − N + y la lista de copias.
+ *
+ * @param {null | Array<{id: number|null, idioma: string|null, condicion: string|null}>} copias
+ *   null mientras se cargan
+ * @param {boolean} [ocupado]  mientras se guarda: controles desactivados
+ */
+export function mostrarCopias(copias, ocupado = false) {
+  // Al desactivar los controles se pierde el foco: se recuerda cuál
+  // era para devolverlo cuando termine de guardar
+  const activo = document.activeElement?.dataset?.foco;
+  if (ocupado && activo) focoPendiente = activo;
+
+  const cargando = copias === null;
+  const cantidad = copias?.length ?? 0;
+  $('#copias-cantidad').textContent = cargando ? '…' : String(cantidad);
+  $('#copias-restar').disabled = ocupado || cargando || cantidad === 0;
+  $('#copias-sumar').disabled = ocupado || cargando;
+
+  const lista = $('#lista-copias');
+  if (cargando) {
+    lista.replaceChildren();
+  } else if (cantidad === 0) {
+    const vacia = document.createElement('li');
+    vacia.className = 'copias__vacia';
+    vacia.textContent = 'Todavía no la tienes. Usa + para agregarla.';
+    lista.replaceChildren(vacia);
+  } else {
+    lista.replaceChildren(...copias.map((copia, i) => crearFilaCopia(copia, i, ocupado)));
+  }
+
+  if (!ocupado && !cargando && focoPendiente) {
+    const destino = $(`#dialogo-carta [data-foco="${focoPendiente}"]`);
+    (destino && !destino.disabled ? destino : $('#copias-sumar')).focus();
+    focoPendiente = null;
+  }
+}
+
+function crearFilaCopia(copia, indice, ocupado) {
+  const fila = document.createElement('li');
+  fila.className = 'copia';
+
+  const titulo = document.createElement('span');
+  titulo.className = 'copia__titulo';
+  titulo.textContent = `Copia ${indice + 1}`;
+
+  const quitar = document.createElement('button');
+  quitar.type = 'button';
+  quitar.className = 'boton boton--texto copia__quitar';
+  quitar.textContent = 'Quitar';
+  quitar.setAttribute('aria-label', `Quitar copia ${indice + 1}`);
+  quitar.dataset.foco = `quitar-${indice}`;
+  quitar.disabled = ocupado;
+  quitar.addEventListener('click', () => accionesCopias.alQuitar(copia));
+
+  fila.append(
+    titulo,
+    crearSelector('Idioma', 'idioma', IDIOMAS, copia, indice, ocupado),
+    crearSelector('Condición', 'condicion', CONDICIONES, copia, indice, ocupado),
+    quitar,
+  );
+  return fila;
+}
+
+/** Un <select> con "Sin indicar" y las opciones en español. */
+function crearSelector(etiqueta, campo, opciones, copia, indice, ocupado) {
+  const label = document.createElement('label');
+  label.className = 'copia__campo';
+
+  const texto = document.createElement('span');
+  texto.textContent = etiqueta;
+
+  const select = document.createElement('select');
+  select.dataset.foco = `${campo}-${indice}`;
+  select.disabled = ocupado;
+  select.append(
+    new Option('Sin indicar', ''),
+    ...Object.entries(opciones).map(([valor, nombre]) => new Option(nombre, valor)),
+  );
+  select.value = copia[campo] ?? '';
+  select.addEventListener('change', () => accionesCopias.alCambiar(copia, campo, select.value || null));
+
+  label.append(texto, select);
+  return label;
+}
+
+/** Devuelve el foco a la tarjeta de una carta (al cerrar el detalle). */
+export function enfocarCarta(idCarta) {
+  const vista = document.querySelector('main > div:not([hidden])');
+  vista?.querySelector(`.carta[data-id="${CSS.escape(idCarta)}"] .carta__imagen`)?.focus();
 }

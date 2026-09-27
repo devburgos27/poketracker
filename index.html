@@ -194,12 +194,37 @@
     <p><a href="privacidad.html">Privacidad</a></p>
   </footer>
 
-  <!-- Vista ampliada de una carta -->
-  <dialog id="dialogo-carta" class="dialogo" aria-labelledby="dialogo-titulo">
-    <div class="dialogo__contenido">
-      <p id="dialogo-titulo" class="dialogo__titulo"></p>
-      <img id="dialogo-imagen" src="" alt="">
-      <button id="dialogo-cerrar" type="button" class="boton boton--secundario">Cerrar</button>
+  <!-- Detalle de una carta: imagen grande, datos y "Tus copias" -->
+  <dialog id="dialogo-carta" class="dialogo detalle" aria-labelledby="detalle-titulo">
+    <div class="detalle__contenido">
+      <div class="detalle__cabecera">
+        <h2 id="detalle-titulo" class="detalle__titulo"></h2>
+        <button id="dialogo-cerrar" type="button" class="boton boton--secundario" autofocus>Cerrar</button>
+      </div>
+
+      <div class="detalle__cuerpo">
+        <div class="detalle__imagen">
+          <img id="detalle-imagen" src="" alt="">
+          <div id="detalle-sin-imagen" class="carta__sin-imagen" hidden>Imagen no disponible</div>
+        </div>
+
+        <div class="detalle__info">
+          <dl id="detalle-datos" class="detalle__datos"></dl>
+
+          <section class="detalle__copias" data-solo="usuario" hidden aria-labelledby="detalle-copias-titulo">
+            <h3 id="detalle-copias-titulo">Tus copias</h3>
+            <div class="contador" role="group" aria-label="Cantidad de copias">
+              <button id="copias-restar" type="button" class="boton boton--icono" aria-label="Quitar una copia" data-foco="restar">−</button>
+              <output id="copias-cantidad" class="contador__numero" aria-live="polite">0</output>
+              <button id="copias-sumar" type="button" class="boton boton--icono" aria-label="Agregar una copia" data-foco="sumar">+</button>
+            </div>
+            <p id="estado-detalle" class="mensaje" role="status" hidden></p>
+            <ol id="lista-copias" class="copias"></ol>
+          </section>
+
+          <p class="detalle__aviso" data-solo="visitante">Entra con Google para registrar tus copias de esta carta.</p>
+        </div>
+      </div>
     </div>
   </dialog>
 
