@@ -37,11 +37,14 @@ export async function cerrarSesion() {
  */
 export function alCambiarSesion(callback) {
   supabase.auth.onAuthStateChange((_evento, sesion) => {
-    callback(sesion?.user ?? null);
-
-    // Limpia el token de la barra de direcciones después del login
-    if (window.location.hash.includes('access_token')) {
+    // Limpia el token de la barra de direcciones después del login.
+    // Va antes del callback: así el router nunca ve "#access_token=…".
+    // (Se revisa como parámetro para no confundirlo con una ruta
+    // como "#/buscar?q=access_token".)
+    if (new URLSearchParams(window.location.hash.slice(1)).has('access_token')) {
       history.replaceState(null, '', window.location.pathname);
     }
+
+    callback(sesion?.user ?? null);
   });
 }

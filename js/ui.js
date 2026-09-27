@@ -11,13 +11,20 @@ const $ = (selector) => document.querySelector(selector);
 
 // --- Sesión ---------------------------------------------------
 
-/** Muestra el formulario de login o el correo del usuario conectado. */
+/**
+ * Muestra lo que corresponde a visitantes o a usuarios conectados:
+ * los elementos con data-solo="visitante" o data-solo="usuario".
+ */
 export function mostrarSesion(usuario) {
   const conectado = Boolean(usuario);
-  $('#login').hidden = conectado;
-  $('#sesion-activa').hidden = !conectado;
+  document.querySelectorAll('[data-solo="visitante"]').forEach((el) => { el.hidden = conectado; });
+  document.querySelectorAll('[data-solo="usuario"]').forEach((el) => { el.hidden = !conectado; });
   $('#usuario-email').textContent = usuario?.email ?? '';
-  $('#aviso-login').hidden = conectado;
+}
+
+/** Activa o desactiva todos los botones "Entrar con Google". */
+export function activarBotonesGoogle(activos) {
+  document.querySelectorAll('[data-accion="google"]').forEach((btn) => { btn.disabled = !activos; });
 }
 
 /** Mensaje bajo el formulario de login (éxito o error). */
@@ -69,19 +76,39 @@ export function prepararSelectorTema() {
 
 // --- Navegación -----------------------------------------------
 
-/** Muestra u oculta la barra "Buscar" / "Mi colección". */
-export function mostrarNavegacion(visible) {
-  $('#navegacion').hidden = !visible;
+const VISTAS = ['inicio', 'buscar', 'coleccion'];
+
+/**
+ * Muestra una pantalla, marca su ítem en la barra y cambia el
+ * título de la pestaña del navegador.
+ * @param {'inicio'|'buscar'|'coleccion'} vista
+ * @param {string} titulo
+ */
+export function mostrarVista(vista, titulo) {
+  VISTAS.forEach((v) => { $(`#vista-${v}`).hidden = v !== vista; });
+  document.querySelectorAll('#navegacion [data-ruta]').forEach((enlace) => {
+    if (enlace.dataset.ruta === vista) enlace.setAttribute('aria-current', 'page');
+    else enlace.removeAttribute('aria-current');
+  });
+  document.title = titulo;
 }
 
-/** Cambia de vista: 'buscar' o 'coleccion'. */
-export function mostrarVista(vista) {
-  $('#vista-buscar').hidden = vista !== 'buscar';
-  $('#vista-coleccion').hidden = vista !== 'coleccion';
-  document.querySelectorAll('#navegacion [data-vista]').forEach((btn) => {
-    if (btn.dataset.vista === vista) btn.setAttribute('aria-current', 'page');
-    else btn.removeAttribute('aria-current');
-  });
+/**
+ * Al entrar a otra pantalla: vuelve arriba y pone el foco en su
+ * título, para que el lector de pantalla anuncie dónde se está.
+ */
+export function enfocarTitulo(vista) {
+  window.scrollTo(0, 0);
+  // Inicio tiene un título para visitantes y otro con sesión: se usa el visible
+  const titulo = [...$(`#vista-${vista}`).querySelectorAll('[data-titulo]')]
+    .find((el) => el.offsetParent !== null);
+  titulo?.focus({ preventScroll: true });
+}
+
+/** Los enlaces a Buscar llevan a la última búsqueda (#/buscar?q=…). */
+export function actualizarEnlacesBuscar(texto) {
+  const href = texto ? `#/buscar?q=${encodeURIComponent(texto)}` : '#/buscar';
+  document.querySelectorAll('[data-enlace-buscar]').forEach((a) => a.setAttribute('href', href));
 }
 
 // --- Búsqueda -------------------------------------------------
@@ -120,6 +147,20 @@ export function mostrarFiltros(conteos, activo = 'todas') {
   });
 }
 
+// --- Inicio ---------------------------------------------------
+
+/** Texto de estado de "Agregadas recientemente". */
+export function mensajeInicio(texto, tipo = 'info') {
+  const el = $('#estado-inicio');
+  el.textContent = texto;
+  el.dataset.tipo = tipo;
+}
+
+/** Dibuja las cartas recientes (mismos parámetros que mostrarCartas). */
+export function mostrarRecientes(cartas, marcado, textoVacio) {
+  dibujarGrilla($('#grilla-recientes'), cartas, marcado, textoVacio);
+}
+
 // --- Mi colección ---------------------------------------------
 
 /** Texto de estado de "Mi colección": "Cargando…", "12 cartas", errores. */
@@ -153,7 +194,7 @@ export function mostrarCartas(cartas, marcado = null, textoVacio = '') {
 function dibujarGrilla(grilla, cartas, marcado, textoVacio) {
   if (cartas.length === 0 && textoVacio) {
     const vacio = document.createElement('p');
-    vacio.className = 'grilla__vacio';
+    vacio.className = 'vacio grilla__vacio';
     vacio.textContent = textoVacio;
     grilla.replaceChildren(vacio);
     return;

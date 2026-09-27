@@ -154,7 +154,8 @@ a { color: var(--info); }
   width: 100%;
   max-width: var(--ancho-max);
   margin-inline: auto;
-  padding-inline: var(--esp-4);
+  /* max(): en iPhone horizontal, no queda texto bajo la muesca */
+  padding-inline: max(var(--esp-4), env(safe-area-inset-left), env(safe-area-inset-right));
 }
 
 /* Oculta un elemento a la vista pero lo deja para lectores de pantalla */
@@ -167,6 +168,22 @@ a { color: var(--info); }
 }
 
 [hidden] { display: none !important; }
+
+/* Títulos que reciben el foco al cambiar de pantalla: no son
+   interactivos, así que no se les dibuja el anillo de foco */
+[data-titulo]:focus { outline: none; }
+
+/* Íconos de línea (se usan con <use href="#icono-…">) */
+.icono {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 :focus-visible {
   outline: 3px solid var(--foco);
@@ -276,12 +293,17 @@ input::placeholder { color: var(--texto-suave); }
 }
 
 .logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
   margin: 0 auto 0 0;       /* empuja sesión y tema a la derecha */
   font-size: 1.5rem;
   letter-spacing: -0.02em;
+}
+.logo--enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--texto);
+  text-decoration: none;
+  font-weight: 700;
 }
 .logo__marca { color: var(--marca-texto); }
 .logo__rayo {
@@ -318,9 +340,44 @@ input::placeholder { color: var(--texto-suave); }
 .mensaje[data-tipo="exito"] { color: var(--exito); }
 .mensaje[data-tipo="error"] { color: var(--error); }
 
-/* --- Pestañas: navegación y filtros ------------------------ */
-/* La pestaña activa se marca con aria-current (navegación)
-   o aria-pressed (filtros). */
+/* --- Navegación principal --------------------------------- */
+/* Escritorio: en la cabecera. Móvil: barra fija abajo (ver al final).
+   El ítem activo lleva aria-current="page" y una raya: no depende
+   solo del color. */
+.barra-nav {
+  display: flex;
+  gap: var(--esp-1);
+  margin-right: auto;
+}
+.barra-nav__item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--alto-toque);
+  padding: 0 var(--esp-3);
+  border-radius: var(--radio-s);
+  color: var(--texto-suave);
+  font-size: var(--texto-s);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--duracion), color var(--duracion);
+}
+.barra-nav__item:hover { color: var(--texto); background: var(--superficie-2); }
+.barra-nav__item[aria-current="page"] { color: var(--texto); font-weight: 700; }
+.barra-nav__item[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: var(--esp-3);
+  right: var(--esp-3);
+  bottom: 2px;
+  height: 3px;
+  border-radius: var(--radio-pill);
+  background: var(--marca-texto);
+}
+
+/* --- Pestañas: filtros ------------------------------------- */
+/* La pestaña activa se marca con aria-pressed. */
 .pestanas {
   display: flex;
   justify-content: center;
@@ -341,14 +398,12 @@ input::placeholder { color: var(--texto-suave); }
   transition: background var(--duracion), color var(--duracion);
 }
 .pestanas__item:hover { color: var(--texto); background: var(--superficie-2); }
-.pestanas__item[aria-current="page"],
 .pestanas__item[aria-pressed="true"] {
   background: var(--primario);
   border-color: var(--primario);
   color: var(--sobre-primario);
 }
 
-.navegacion { padding-top: var(--esp-5); }
 .filtros { margin-bottom: var(--esp-5); }
 
 /* --- Intro y buscador -------------------------------------- */
@@ -362,6 +417,20 @@ input::placeholder { color: var(--texto-suave); }
 }
 .intro__aviso { margin: 0 0 var(--esp-5); color: var(--texto-suave); }
 .intro__ayuda { margin: var(--esp-2) 0 0; font-size: var(--texto-s); color: var(--texto-suave); }
+
+/* Fila de botones o enlaces principales de una pantalla */
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--esp-3);
+  margin-bottom: var(--esp-5);
+}
+
+.seccion__titulo {
+  margin: var(--esp-5) 0 0;
+  font-size: var(--texto-l);
+}
 
 .form-busqueda {
   display: flex;
@@ -388,9 +457,10 @@ input::placeholder { color: var(--texto-suave); }
   padding-bottom: var(--esp-7);
 }
 
-/* Estado vacío: ocupa toda la fila, con un motivo de telaraña y rayo */
-.grilla__vacio {
-  grid-column: 1 / -1;
+/* Estado vacío, con un motivo de telaraña y rayo.
+   Dentro de una grilla ocupa toda la fila. */
+.grilla__vacio { grid-column: 1 / -1; }
+.vacio {
   margin: var(--esp-4) 0;
   padding: var(--esp-6) var(--esp-4);
   text-align: center;
@@ -398,7 +468,9 @@ input::placeholder { color: var(--texto-suave); }
   border: 2px dashed var(--borde);
   border-radius: var(--radio-m);
 }
-.grilla__vacio::before {
+.vacio p { margin: 0 0 var(--esp-4); }
+.vacio p:last-child { margin-bottom: 0; }
+.vacio::before {
   content: "";
   display: block;
   width: 48px;
@@ -547,11 +619,6 @@ input::placeholder { color: var(--texto-suave); }
 .pie p + p { margin-top: var(--esp-2); }
 
 /* --- Página de privacidad ---------------------------------- */
-.logo--enlace {
-  color: var(--texto);
-  text-decoration: none;
-  font-weight: 700;
-}
 
 .legal {
   max-width: 680px;
@@ -579,6 +646,47 @@ input::placeholder { color: var(--texto-suave); }
 .legal li + li { margin-top: var(--esp-2); }
 
 /* --- Móvil ------------------------------------------------- */
+/* Navegación como barra fija abajo. La zona segura
+   (safe-area-inset-bottom) deja libre la barra de gestos del iPhone. */
+@media (max-width: 720px) {
+  :root { --alto-barra-nav: 56px; }
+
+  body {
+    /* Espacio para que la barra no tape el final de la página */
+    padding-bottom: calc(var(--alto-barra-nav) + env(safe-area-inset-bottom));
+  }
+
+  .barra-nav {
+    position: fixed;
+    z-index: 10;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    gap: 0;
+    margin: 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--superficie);
+    border-top: 1px solid var(--borde);
+  }
+  .barra-nav__item {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-height: var(--alto-barra-nav);
+    padding: var(--esp-1);
+    border-radius: 0;
+    font-size: var(--texto-xs);
+  }
+  .barra-nav__item:hover { background: none; }
+  .barra-nav__item[aria-current="page"]::after {
+    top: 0;
+    bottom: auto;
+    left: 30%;
+    right: 30%;
+  }
+}
+
 @media (max-width: 600px) {
   /* Fila 1: logo + tema. Fila 2: sesión a todo el ancho */
   .sesion {
@@ -586,6 +694,7 @@ input::placeholder { color: var(--texto-suave); }
     flex-basis: 100%;
   }
   .boton--google { width: 100%; }
+  .acciones { flex-direction: column; }
   .sesion-activa { justify-content: space-between; }
   .grilla {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));

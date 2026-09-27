@@ -13,6 +13,9 @@ import { supabase } from './supabase.js';
 // Código de Postgres para "fila duplicada" (unique violation)
 const YA_EXISTE = '23505';
 
+// Columnas necesarias para dibujar una carta guardada
+const COLUMNAS_CARTA = 'id_carta, nombre_pokemon, nombre_set, numero, imagen_url';
+
 /**
  * Devuelve los ids de todas las cartas que tiene el usuario.
  * @returns {Promise<Set<string>>}
@@ -37,13 +40,31 @@ export async function cargarIdsTengo() {
 export async function listarColeccion(texto = '') {
   let consulta = supabase
     .from('coleccion')
-    .select('id_carta, nombre_pokemon, nombre_set, numero, imagen_url')
+    .select(COLUMNAS_CARTA)
     .order('nombre_pokemon')
     .order('created_at');
 
   if (texto) consulta = consulta.ilike('nombre_pokemon', `%${texto}%`);
 
   const { data, error } = await consulta;
+  if (error) throw error;
+  return data.map(adaptarFila);
+}
+
+/**
+ * Las últimas cartas que agregó el usuario, de la más nueva a la
+ * más antigua (para "Agregadas recientemente" en Inicio).
+ *
+ * @param {number} cantidad
+ */
+export async function listarRecientes(cantidad) {
+  const { data, error } = await supabase
+    .from('coleccion')
+    .select(COLUMNAS_CARTA)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false }) // desempate si se agregaron a la vez
+    .limit(cantidad);
+
   if (error) throw error;
   return data.map(adaptarFila);
 }
