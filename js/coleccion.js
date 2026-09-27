@@ -22,6 +22,38 @@ const COLUMNAS_CARTA = 'id, id_carta, nombre_pokemon, nombre_set, numero, imagen
 // Columnas de una copia
 const COLUMNAS_COPIA = 'id, idioma, condicion';
 
+// Supabase corta cada respuesta en un máximo de filas ("Max rows" de la
+// API, 1000 por defecto). Las listas completas se piden por páginas.
+const TAMANO_PAGINA = 1000;
+
+// Código de PostgREST para "rango fuera del total" (se borraron filas
+// entre una página y la siguiente): significa que ya no hay más
+const RANGO_FUERA = 'PGRST103';
+
+/**
+ * Trae todas las filas de una consulta, página por página.
+ * Sigue el total que informa Supabase (count: 'exact'), así no depende
+ * de que el límite por respuesta sea exactamente 1000.
+ *
+ * @param {() => object} crearConsulta  arma la consulta con
+ *   select(..., { count: 'exact' }) y un orden estable (que termine en
+ *   un campo único), para que las páginas no se pisen ni salten filas
+ */
+async function traerTodas(crearConsulta) {
+  const filas = [];
+  let total = Infinity;
+  while (filas.length < total) {
+    const { data, error, count } = await crearConsulta()
+      .range(filas.length, filas.length + TAMANO_PAGINA - 1);
+    if (error?.code === RANGO_FUERA) break;
+    if (error) throw error;
+    if (count != null) total = count;
+    if (data.length === 0) break; // por si el total cambió mientras se pedía
+    filas.push(...data);
+  }
+  return filas;
+}
+
 /**
  * Cuántas copias tiene una fila de coleccion.
  * Una fila sin copias (guardada por la versión anterior de la app,
@@ -33,12 +65,15 @@ function contarCopias(fila) {
 
 /**
  * Todas las cartas que tiene el usuario: id de carta → fila y copias.
+ * Paginada: el progreso de los objetivos depende de que esté completa.
  * @returns {Promise<Map<string, {filaId: number, copias: number}>>}
  */
 export async function cargarMisCartas() {
-  const { data, error } = await supabase.from('coleccion').select('id, id_carta, copias(count)');
-  if (error) throw error;
-  return new Map(data.map((fila) => [fila.id_carta, { filaId: fila.id, copias: contarCopias(fila) }]));
+  const filas = await traerTodas(() => supabase
+    .from('coleccion')
+    .select('id, id_carta, copias(count)', { count: 'exact' })
+    .order('id'));
+  return new Map(filas.map((fila) => [fila.id_carta, { filaId: fila.id, copias: contarCopias(fila) }]));
 }
 
 /**
@@ -53,17 +88,17 @@ export async function cargarMisCartas() {
  * @param {string} [texto]
  */
 export async function listarColeccion(texto = '') {
-  let consulta = supabase
-    .from('coleccion')
-    .select(COLUMNAS_CARTA)
-    .order('nombre_pokemon')
-    .order('created_at');
-
-  if (texto) consulta = consulta.ilike('nombre_pokemon', `%${texto}%`);
-
-  const { data, error } = await consulta;
-  if (error) throw error;
-  return data.map(adaptarFila);
+  const filas = await traerTodas(() => {
+    let consulta = supabase
+      .from('coleccion')
+      .select(COLUMNAS_CARTA, { count: 'exact' })
+      .order('nombre_pokemon')
+      .order('created_at')
+      .order('id'); // desempate: orden estable entre páginas
+    if (texto) consulta = consulta.ilike('nombre_pokemon', `%${texto}%`);
+    return consulta;
+  });
+  return filas.map(adaptarFila);
 }
 
 /**

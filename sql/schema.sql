@@ -160,15 +160,17 @@ create policy "borrar mis copias"
 
 
 -- 4) Permisos explícitos
+-- Supabase da por defecto TODOS los permisos sobre las tablas de
+-- "public" a anon y authenticated: se quitan y se dan solo los que
+-- la app usa (RLS limita todo a las filas de cada usuario).
 -- Los visitantes sin login (anon) no tocan las tablas.
--- Los usuarios logueados pueden leer, insertar y borrar
--- (y RLS limita eso a sus propias filas).
-revoke all on public.coleccion from anon;
+
+-- coleccion: leer, agregar y borrar (las filas no se editan)
+revoke all on public.coleccion from anon, authenticated;
 grant select, insert, delete on public.coleccion to authenticated;
 
--- En copias se quitan también los permisos que Supabase da por
--- defecto a authenticated, y UPDATE va solo sobre idioma y condicion:
--- así ni siquiera se puede intentar mover una copia a otra carta.
+-- copias: además, UPDATE solo sobre idioma y condicion, así ni
+-- siquiera se puede intentar mover una copia a otra carta.
 revoke all on public.copias from anon, authenticated;
 grant select, insert, delete on public.copias to authenticated;
 grant update (idioma, condicion) on public.copias to authenticated;

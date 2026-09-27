@@ -40,6 +40,7 @@ js/
 sql/
   schema.sql      esquema completo (proyectos nuevos)
   002_copias.sql  migración: copias por carta
+  003_permisos_coleccion.sql  migración: solo los permisos que usa la app
 ```
 
 ## Correr en local

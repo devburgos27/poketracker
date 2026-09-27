@@ -57,11 +57,12 @@ index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, a
   - **Filtro por estado en la búsqueda:** pestañas "Todas (N)" / "Tengo (N)" / "Me falta (N)" sobre la grilla, solo con sesión. Se filtra en el navegador; los conteos cambian al marcar; en "Tengo" o "Me falta" la carta marcada sale de la vista. Una búsqueda nueva vuelve a "Todas".
   - **Mi colección:** navegación "Buscar" / "Mi colección" (mostrar/ocultar secciones, sin router). `listarColeccion()` en coleccion.js, orden por `nombre_pokemon` y `created_at`. Filtro por Pokémon con `.ilike('nombre_pokemon', '%texto%')` y debounce de 300 ms, así "Joltik" incluye "N's Joltik". Misma tarjeta que la búsqueda; "Me falta" la quita de la colección.
   - `imagen_url` guarda la imagen chica (low.webp); la vista ampliada usa high.webp cambiando el sufijo.
-  - Límite conocido: Supabase devuelve como máximo 1000 filas por consulta (cargarIdsTengo y listarColeccion). Si una colección pasa de 1000 cartas, habrá que paginar.
+  - Límite de 1000 filas por respuesta de Supabase: resuelto en el Bloque 7a. `cargarMisCartas` y `listarColeccion` piden por páginas (`traerTodas` en coleccion.js), siguiendo el total de `count: 'exact'`, con orden estable que termina en `id`.
 - [x] Publicado en Vercel: https://poketracker-ten.vercel.app (2026-09-26). Configuración hecha:
   - [x] Google Cloud: origen autorizado de JavaScript https://poketracker-ten.vercel.app.
   - [x] Supabase: Site URL = https://poketracker-ten.vercel.app y Redirect URL https://poketracker-ten.vercel.app/** (se mantienen las de 127.0.0.1 y localhost para desarrollo).
   - [x] Google Auth Platform: marca completada (página principal, privacidad.html, dominio autorizado) y app publicada; ya no está en modo Prueba. Probado entrando con otra cuenta de Google en incógnito.
+- [x] Bloque 7a: migración `003_permisos_coleccion.sql` (authenticated queda solo con SELECT, INSERT y DELETE en `coleccion`; probada en PGlite, la ejecuta el usuario) y paginación de más de 1000 filas. Plan completo del Bloque 7 en `docs/plan-bloque-7.md`.
 - [x] Bloque 6: migración `002_copias.sql` (escrita y probada en PGlite; la ejecuta el usuario), detalle de carta con "Tus copias" (− N +, idioma y condición por copia), insignia ×N en las tarjetas.
 - [x] Bloque 5: rutas hash, barra de navegación (inferior en móvil), Inicio (presentación sin sesión; accesos rápidos y últimas 6 cartas con sesión), Colección con invitación a entrar.
 - [x] Bloque 4: sistema de diseño (tokens de color, radio, espacio y tipografía), tema claro/oscuro con botón en la cabecera, pestañas unificadas (`.pestanas`), login solo con Google, privacidad.html con ambos temas.
