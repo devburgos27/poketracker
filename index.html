@@ -228,6 +228,19 @@
     </div>
   </dialog>
 
+  <!-- Confirmación a pantalla completa (la usa ui.confirmar) -->
+  <dialog id="dialogo-confirmar" class="confirmar" aria-labelledby="confirmar-titulo" aria-describedby="confirmar-mensaje">
+    <div class="confirmar__contenido">
+      <span class="confirmar__icono" aria-hidden="true"></span>
+      <h2 id="confirmar-titulo" class="confirmar__titulo"></h2>
+      <p id="confirmar-mensaje" class="confirmar__mensaje"></p>
+      <div class="confirmar__acciones">
+        <button id="confirmar-cancelar" type="button" class="boton boton--secundario" autofocus>Cancelar</button>
+        <button id="confirmar-aceptar" type="button" class="boton"></button>
+      </div>
+    </div>
+  </dialog>
+
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

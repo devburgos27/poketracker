@@ -28,6 +28,10 @@
   --advertencia: #9a4a00;
   --error: #b3261e;
   --foco: #0a63b8;
+  --sobre-error: #ffffff;       /* texto sobre fondo de error (botón peligro) */
+  --error-hover: #9c2019;
+  --capa: rgb(233 237 245 / 0.88);  /* fondo de los avisos a pantalla completa */
+  --brillo-icono: none;
 
   --sombra: 0 1px 2px rgb(18 24 41 / 0.06), 0 4px 12px rgb(18 24 41 / 0.06);
   --brillo: none;
@@ -88,6 +92,10 @@
   --advertencia: #ffa94d;
   --error: #ff6b6b;
   --foco: #ffd60a;
+  --sobre-error: #0b1020;
+  --error-hover: #ff8787;
+  --capa: rgb(7 11 24 / 0.82);
+  --brillo-icono: drop-shadow(0 0 14px rgb(255 214 10 / 0.45));
 
   --sombra: 0 1px 3px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.3);
   --brillo: 0 0 12px rgb(255 214 10 / 0.35);
@@ -120,6 +128,10 @@
     --advertencia: #ffa94d;
     --error: #ff6b6b;
     --foco: #ffd60a;
+    --sobre-error: #0b1020;
+    --error-hover: #ff8787;
+    --capa: rgb(7 11 24 / 0.82);
+    --brillo-icono: drop-shadow(0 0 14px rgb(255 214 10 / 0.45));
 
     --sombra: 0 1px 3px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.3);
     --brillo: 0 0 12px rgb(255 214 10 / 0.35);
@@ -225,6 +237,17 @@ a { color: var(--info); }
 .boton--secundario:hover:not(:disabled) {
   background: var(--superficie-2);
   box-shadow: inset 0 0 0 1px var(--borde-control);
+}
+
+/* Acción destructiva (ej: "Quitar copias") */
+.boton--peligro {
+  background: var(--error);
+  color: var(--sobre-error);
+  box-shadow: none;
+}
+.boton--peligro:hover:not(:disabled) {
+  background: var(--error-hover);
+  box-shadow: none;
 }
 
 .boton--texto {
@@ -460,6 +483,10 @@ select:disabled { opacity: 0.6; }
   color: var(--texto-suave);
 }
 .estado[data-tipo="error"] { color: var(--error); }
+
+/* "Reintentar" junto a un mensaje de error */
+.estado .boton,
+.mensaje .boton { margin-left: var(--esp-2); }
 
 /* --- Grilla de cartas -------------------------------------- */
 .grilla {
@@ -707,6 +734,83 @@ select:disabled { opacity: 0.6; }
 .copia__quitar { min-height: var(--alto-toque); }
 .copias__vacia { color: var(--texto-suave); }
 
+/* --- Confirmación a pantalla completa ---------------------- */
+/* El <dialog> ocupa toda la pantalla: la capa difumina lo de atrás
+   y el contenido va centrado, sin ventanita. */
+.confirmar {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: var(--esp-5) var(--esp-4);
+  border: none;
+  background: var(--capa);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--texto);
+}
+/* Solo cuando está abierto: si no, anularía el display:none del navegador */
+.confirmar[open] {
+  display: grid;
+  place-items: center;
+  animation: confirmar-fundido 180ms ease-out;
+}
+.confirmar::backdrop { background: transparent; }
+
+.confirmar__contenido {
+  max-width: 480px;
+  text-align: center;
+  animation: confirmar-entrada 220ms ease-out;
+}
+
+/* Telaraña con rayo; el brillo (solo en oscuro) va en el contenedor
+   porque la máscara del ícono recortaría la sombra */
+.confirmar__icono {
+  display: inline-block;
+  filter: var(--brillo-icono);
+  margin-bottom: var(--esp-4);
+}
+.confirmar__icono::before {
+  content: "";
+  display: block;
+  width: 72px;
+  height: 72px;
+  background: var(--marca-texto);
+  -webkit-mask: var(--motivo-telarana) center / contain no-repeat;
+  mask: var(--motivo-telarana) center / contain no-repeat;
+}
+
+.confirmar__titulo {
+  margin: 0 0 var(--esp-3);
+  font-size: clamp(1.5rem, 6vw, 2.25rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;      /* nombres largos no desbordan en 320 px */
+}
+.confirmar__mensaje {
+  margin: 0 0 var(--esp-6);
+  font-size: var(--texto-l);
+}
+.confirmar__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--esp-3);
+}
+.confirmar__acciones .boton { min-width: 10rem; }
+
+@keyframes confirmar-fundido {
+  from { opacity: 0; }
+}
+@keyframes confirmar-entrada {
+  from { opacity: 0; transform: scale(0.96); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confirmar[open],
+  .confirmar__contenido { animation: none; }
+}
+
 /* --- Pie --------------------------------------------------- */
 .pie {
   padding-block: var(--esp-5) var(--esp-6);
@@ -806,5 +910,7 @@ select:disabled { opacity: 0.6; }
   .detalle__cuerpo { grid-template-columns: 1fr; }
   .detalle__imagen { max-width: 240px; margin-inline: auto; }
   .copia { grid-template-columns: 1fr 1fr; }
+  .confirmar__acciones { flex-direction: column-reverse; }
+  .confirmar__acciones .boton { width: 100%; }
   .copia__quitar { grid-column: 1 / -1; justify-self: start; }
 }

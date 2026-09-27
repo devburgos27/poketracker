@@ -9,6 +9,24 @@
 
 const $ = (selector) => document.querySelector(selector);
 
+/**
+ * Escribe un mensaje de estado. Con alReintentar agrega un botón
+ * "Reintentar" (para errores de red: la app no reintenta sola).
+ */
+function escribirMensaje(el, texto, tipo, alReintentar) {
+  el.dataset.tipo = tipo;
+  if (!alReintentar) {
+    el.textContent = texto;
+    return;
+  }
+  const boton = document.createElement('button');
+  boton.type = 'button';
+  boton.className = 'boton boton--secundario';
+  boton.textContent = 'Reintentar';
+  boton.addEventListener('click', alReintentar, { once: true });
+  el.replaceChildren(document.createTextNode(texto), boton);
+}
+
 // --- Sesión ---------------------------------------------------
 
 /**
@@ -28,10 +46,9 @@ export function activarBotonesGoogle(activos) {
 }
 
 /** Mensaje bajo el formulario de login (éxito o error). */
-export function mensajeLogin(texto, tipo = 'info') {
+export function mensajeLogin(texto, tipo = 'info', alReintentar = null) {
   const el = $('#mensaje-login');
-  el.textContent = texto;
-  el.dataset.tipo = tipo;
+  escribirMensaje(el, texto, tipo, alReintentar);
   el.hidden = !texto;
 }
 
@@ -114,10 +131,8 @@ export function actualizarEnlacesBuscar(texto) {
 // --- Búsqueda -------------------------------------------------
 
 /** Texto de estado sobre la grilla: "Buscando…", "12 cartas", errores. */
-export function mensajeEstado(texto, tipo = 'info') {
-  const el = $('#estado');
-  el.textContent = texto;
-  el.dataset.tipo = tipo;
+export function mensajeEstado(texto, tipo = 'info', alReintentar = null) {
+  escribirMensaje($('#estado'), texto, tipo, alReintentar);
 }
 
 /** Deshabilita el buscador mientras se espera la respuesta de la API. */
@@ -150,10 +165,8 @@ export function mostrarFiltros(conteos, activo = 'todas') {
 // --- Inicio ---------------------------------------------------
 
 /** Texto de estado de "Agregadas recientemente". */
-export function mensajeInicio(texto, tipo = 'info') {
-  const el = $('#estado-inicio');
-  el.textContent = texto;
-  el.dataset.tipo = tipo;
+export function mensajeInicio(texto, tipo = 'info', alReintentar = null) {
+  escribirMensaje($('#estado-inicio'), texto, tipo, alReintentar);
 }
 
 /** Dibuja las cartas recientes (mismos parámetros que mostrarCartas). */
@@ -164,10 +177,8 @@ export function mostrarRecientes(cartas, marcado, textoVacio) {
 // --- Mi colección ---------------------------------------------
 
 /** Texto de estado de "Mi colección": "Cargando…", "12 cartas", errores. */
-export function mensajeColeccion(texto, tipo = 'info') {
-  const el = $('#estado-coleccion');
-  el.textContent = texto;
-  el.dataset.tipo = tipo;
+export function mensajeColeccion(texto, tipo = 'info', alReintentar = null) {
+  escribirMensaje($('#estado-coleccion'), texto, tipo, alReintentar);
 }
 
 /** Dibuja las cartas de "Mi colección" (mismos parámetros que mostrarCartas). */
@@ -291,9 +302,14 @@ function crearMarcado(carta, tarjeta, { misCartas, alCambiar }) {
     if (misCartas.has(carta.id) === tengo) return;
     // "Me falta" borra todas las copias: con más de una, se confirma
     const copias = misCartas.get(carta.id)?.copias ?? 0;
-    if (!tengo && copias > 1
-        && !window.confirm(`¿Quitar las ${copias} copias de ${carta.nombre} de tu colección?`)) {
-      return;
+    if (!tengo && copias > 1) {
+      const quitar = await confirmar({
+        titulo: `¿Quitar ${carta.nombre} de tu colección?`,
+        mensaje: `Se quitarán las ${copias} copias, con su idioma y condición.`,
+        textoConfirmar: 'Quitar copias',
+        peligro: true,
+      });
+      if (!quitar) return;
     }
     pintar(tengo);
     btnTengo.disabled = btnFalta.disabled = true;
@@ -448,10 +464,9 @@ export function mostrarDatosDetalle(carta) {
 }
 
 /** Mensaje de "Tus copias" (errores al guardar). */
-export function mensajeDetalle(texto, tipo = 'info') {
+export function mensajeDetalle(texto, tipo = 'info', alReintentar = null) {
   const el = $('#estado-detalle');
-  el.textContent = texto;
-  el.dataset.tipo = tipo;
+  escribirMensaje(el, texto, tipo, alReintentar);
   el.hidden = !texto;
 }
 
@@ -545,4 +560,50 @@ function crearSelector(etiqueta, campo, opciones, copia, indice, ocupado) {
 export function enfocarCarta(idCarta) {
   const vista = document.querySelector('main > div:not([hidden])');
   vista?.querySelector(`.carta[data-id="${CSS.escape(idCarta)}"] .carta__imagen`)?.focus();
+}
+
+// --- Confirmación ---------------------------------------------
+
+/**
+ * Pregunta antes de una acción, a pantalla completa (reemplaza al
+ * confirm() del navegador). Usa <dialog> con showModal(): el foco
+ * queda atrapado adentro y Esc cancela.
+ * El foco parte en "Cancelar" y, al cerrar, vuelve a donde estaba.
+ *
+ * @param {{titulo: string, mensaje: string, textoConfirmar?: string, peligro?: boolean}} opciones
+ *   peligro: el botón de confirmar va en color de error
+ * @returns {Promise<boolean>} true si confirmó
+ */
+export function confirmar({ titulo, mensaje, textoConfirmar = 'Aceptar', peligro = false }) {
+  const dialogo = $('#dialogo-confirmar');
+  const origen = document.activeElement;
+
+  $('#confirmar-titulo').textContent = titulo;
+  $('#confirmar-mensaje').textContent = mensaje;
+  const aceptar = $('#confirmar-aceptar');
+  aceptar.textContent = textoConfirmar;
+  aceptar.classList.toggle('boton--peligro', peligro);
+
+  dialogo.returnValue = '';
+  dialogo.showModal();
+  $('#confirmar-cancelar').focus();
+
+  return new Promise((resolve) => {
+    dialogo.addEventListener('close', () => {
+      origen?.focus?.();
+      resolve(dialogo.returnValue === 'si');
+    }, { once: true });
+  });
+}
+
+/** Botones y clic fuera del contenido del modal de confirmación. */
+export function prepararConfirmacion() {
+  const dialogo = $('#dialogo-confirmar');
+  $('#confirmar-aceptar').addEventListener('click', () => dialogo.close('si'));
+  $('#confirmar-cancelar').addEventListener('click', () => dialogo.close('no'));
+  // La capa es el propio <dialog>: un clic que no cae en el contenido cancela
+  dialogo.addEventListener('click', (e) => {
+    if (e.target === dialogo) dialogo.close('no');
+  });
+  // Esc cierra el <dialog> solo, sin returnValue: cuenta como cancelar
 }

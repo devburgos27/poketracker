@@ -170,8 +170,9 @@ async function buscarDesdeRuta(texto) {
     if (pedido !== pedidoBusqueda) return;
     console.error(error);
     ui.mensajeEstado(
-      'No pudimos conectar con la base de cartas. Inténtalo de nuevo en un momento.',
+      'No pudimos conectar con la base de cartas. Revisa tu conexión.',
       'error',
+      () => buscarDesdeRuta(texto),
     );
   } finally {
     if (pedido === pedidoBusqueda) {
@@ -223,7 +224,7 @@ async function cargarRecientes() {
   } catch (error) {
     if (pedido !== ultimoPedido) return;
     console.error(error);
-    ui.mensajeInicio('No pudimos cargar tus cartas recientes. Inténtalo de nuevo.', 'error');
+    ui.mensajeInicio('No pudimos cargar tus cartas recientes. Revisa tu conexión.', 'error', cargarRecientes);
   }
 }
 
@@ -254,7 +255,7 @@ async function cargarColeccion() {
   } catch (error) {
     if (pedido !== ultimoPedido) return;
     console.error(error);
-    ui.mensajeColeccion('No pudimos cargar tu colección. Inténtalo de nuevo.', 'error');
+    ui.mensajeColeccion('No pudimos cargar tu colección. Revisa tu conexión.', 'error', cargarColeccion);
   }
 }
 
@@ -368,7 +369,10 @@ async function cargarCopias(d) {
   } catch (error) {
     if (d !== detalle) return;
     console.error(error);
-    ui.mensajeDetalle('No pudimos cargar tus copias. Cierra y vuelve a abrir la carta.', 'error');
+    ui.mensajeDetalle('No pudimos cargar tus copias. Revisa tu conexión.', 'error', () => {
+      ui.mensajeDetalle('');
+      cargarCopias(d);
+    });
   }
 }
 
@@ -478,6 +482,7 @@ function redibujarPantalla() {
   else if (rutaActual === 'inicio') dibujarRecientes();
 }
 
+ui.prepararConfirmacion();
 ui.prepararDetalle({
   alAbrir: abrirDetalle,
   alCerrar: alCerrarDetalle,
@@ -630,18 +635,25 @@ async function iniciarLogin() {
 
     // setTimeout: Supabase recomienda no llamar a la base de datos
     // dentro de este aviso, porque puede quedar bloqueado.
-    setTimeout(async () => {
-      try {
-        const cartas = await coleccion.cargarMisCartas();
-        if (usuarioId !== nuevoId) return; // salió mientras cargaba
-        misCartas = cartas;
-      } catch (error) {
-        console.error(error);
-        ui.mensajeLogin('No pudimos cargar tu colección. Recarga la página para intentarlo de nuevo.', 'error');
-      }
-      actualizarPantalla();
-    }, 0);
+    setTimeout(() => cargarMisCartasDe(nuevoId), 0);
   });
+
+  /** Carga las cartas del usuario; sin conexión, un intento y "Reintentar". */
+  async function cargarMisCartasDe(id) {
+    try {
+      const cartas = await coleccion.cargarMisCartas();
+      if (usuarioId !== id) return; // salió mientras cargaba
+      misCartas = cartas;
+    } catch (error) {
+      console.error(error);
+      if (usuarioId !== id) return;
+      ui.mensajeLogin('No pudimos cargar tu colección. Revisa tu conexión.', 'error', () => {
+        ui.mensajeLogin('');
+        cargarMisCartasDe(id);
+      });
+    }
+    actualizarPantalla();
+  }
 
   document.querySelectorAll('[data-accion="google"]').forEach((boton) => {
     boton.addEventListener('click', async () => {

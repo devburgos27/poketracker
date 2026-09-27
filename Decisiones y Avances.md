@@ -19,6 +19,8 @@ Actualizado: 2026-09-27
   - Buscar solo cambia la URL y la ruta hace la consulta. Se guardan en memoria las últimas 10 búsquedas: Atrás/Adelante y volver a Buscar no repiten la consulta.
   - Barra con 3 ítems (Inicio, Buscar, Colección): fija abajo en móvil (≤ 720 px, respeta `safe-area-inset-bottom`), en la cabecera en escritorio. Progreso se agrega en el Bloque 7.
   - Colección sin sesión no redirige: muestra una invitación a entrar.
+- **supabase-js fijado en 2.117.2 y sin reintentos automáticos** (`db: { retry: false }`): desde esa versión postgrest-js repite cada lectura hasta 3 veces si falla (1 s, 2 s, 4 s); sin conexión eran 4 pedidos por consulta, que se acumulaban al navegar (29 en 10 s). Ahora: un intento y un mensaje con "Reintentar". La versión va fija para que el CDN no cambie el comportamiento sin aviso.
+- **Confirmaciones:** `ui.confirmar()` con un `<dialog>` a pantalla completa (sin `confirm()`/`alert()` del navegador).
 - **Búsqueda pública:** buscar cartas no requiere login (sirve para visitantes del portafolio); marcar sí lo requerirá. El login se carga con import() dinámico: si Supabase falla, la búsqueda sigue funcionando.
 - **Frontend:** HTML + CSS + JS vanilla con módulos ES, supabase-js v2 desde CDN (jsDelivr). Sin build. Debe abrirse con Live Server (no con doble clic / file://).
 - **API de cartas: TCGdex (GraphQL)** — migrado desde pokemontcg.io el 2026-09-26 porque pokemontcg.io devolvía error 500, cerró registros y deja de funcionar el 2027-03-01. Todo aislado en `js/api.js`.
