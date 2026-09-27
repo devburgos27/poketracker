@@ -16,14 +16,14 @@ Actualizado: 2026-09-26
   - Imágenes: `image` + `/low.webp` (grilla) o `/high.webp` (ampliada). Algunas cartas no tienen imagen → reemplazo "Imagen no disponible".
   - Resultado verificado: Joltik = 20 cartas físicas (2011–2025), Pikachu = 227.
 - **Variantes reverse holo:** ignoradas en v1 (TCGdex expone `variants` en el detalle de carta, posible mejora).
-- **Hosting:** Vercel (estático).
+- **Hosting:** Vercel (estático): https://poketracker-ten.vercel.app
 
 ## Supabase
 - Proyecto: `poketracker`, región São Paulo.
 - Project URL: https://emkdrubdeqovbbrckamp.supabase.co
 - Llave publishable en `js/config.js` (pública por diseño).
 - Tabla `coleccion` creada con `sql/schema.sql`, RLS activo.
-- Site URL: http://127.0.0.1:5500. Redirect: http://localhost:5500/** (agregar http://127.0.0.1:5500/** si hace falta, y la URL de Vercel al publicar).
+- Site URL: https://poketracker-ten.vercel.app. Redirect URLs: https://poketracker-ten.vercel.app/** más las de desarrollo (127.0.0.1 y localhost).
 - Ojo: el correo integrado de Supabase tiene un límite bajo de envíos por hora.
 
 ## Estructura
@@ -37,13 +37,13 @@ index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, a
   - Par de botones con `aria-pressed` bajo cada carta, solo con sesión. Cambio optimista: se revierte si Supabase falla.
   - La colección (ids) se carga una vez al entrar y se mantiene en memoria; resumen "Tienes X, te faltan Y".
   - `nombre_pokemon` guarda el nombre de la carta tal cual (ej. "N's Joltik"); `imagen_url` = imagen chica.
-- [ ] Bloque 3: filtros por estado y "Mi colección" (código listo; falta probarlo).
+- [x] Bloque 3: filtros por estado y "Mi colección" (probado y funcionando).
   - Como Supabase solo guarda lo que tengo, "Me falta" solo existe dentro de una búsqueda. Por eso son dos partes:
   - **Filtro por estado en la búsqueda:** pestañas "Todas (N)" / "Tengo (N)" / "Me falta (N)" sobre la grilla, solo con sesión. Se filtra en el navegador; los conteos cambian al marcar; en "Tengo" o "Me falta" la carta marcada sale de la vista. Una búsqueda nueva vuelve a "Todas".
   - **Mi colección:** navegación "Buscar" / "Mi colección" (mostrar/ocultar secciones, sin router). `listarColeccion()` en coleccion.js, orden por `nombre_pokemon` y `created_at`. Filtro por Pokémon con `.ilike('nombre_pokemon', '%texto%')` y debounce de 300 ms, así "Joltik" incluye "N's Joltik". Misma tarjeta que la búsqueda; "Me falta" la quita de la colección.
   - `imagen_url` guarda la imagen chica (low.webp); la vista ampliada usa high.webp cambiando el sufijo.
   - Límite conocido: Supabase devuelve como máximo 1000 filas por consulta (cargarIdsTengo y listarColeccion). Si una colección pasa de 1000 cartas, habrá que paginar.
-- [ ] Publicar en Vercel. Al publicar:
-  - Agregar la URL de Vercel en Google Cloud (orígenes autorizados de JavaScript).
-  - Agregar la URL de Vercel en Supabase (Authentication → URL Configuration → Redirect URLs).
-  - Completar la marca en Google Auth Platform y publicar la app: hoy está en modo Prueba y solo entran los usuarios de prueba.
+- [x] Publicado en Vercel: https://poketracker-ten.vercel.app (2026-09-26). Configuración hecha:
+  - [x] Google Cloud: origen autorizado de JavaScript https://poketracker-ten.vercel.app.
+  - [x] Supabase: Site URL = https://poketracker-ten.vercel.app y Redirect URL https://poketracker-ten.vercel.app/** (se mantienen las de 127.0.0.1 y localhost para desarrollo).
+  - [x] Google Auth Platform: marca completada (página principal, privacidad.html, dominio autorizado) y app publicada; ya no está en modo Prueba. Probado entrando con otra cuenta de Google en incógnito.

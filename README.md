@@ -2,7 +2,9 @@
 
 Mini sistema web para coleccionistas de cartas **Pokémon TCG**: busca un Pokémon, mira todas sus cartas con la imagen real y marca las que ya tienes para saber cuáles te faltan.
 
-> 🚧 En desarrollo. Hecho: login con Google o enlace mágico, búsqueda de cartas, marcar "Tengo" / "Me falta", filtros y vista "Mi colección". Próximo: publicar en Vercel.
+### 👉 [Abrir PokéTracker](https://poketracker-ten.vercel.app)
+
+Buscar cartas no requiere cuenta. Para marcar las tuyas, entra con Google o con un enlace mágico por correo.
 
 ## Tecnologías
 
@@ -13,15 +15,17 @@ No hay servidor propio ni paso de compilación: es un sitio estático.
 ## Cómo funciona
 
 - **Cartas:** se consultan en vivo a la API GraphQL de TCGdex (gratis, sin API key). Todas esas llamadas están aisladas en `js/api.js`. Esto ya se puso a prueba: el proyecto partió con pokemontcg.io, que anunció su cierre para marzo de 2027, y migrar a TCGdex solo requirió reescribir ese archivo.
-- **Colección:** en Supabase se guardan **solo las cartas que el usuario tiene**. "Me falta" se calcula comparando las cartas de la API con las guardadas, así que los resultados de una búsqueda se pueden filtrar en "Todas", "Tengo" y "Me falta". La pestaña **Mi colección** lista todas tus cartas y se puede filtrar por Pokémon.
+- **Colección:** bajo cada carta hay botones **Tengo** / **Me falta**. En Supabase se guardan **solo las cartas que el usuario tiene**. "Me falta" se calcula comparando las cartas de la API con las guardadas, así que los resultados de una búsqueda se pueden filtrar en "Todas", "Tengo" y "Me falta". La pestaña **Mi colección** lista todas tus cartas y se puede filtrar por Pokémon.
 - **Usuarios:** login sin contraseña con Supabase Auth: "Entrar con Google" como opción principal, o un enlace mágico por correo.
 - **Seguridad:** reglas RLS en la base de datos garantizan que cada usuario solo pueda ver y modificar sus propias cartas (ver `sql/schema.sql`).
+- **Privacidad:** [`privacidad.html`](https://poketracker-ten.vercel.app/privacidad.html), enlazada al pie de la app, explica qué datos se guardan, para qué y cómo borrarlos.
+- **Hosting:** Vercel, como sitio estático.
 
 ## Estructura
 
 ```
 index.html
-privacidad.html política de privacidad
+privacidad.html   política de privacidad
 css/estilos.css
 js/
   config.js     URL y llave pública de Supabase
