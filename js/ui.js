@@ -9,22 +9,67 @@
 
 const $ = (selector) => document.querySelector(selector);
 
-/**
- * Escribe un mensaje de estado. Con alReintentar agrega un botón
- * "Reintentar" (para errores de red: la app no reintenta sola).
- */
-function escribirMensaje(el, texto, tipo, alReintentar) {
+/** Escribe un mensaje de estado ("Buscando…", "12 cartas", errores). */
+function escribirMensaje(el, texto, tipo) {
+  el.textContent = texto;
   el.dataset.tipo = tipo;
-  if (!alReintentar) {
-    el.textContent = texto;
-    return;
-  }
+}
+
+// --- Sin conexión ---------------------------------------------
+
+/**
+ * Estado "No pudimos conectar" con botón "Reintentar": el único
+ * formato para errores de red (la app no reintenta sola).
+ * Misma estructura que el estado vacío (.vacio).
+ * Al tocar "Reintentar" el botón se desactiva y dice "Reintentando…";
+ * quien llama reemplaza el estado cuando termina (bien o mal).
+ *
+ * @param {() => void} alReintentar
+ * @param {{compacto?: boolean}} [opciones]  compacto: para espacios chicos
+ * @returns {HTMLElement}
+ */
+export function crearErrorConexion(alReintentar, { compacto = false } = {}) {
+  const caja = document.createElement('div');
+  caja.className = `vacio grilla__vacio sin-conexion${compacto ? ' sin-conexion--compacto' : ''}`;
+  caja.setAttribute('role', 'alert');
+
+  const textos = document.createElement('div');
+  textos.className = 'sin-conexion__textos';
+  const titulo = document.createElement('p');
+  titulo.className = 'sin-conexion__titulo';
+  titulo.textContent = 'No pudimos conectar';
+  const texto = document.createElement('p');
+  texto.className = 'sin-conexion__texto';
+  texto.textContent = 'Revisa tu conexión e inténtalo de nuevo.';
+  textos.append(titulo, texto);
+
   const boton = document.createElement('button');
   boton.type = 'button';
-  boton.className = 'boton boton--secundario';
-  boton.textContent = 'Reintentar';
-  boton.addEventListener('click', alReintentar, { once: true });
-  el.replaceChildren(document.createTextNode(texto), boton);
+  boton.className = 'boton boton--secundario sin-conexion__boton';
+  const icono = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icono.setAttribute('class', 'icono');
+  icono.setAttribute('aria-hidden', 'true');
+  const uso = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  uso.setAttribute('href', '#icono-recargar');
+  icono.append(uso);
+  const etiqueta = document.createElement('span');
+  etiqueta.textContent = 'Reintentar';
+  boton.append(icono, etiqueta);
+  boton.addEventListener('click', () => {
+    boton.disabled = true;
+    etiqueta.textContent = 'Reintentando…';
+    alReintentar();
+  });
+
+  caja.append(textos, boton);
+  return caja;
+}
+
+/** Aviso arriba de la pantalla (carga inicial). null lo oculta. */
+export function mostrarAvisoConexion(alReintentar) {
+  const aviso = $('#aviso-conexion');
+  aviso.hidden = !alReintentar;
+  aviso.replaceChildren(...(alReintentar ? [crearErrorConexion(alReintentar)] : []));
 }
 
 // --- Sesión ---------------------------------------------------
@@ -46,9 +91,9 @@ export function activarBotonesGoogle(activos) {
 }
 
 /** Mensaje bajo el formulario de login (éxito o error). */
-export function mensajeLogin(texto, tipo = 'info', alReintentar = null) {
+export function mensajeLogin(texto, tipo = 'info') {
   const el = $('#mensaje-login');
-  escribirMensaje(el, texto, tipo, alReintentar);
+  escribirMensaje(el, texto, tipo);
   el.hidden = !texto;
 }
 
@@ -131,8 +176,15 @@ export function actualizarEnlacesBuscar(texto) {
 // --- Búsqueda -------------------------------------------------
 
 /** Texto de estado sobre la grilla: "Buscando…", "12 cartas", errores. */
-export function mensajeEstado(texto, tipo = 'info', alReintentar = null) {
-  escribirMensaje($('#estado'), texto, tipo, alReintentar);
+export function mensajeEstado(texto, tipo = 'info') {
+  escribirMensaje($('#estado'), texto, tipo);
+}
+
+/** Buscar sin conexión: el estado "No pudimos conectar" en la grilla. */
+export function errorBusqueda(alReintentar) {
+  mensajeEstado('');
+  $('#filtros').hidden = true;
+  $('#grilla').replaceChildren(crearErrorConexion(alReintentar));
 }
 
 /** Deshabilita el buscador mientras se espera la respuesta de la API. */
@@ -165,8 +217,14 @@ export function mostrarFiltros(conteos, activo = 'todas') {
 // --- Inicio ---------------------------------------------------
 
 /** Texto de estado de "Agregadas recientemente". */
-export function mensajeInicio(texto, tipo = 'info', alReintentar = null) {
-  escribirMensaje($('#estado-inicio'), texto, tipo, alReintentar);
+export function mensajeInicio(texto, tipo = 'info') {
+  escribirMensaje($('#estado-inicio'), texto, tipo);
+}
+
+/** Inicio sin conexión: el estado "No pudimos conectar" en la grilla. */
+export function errorInicio(alReintentar) {
+  mensajeInicio('');
+  $('#grilla-recientes').replaceChildren(crearErrorConexion(alReintentar));
 }
 
 /** Dibuja las cartas recientes (mismos parámetros que mostrarCartas). */
@@ -177,8 +235,14 @@ export function mostrarRecientes(cartas, marcado, textoVacio) {
 // --- Mi colección ---------------------------------------------
 
 /** Texto de estado de "Mi colección": "Cargando…", "12 cartas", errores. */
-export function mensajeColeccion(texto, tipo = 'info', alReintentar = null) {
-  escribirMensaje($('#estado-coleccion'), texto, tipo, alReintentar);
+export function mensajeColeccion(texto, tipo = 'info') {
+  escribirMensaje($('#estado-coleccion'), texto, tipo);
+}
+
+/** Colección sin conexión: el estado "No pudimos conectar" en la grilla. */
+export function errorColeccion(alReintentar) {
+  mensajeColeccion('');
+  $('#grilla-coleccion').replaceChildren(crearErrorConexion(alReintentar));
 }
 
 /** Dibuja las cartas de "Mi colección" (mismos parámetros que mostrarCartas). */
@@ -464,10 +528,18 @@ export function mostrarDatosDetalle(carta) {
 }
 
 /** Mensaje de "Tus copias" (errores al guardar). */
-export function mensajeDetalle(texto, tipo = 'info', alReintentar = null) {
+export function mensajeDetalle(texto, tipo = 'info') {
   const el = $('#estado-detalle');
-  escribirMensaje(el, texto, tipo, alReintentar);
+  escribirMensaje(el, texto, tipo);
   el.hidden = !texto;
+}
+
+/** Copias del detalle sin conexión: versión compacta del estado. */
+export function errorCopias(alReintentar) {
+  mensajeDetalle('');
+  const fila = document.createElement('li');
+  fila.append(crearErrorConexion(alReintentar, { compacto: true }));
+  $('#lista-copias').replaceChildren(fila);
 }
 
 /**

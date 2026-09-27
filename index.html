@@ -32,6 +32,10 @@
       <circle cx="11" cy="11" r="7"/>
       <path d="m20 20-4-4"/>
     </symbol>
+    <symbol id="icono-recargar" viewBox="0 0 24 24">
+      <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
+      <path d="M20 4v5h-5"/>
+    </symbol>
     <symbol id="icono-coleccion" viewBox="0 0 24 24">
       <rect x="8" y="3" width="12" height="16" rx="2"/>
       <path d="M4 7v12a2 2 0 0 0 2 2h9"/>
@@ -97,6 +101,9 @@
 
   <!-- Las pantallas parten ocultas: las muestra el router según la URL (#/…) -->
   <main class="contenedor">
+
+    <!-- Aviso si no se pudo cargar la colección al entrar (lo llena ui.js) -->
+    <div id="aviso-conexion" class="aviso-conexion" hidden></div>
 
     <!-- Pantalla: inicio -->
     <div id="vista-inicio" hidden>

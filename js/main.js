@@ -129,7 +129,7 @@ function mostrarBusqueda(texto, cartas) {
  * Si ya está en memoria solo la dibuja: volver a Buscar
  * (con Atrás, Adelante o desde la barra) no repite la consulta.
  */
-async function buscarDesdeRuta(texto) {
+async function buscarDesdeRuta(texto, reintento = false) {
   formBusqueda.pokemon.value = texto;
   ui.actualizarEnlacesBuscar(texto);
   if (texto === busquedaEnCurso) return; // ya se está buscando
@@ -150,8 +150,11 @@ async function buscarDesdeRuta(texto) {
   cartasActuales = [];
   busquedaActual = '';
   filtro = 'todas';
-  ui.mensajeEstado(texto ? `Buscando cartas de ${texto}…` : '');
-  dibujarBusqueda();
+  // En un reintento queda a la vista "Reintentando…" hasta que responda
+  if (!reintento) {
+    ui.mensajeEstado(texto ? `Buscando cartas de ${texto}…` : '');
+    dibujarBusqueda();
+  }
   if (!texto) return;
 
   busquedaEnCurso = texto;
@@ -169,11 +172,7 @@ async function buscarDesdeRuta(texto) {
   } catch (error) {
     if (pedido !== pedidoBusqueda) return;
     console.error(error);
-    ui.mensajeEstado(
-      'No pudimos conectar con la base de cartas. Revisa tu conexión.',
-      'error',
-      () => buscarDesdeRuta(texto),
-    );
+    ui.errorBusqueda(() => buscarDesdeRuta(texto, true));
   } finally {
     if (pedido === pedidoBusqueda) {
       busquedaEnCurso = null;
@@ -210,10 +209,10 @@ ui.prepararSelectorTema();
 
 const CANTIDAD_RECIENTES = 6;
 
-async function cargarRecientes() {
+async function cargarRecientes(reintento = false) {
   if (!misCartas) return; // sin sesión, Inicio solo muestra la presentación
   const pedido = ++ultimoPedido;
-  ui.mensajeInicio('Cargando tus cartas…');
+  if (!reintento) ui.mensajeInicio('Cargando tus cartas…');
 
   try {
     const cartas = await coleccion.listarRecientes(CANTIDAD_RECIENTES);
@@ -224,7 +223,7 @@ async function cargarRecientes() {
   } catch (error) {
     if (pedido !== ultimoPedido) return;
     console.error(error);
-    ui.mensajeInicio('No pudimos cargar tus cartas recientes. Revisa tu conexión.', 'error', cargarRecientes);
+    ui.errorInicio(() => cargarRecientes(true));
   }
 }
 
@@ -239,11 +238,11 @@ function dibujarRecientes() {
 
 // --- Mi colección ---------------------------------------------
 
-async function cargarColeccion() {
+async function cargarColeccion(reintento = false) {
   if (!misCartas) return; // sin sesión se ve la invitación a entrar
   const pedido = ++ultimoPedido;
   const texto = textoColeccion;
-  ui.mensajeColeccion('Cargando tu colección…');
+  if (!reintento) ui.mensajeColeccion('Cargando tu colección…');
 
   try {
     const cartas = await coleccion.listarColeccion(texto);
@@ -255,7 +254,7 @@ async function cargarColeccion() {
   } catch (error) {
     if (pedido !== ultimoPedido) return;
     console.error(error);
-    ui.mensajeColeccion('No pudimos cargar tu colección. Revisa tu conexión.', 'error', cargarColeccion);
+    ui.errorColeccion(() => cargarColeccion(true));
   }
 }
 
@@ -369,10 +368,7 @@ async function cargarCopias(d) {
   } catch (error) {
     if (d !== detalle) return;
     console.error(error);
-    ui.mensajeDetalle('No pudimos cargar tus copias. Revisa tu conexión.', 'error', () => {
-      ui.mensajeDetalle('');
-      cargarCopias(d);
-    });
+    ui.errorCopias(() => cargarCopias(d));
   }
 }
 
@@ -624,6 +620,7 @@ async function iniciarLogin() {
     if (!usuario) {
       misCartas = null;
       ui.cerrarDetalle();
+      ui.mostrarAvisoConexion(null);
       ultimoPedido++; // descarta cargas de Supabase en curso
       cartasColeccion = [];
       cartasRecientes = [];
@@ -644,13 +641,11 @@ async function iniciarLogin() {
       const cartas = await coleccion.cargarMisCartas();
       if (usuarioId !== id) return; // salió mientras cargaba
       misCartas = cartas;
+      ui.mostrarAvisoConexion(null);
     } catch (error) {
       console.error(error);
       if (usuarioId !== id) return;
-      ui.mensajeLogin('No pudimos cargar tu colección. Revisa tu conexión.', 'error', () => {
-        ui.mensajeLogin('');
-        cargarMisCartasDe(id);
-      });
+      ui.mostrarAvisoConexion(() => cargarMisCartasDe(id));
     }
     actualizarPantalla();
   }
