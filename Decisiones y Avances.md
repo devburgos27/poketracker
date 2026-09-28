@@ -1,6 +1,6 @@
 # PokéTracker — Decisiones y avance
 
-Actualizado: 2026-09-27
+Actualizado: 2026-09-28
 
 ## Decisiones tomadas
 - **Modelo de datos:** en Supabase se guardan SOLO las cartas que el usuario tiene. "Me falta" = cartas de la API − cartas guardadas. Marcar = INSERT, desmarcar = DELETE. Sin columna `estado`.
@@ -26,6 +26,14 @@ Actualizado: 2026-09-27
   - Progreso = intersección de `misCartas` con la lista de TCGdex (cartas distintas, no copias). Expansiones: barra = set base (`localId` numérico <= `cardCount.official`), debajo "Master set: X / Y".
   - Listas de TCGdex: un pedido con alias por cada 10 objetivos, solo ids, sin TCG Pocket; caché de 24 h en `localStorage` (`pt-obj:v1:…`). Dentro de `set { cards }` TCGdex entrega cartas resumidas: pedir `rarity` ahí hace fallar la consulta.
   - Lógica en `js/objetivos.js` (main.js le pasa la colección y la sesión). Navegación con 4 ítems; barra inferior hasta 960 px.
+  - Porcentaje redondeado hacia abajo (20/21 = 95 %, nunca "100 %" sin estar completo). Con al menos 1 carta y redondeo 0 muestra "<1 %" (en voz, "menos de 1 %").
+- **Inicio y sugerencias** (Bloque 7c):
+  - Inicio con sesión: "Tu progreso" con los 3 objetivos más recientes (misma tarjeta y barra que Progreso) y "Ver todo". Si no sigue nada, las sugerencias; sin cartas, la sección no aparece.
+  - Sugerencias (en Progreso siempre; en Inicio si no sigue nada): hasta 5, de la que más cartas tiene a la que menos, sin las que ya sigue. "Seguir" la agrega a la lista sin recargar; si el foco estaba en el botón, pasa al objetivo nuevo.
+  - Expansiones: se agrupa `misCartas` por `set_id`. Para no hacer otra consulta, `cargarMisCartas` trae también `set_id` y `nombre_set` (sin columnas nuevas).
+  - Pokémon: `coleccion` no guarda el dexId y no se agregan columnas. Se pide a TCGdex con alias (`c0: card(id: "…") { dexId name }`), en tandas de 50 (medido: 50 = 1,7 s; 200 = 5,4 s, crece por carta), la primera sola y el resto hasta 3 a la vez; si una falla, no se piden más. Se guarda sin vencimiento en `localStorage` (`pt-dex:v1`), porque los datos de una carta no cambian. Dentro de `set { cards }` el dexId llega null, así que no sirve agrupar por set.
+  - Solo cuentan cartas con un único Pokémon (los Tag Team no suman). Nombre sugerido = el más corto entre sus cartas ("Joltik", no "N's Joltik"; "Pikachu", no "Pikachu V").
+  - El pedido a TCGdex sale solo al entrar a Inicio o Progreso (no al redibujar): sin conexión es un pedido por visita, sin reintentos automáticos. Si falla, se sugieren igual las expansiones.
 - **Búsqueda pública:** buscar cartas no requiere login (sirve para visitantes del portafolio); marcar sí lo requerirá. El login se carga con import() dinámico: si Supabase falla, la búsqueda sigue funcionando.
 - **Frontend:** HTML + CSS + JS vanilla con módulos ES, supabase-js v2 desde CDN (jsDelivr). Sin build. Debe abrirse con Live Server (no con doble clic / file://).
 - **API de cartas: TCGdex (GraphQL)** — migrado desde pokemontcg.io el 2026-09-26 porque pokemontcg.io devolvía error 500, cerró registros y deja de funcionar el 2027-03-01. Todo aislado en `js/api.js`.
@@ -67,6 +75,7 @@ index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, a
   - [x] Google Cloud: origen autorizado de JavaScript https://poketracker-ten.vercel.app.
   - [x] Supabase: Site URL = https://poketracker-ten.vercel.app y Redirect URL https://poketracker-ten.vercel.app/** (se mantienen las de 127.0.0.1 y localhost para desarrollo).
   - [x] Google Auth Platform: marca completada (página principal, privacidad.html, dominio autorizado) y app publicada; ya no está en modo Prueba. Probado entrando con otra cuenta de Google en incógnito.
+- [x] Bloque 7c: "Tu progreso" en Inicio, sugerencias de expansiones y Pokémon a partir de la colección, "<1 %" en la barra, privacidad.html actualizada. Funcionalidad probada con módulos falsos en Edge headless; el estilo se revisa después.
 - [x] Bloque 7b: migración `004_objetivos.sql` (probada en PGlite; la ejecuta el usuario), pantalla Progreso con detalle por objetivo, "Seguir" en búsqueda y en el detalle de carta, barra de progreso accesible.
 - [x] Bloque 7a: migración `003_permisos_coleccion.sql` (authenticated queda solo con SELECT, INSERT y DELETE en `coleccion`; probada en PGlite, la ejecuta el usuario) y paginación de más de 1000 filas. Plan completo del Bloque 7 en `docs/plan-bloque-7.md`.
 - [x] Bloque 6: migración `002_copias.sql` (escrita y probada en PGlite; la ejecuta el usuario), detalle de carta con "Tus copias" (− N +, idioma y condición por copia), insignia ×N en las tarjetas.

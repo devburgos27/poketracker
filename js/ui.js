@@ -687,6 +687,16 @@ export function prepararConfirmacion() {
 const porcentaje = (tengo, total) => (total ? Math.floor((tengo / total) * 100) : 0);
 
 /**
+ * El porcentaje como texto. Con al menos una carta nunca dice "0 %":
+ * 1 de 266 es "<1 %" (en voz, "menos de 1 %").
+ */
+function textoPorcentaje(tengo, total) {
+  const pct = porcentaje(tengo, total);
+  if (tengo > 0 && pct === 0) return { visible: '<1 %', voz: 'menos de 1 %' };
+  return { visible: `${pct} %`, voz: `${pct} %` };
+}
+
+/**
  * Barra de progreso accesible: role="progressbar" con los valores y la
  * cifra "12 / 21 · 57 %" siempre visible (no depende del color).
  *
@@ -723,19 +733,20 @@ export function crearBarraProgreso(progreso, idEtiqueta) {
 
   const { tengo, total } = progreso.principal;
   const pct = porcentaje(tengo, total);
+  const texto = textoPorcentaje(tengo, total);
   const completo = total > 0 && tengo === total;
   barra.setAttribute('role', 'progressbar');
   barra.setAttribute('aria-labelledby', idEtiqueta);
   barra.setAttribute('aria-valuemin', '0');
   barra.setAttribute('aria-valuemax', String(total));
   barra.setAttribute('aria-valuenow', String(tengo));
-  barra.setAttribute('aria-valuetext', `${tengo} de ${total} cartas, ${pct} %${completo ? ', completo' : ''}`);
+  barra.setAttribute('aria-valuetext', `${tengo} de ${total} cartas, ${texto.voz}${completo ? ', completo' : ''}`);
   // Con al menos una carta se ve un poco de relleno, aunque sea < 1 %
   relleno.style.width = `${tengo > 0 ? Math.max(pct, 1) : 0}%`;
   bloque.classList.toggle('progreso--completo', completo);
   cifra.textContent = completo
     ? `✓ Completo · ${tengo} / ${total}`
-    : `${tengo} / ${total} · ${pct} %`;
+    : `${tengo} / ${total} · ${texto.visible}`;
 
   if (progreso.master) {
     const master = document.createElement('p');
@@ -796,28 +807,41 @@ export function avisoProgreso(alReintentar) {
   $('#progreso-aviso').replaceChildren(...(alReintentar ? [crearErrorConexion(alReintentar, { compacto: true })] : []));
 }
 
+/** "Pokémon · #595" o "Expansión". */
+const textoTipo = (o) => (o.tipo === 'pokemon' ? `${TIPOS_OBJETIVO.pokemon} · #${o.clave}` : TIPOS_OBJETIVO.expansion);
+
 /**
  * Dibuja la lista de objetivos con su progreso.
  * @param {Array<{objetivo: object, progreso: object|null}>} items
+ * @param {{enfocar?: string|null}} [opciones]  enfocar: href del objetivo
+ *   que recibe el foco (el que se acaba de seguir desde una sugerencia)
  */
-export function mostrarObjetivos(items) {
+export function mostrarObjetivos(items, { enfocar = null } = {}) {
   mensajeProgreso('');
+  dibujarListaObjetivos($('#progreso-contenido'), items, 'objetivo-nombre', enfocar);
+}
+
+/**
+ * Lista de objetivos en un contenedor (Progreso o Inicio).
+ * @param {string} prefijo  para los id de los nombres: no se repiten
+ *   entre Progreso e Inicio, que están en la página a la vez
+ */
+function dibujarListaObjetivos(contenedor, items, prefijo, enfocar = null) {
   // Se redibuja cuando llega cada lista: el foco no debe perderse
-  const enfocado = document.activeElement?.closest?.('#progreso-contenido a')?.getAttribute('href');
+  const enfocado = enfocar
+    ?? (contenedor.contains(document.activeElement) ? document.activeElement.closest('a')?.getAttribute('href') : null);
 
   const lista = document.createElement('ul');
   lista.className = 'objetivos';
   lista.append(...items.map(({ objetivo, progreso }) => {
-    const idNombre = `objetivo-nombre-${objetivo.id}`;
+    const idNombre = `${prefijo}-${objetivo.id}`;
     const enlace = document.createElement('a');
     enlace.className = 'objetivo';
     enlace.href = enlaceObjetivo(objetivo);
 
     const tipo = document.createElement('span');
     tipo.className = 'objetivo__tipo';
-    tipo.textContent = objetivo.tipo === 'pokemon'
-      ? `${TIPOS_OBJETIVO.pokemon} · #${objetivo.clave}`
-      : TIPOS_OBJETIVO.expansion;
+    tipo.textContent = textoTipo(objetivo);
     const nombre = document.createElement('span');
     nombre.className = 'objetivo__nombre';
     nombre.id = idNombre;
@@ -832,9 +856,127 @@ export function mostrarObjetivos(items) {
     item.append(enlace);
     return item;
   }));
-  $('#progreso-contenido').replaceChildren(lista);
+  contenedor.replaceChildren(lista);
 
-  if (enfocado) $(`#progreso-contenido a[href="${CSS.escape(enfocado)}"]`)?.focus();
+  if (enfocado) contenedor.querySelector(`a[href="${CSS.escape(enfocado)}"]`)?.focus();
+}
+
+// --- Sugerencias -----------------------------------------------
+
+/**
+ * Sugerencias para seguir: "Unified Minds · tienes 2 cartas [Seguir]".
+ * Sin sugerencias, el contenedor se oculta.
+ *
+ * @param {string} selector
+ * @param {Array<{tipo: string, clave: string, nombre: string, cantidad: number,
+ *   ocupado?: boolean, mensaje?: string}>} items
+ * @param {(sugerencia: object) => void} alSeguir
+ * @param {{titulo?: string, texto?: string}} [textos]
+ */
+export function mostrarSugerencias(selector, items, alSeguir, { titulo = '', texto = '' } = {}) {
+  const caja = $(selector);
+  // Al redibujar (Guardando…, error) el foco vuelve al mismo botón
+  const enfocada = caja.contains(document.activeElement)
+    ? document.activeElement.closest('[data-sugerencia]')?.dataset.sugerencia
+    : null;
+  caja.hidden = items.length === 0;
+  if (items.length === 0) {
+    caja.replaceChildren();
+    return;
+  }
+
+  const hijos = [];
+  if (titulo) {
+    const h = document.createElement('h3');
+    h.className = 'seccion__titulo';
+    h.textContent = titulo;
+    hijos.push(h);
+  }
+  if (texto) {
+    const p = document.createElement('p');
+    p.className = 'sugerencias__texto';
+    p.textContent = texto;
+    hijos.push(p);
+  }
+
+  const lista = document.createElement('ul');
+  lista.className = 'sugerencias';
+  lista.append(...items.map((s) => {
+    const item = document.createElement('li');
+    item.className = 'sugerencia seguir seguir--izquierda';
+    item.dataset.sugerencia = `${s.tipo}:${s.clave}`;
+
+    const datos = document.createElement('div');
+    datos.className = 'sugerencia__datos';
+    const tipo = document.createElement('span');
+    tipo.className = 'objetivo__tipo';
+    tipo.textContent = textoTipo(s);
+    const nombre = document.createElement('span');
+    nombre.className = 'sugerencia__nombre';
+    nombre.textContent = s.nombre;
+    const cantidad = document.createElement('span');
+    cantidad.className = 'sugerencia__cantidad';
+    cantidad.textContent = ` · tienes ${s.cantidad} ${s.cantidad === 1 ? 'carta' : 'cartas'}`;
+    const linea = document.createElement('span');
+    linea.append(nombre, cantidad);
+    datos.append(tipo, linea);
+
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = 'boton boton--secundario';
+    boton.textContent = s.ocupado ? 'Guardando…' : 'Seguir';
+    if (!s.ocupado) boton.setAttribute('aria-label', `Seguir ${s.nombre}`);
+    // aria-disabled (no disabled) para no perder el foco del teclado
+    if (s.ocupado) boton.setAttribute('aria-disabled', 'true');
+    boton.addEventListener('click', () => {
+      if (boton.getAttribute('aria-disabled') !== 'true') alSeguir(s);
+    });
+
+    item.append(datos, boton);
+    if (s.mensaje) {
+      const mensaje = document.createElement('p');
+      mensaje.className = 'seguir__mensaje';
+      mensaje.setAttribute('role', 'status');
+      mensaje.textContent = s.mensaje;
+      item.append(mensaje);
+    }
+    return item;
+  }));
+  hijos.push(lista);
+  caja.replaceChildren(...hijos);
+
+  if (enfocada) caja.querySelector(`[data-sugerencia="${CSS.escape(enfocada)}"] button`)?.focus();
+}
+
+// --- Inicio: tu progreso ---------------------------------------
+
+/**
+ * Sección "Tu progreso" de Inicio: los 3 objetivos más recientes o,
+ * si no sigue nada, sugerencias. null la oculta.
+ *
+ * @param {null
+ *   | {mensaje: string}
+ *   | {alReintentar: () => void}
+ *   | {objetivos: Array<{objetivo: object, progreso: object|null}>, enfocar?: string|null}
+ *   | {sugerencias: Array, alSeguir: (s: object) => void}} estado
+ */
+export function mostrarInicioProgreso(estado) {
+  $('#inicio-progreso').hidden = !estado;
+  $('#inicio-ver-todo').hidden = !estado?.objetivos;
+  escribirMensaje($('#estado-inicio-progreso'), estado?.mensaje ?? '', 'info');
+
+  const contenido = $('#inicio-progreso-contenido');
+  if (estado?.objetivos) {
+    dibujarListaObjetivos(contenido, estado.objetivos, 'inicio-objetivo-nombre', estado.enfocar);
+  } else if (estado?.alReintentar) {
+    contenido.replaceChildren(crearErrorConexion(estado.alReintentar, { compacto: true }));
+  } else {
+    contenido.replaceChildren();
+  }
+
+  mostrarSugerencias('#inicio-sugerencias', estado?.sugerencias ?? [], estado?.alSeguir, {
+    texto: 'Todavía no sigues nada. Según tu colección, puedes empezar por:',
+  });
 }
 
 /**
@@ -869,9 +1011,7 @@ export function mostrarPieProgreso(datos) {
  *   base: último número del set base (expansiones)
  */
 export function mostrarCabeceraObjetivo({ tipo, clave, nombre, progreso, base = null }) {
-  $('#objetivo-tipo').textContent = tipo === 'pokemon'
-    ? `${TIPOS_OBJETIVO.pokemon} · #${clave}`
-    : TIPOS_OBJETIVO.expansion;
+  $('#objetivo-tipo').textContent = textoTipo({ tipo, clave });
   $('#objetivo-titulo').textContent = nombre || 'Cargando…';
 
   let incluye = '';

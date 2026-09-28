@@ -8,11 +8,12 @@
 // usa el set base y debajo va el master set.
 //
 // Este módulo guarda los objetivos del usuario, calcula el progreso y
-// maneja la pantalla #/progreso y los botones "Seguir". Lo que viene
-// de main.js (colección, sesión) llega por preparar().
+// maneja la pantalla #/progreso, la sección "Tu progreso" de Inicio,
+// las sugerencias y los botones "Seguir". Lo que viene de main.js
+// (colección, sesión) llega por preparar().
 // =============================================================
 
-import { cargarListasObjetivos, obtenerCartasObjetivo } from './api.js';
+import { cargarListasObjetivos, obtenerCartasObjetivo, datosCartasGuardados, pedirDatosCartas } from './api.js';
 import * as ui from './ui.js';
 
 /**
@@ -34,7 +35,14 @@ const sinDatos = new Set(); // "tipo:clave" que no llegaron y no tienen lista gu
 let enDetalle = false;    // qué se ve en #/progreso: lista o detalle
 let pedidoLista = 0;
 let pedidoDetalle = 0;
+let pedidoInicio = 0;
 let detalle = null;       // { tipo, clave, nombre, cartas, filtro, noDisponible }
+
+const OBJETIVOS_EN_INICIO = 3;
+const MAX_SUGERENCIAS = 5;
+const estadoSugerencias = new Map(); // "tipo:clave" → { ocupado?, mensaje? }
+let pidiendoDatosCartas = false;
+let enfocarLuego = null;  // href del objetivo recién seguido desde una sugerencia
 
 const claveDe = (o) => `${o.tipo}:${o.clave}`;
 
@@ -88,6 +96,8 @@ export function olvidar() {
   objetivos = null;
   errorCarga = false;
   detalle = null;
+  estadoSugerencias.clear();
+  enfocarLuego = null;
 }
 
 /** El objetivo que el usuario sigue con ese tipo y clave (o null). */
@@ -142,17 +152,31 @@ export function redibujar() {
     if (!detalle) return;
     dibujarCabecera();
     if (detalle.cartas) dibujarCartasDetalle();
-  } else if (objetivos?.length) {
-    dibujarLista();
+  } else {
+    if (objetivos?.length) dibujarLista();
+    dibujarSugerenciasProgreso(); // las cantidades cambian al marcar cartas
   }
 }
 
+/** href a enfocar en esa pantalla (una sola vez), o null. */
+function tomarFoco(pantalla) {
+  if (enfocarLuego?.pantalla !== pantalla) return null;
+  const { href } = enfocarLuego;
+  enfocarLuego = null;
+  return href;
+}
+
 function dibujarLista() {
-  ui.mostrarObjetivos(objetivos.map((o) => ({ objetivo: o, progreso: progresoDe(o) })));
+  ui.mostrarObjetivos(
+    objetivos.map((o) => ({ objetivo: o, progreso: progresoDe(o) })),
+    { enfocar: tomarFoco('progreso') },
+  );
 }
 
 async function mostrarLista({ forzar = false } = {}) {
   ui.avisoProgreso(null);
+  limpiarMensajesSugerencias();
+  dibujarSugerenciasProgreso(); // se ocultan mientras carga o si hay error
   if (!dep.misCartas()) {
     ui.mensajeProgreso('Cargando tu colección…');
     return;
@@ -165,6 +189,7 @@ async function mostrarLista({ forzar = false } = {}) {
     ui.mensajeProgreso('Cargando tus objetivos…');
     return;
   }
+  completarDatosCartas();
   if (objetivos.length === 0) {
     ui.mostrarProgresoVacio();
     return;
@@ -194,6 +219,186 @@ async function mostrarLista({ forzar = false } = {}) {
     sinConexion: fallidos.length > 0,
     alActualizar: () => mostrarLista({ forzar: true }),
   });
+}
+
+// --- Inicio: tu progreso ---------------------------------------
+
+/** Al entrar a Inicio (o al cambiar los objetivos estando ahí). */
+export function mostrarInicio() {
+  limpiarMensajesSugerencias();
+  dibujarInicio();
+  if (!dep.misCartas() || !objetivos) return;
+  if (objetivos.length === 0) {
+    completarDatosCartas();
+    return;
+  }
+
+  const pedido = ++pedidoInicio;
+  const recientes = objetivos.slice(0, OBJETIVOS_EN_INICIO);
+  // Mismas listas que Progreso (y la misma caché): cada una se dibuja al llegar
+  cargarListasObjetivos(recientes, (o, datos) => {
+    listas.set(claveDe(o), datos);
+    sinDatos.delete(claveDe(o));
+    if (pedido === pedidoInicio) dibujarInicio();
+  }).then(({ fallidos }) => {
+    fallidos.filter((o) => !listas.has(claveDe(o))).forEach((o) => sinDatos.add(claveDe(o)));
+    if (pedido === pedidoInicio) dibujarInicio();
+  });
+}
+
+/** Vuelve a dibujar "Tu progreso" con misCartas (al marcar desde Inicio). */
+export function redibujarInicio() {
+  dibujarInicio();
+}
+
+function dibujarInicio() {
+  if (!dep.misCartas()) {
+    ui.mostrarInicioProgreso(null);
+    return;
+  }
+  if (errorCarga) {
+    ui.mostrarInicioProgreso({ alReintentar: () => cargar() });
+    return;
+  }
+  if (!objetivos) {
+    ui.mostrarInicioProgreso({ mensaje: 'Cargando tus objetivos…' });
+    return;
+  }
+  if (objetivos.length) {
+    ui.mostrarInicioProgreso({
+      objetivos: objetivos.slice(0, OBJETIVOS_EN_INICIO).map((o) => ({ objetivo: o, progreso: progresoDe(o) })),
+      enfocar: tomarFoco('inicio'),
+    });
+    return;
+  }
+  // No sigue nada: sugerencias. Sin cartas no hay sugerencias y la
+  // sección no aparece (el estado vacío de Inicio ya invita a buscar).
+  const items = itemsSugerencias();
+  ui.mostrarInicioProgreso(items.length ? { sugerencias: items, alSeguir: (s) => seguirSugerencia(s, 'inicio') } : null);
+}
+
+// --- Sugerencias -----------------------------------------------
+// Se arman con la colección: las expansiones por set_id (ya está en
+// misCartas) y los Pokémon por dexId, que la colección no guarda: se
+// pide a TCGdex por id de carta y queda guardado en el navegador
+// (api.pedirDatosCartas). Se sugieren las que más cartas tienen y que
+// aún no sigue.
+
+/**
+ * Hasta 5 sugerencias, de la que más cartas tiene a la que menos.
+ * @returns {Array<{tipo: 'pokemon'|'expansion', clave: string, nombre: string, cantidad: number}>}
+ */
+function sugerencias() {
+  const mias = dep.misCartas();
+  if (!mias?.size || !objetivos) return [];
+  const datos = datosCartasGuardados();
+  const grupos = new Map();
+  const sumar = (tipo, clave, nombre) => {
+    const g = grupos.get(`${tipo}:${clave}`);
+    if (!g) {
+      grupos.set(`${tipo}:${clave}`, { tipo, clave, nombre, cantidad: 1 });
+      return;
+    }
+    g.cantidad++;
+    // Pokémon: el nombre más corto ("Joltik" antes que "N's Joltik" o "Pikachu V")
+    if (nombre.length < g.nombre.length) g.nombre = nombre;
+  };
+
+  for (const [id, guardada] of mias) {
+    if (guardada.setId && guardada.nombreSet) sumar('expansion', guardada.setId, guardada.nombreSet);
+    // Cartas con varios Pokémon (Tag Team) no suman a ninguno
+    const carta = datos.get(id);
+    if (carta?.dex.length === 1 && carta.nombre) sumar('pokemon', String(carta.dex[0]), carta.nombre);
+  }
+
+  return [...grupos.values()]
+    .filter((g) => claveValida(g.tipo, g.clave) && !buscarObjetivo(g.tipo, g.clave))
+    .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre))
+    .slice(0, MAX_SUGERENCIAS);
+}
+
+/** Sugerencias con su estado ("Guardando…", mensaje de error). */
+function itemsSugerencias() {
+  return sugerencias().map((s) => ({ ...s, ...estadoSugerencias.get(claveDe(s)) }));
+}
+
+/** Al volver a una pantalla, los mensajes de error anteriores se van. */
+function limpiarMensajesSugerencias() {
+  for (const [clave, estado] of estadoSugerencias) {
+    if (!estado.ocupado) estadoSugerencias.delete(clave);
+  }
+}
+
+function dibujarSugerenciasProgreso() {
+  const listo = dep.misCartas() && objetivos;
+  ui.mostrarSugerencias('#progreso-sugerencias', listo ? itemsSugerencias() : [], (s) => seguirSugerencia(s, 'progreso'), {
+    titulo: 'Sugerencias',
+    texto: 'Según las cartas que ya tienes.',
+  });
+}
+
+function redibujarSugerencias() {
+  dibujarSugerenciasProgreso();
+  dibujarInicio();
+}
+
+/**
+ * Pide a TCGdex el Pokémon de las cartas que aún no se conocen.
+ * Solo al entrar a la pantalla (no al redibujar): sin conexión es un
+ * pedido por visita, sin reintentos solos. Si falla, se sugieren
+ * igual las expansiones y los Pokémon ya conocidos.
+ */
+async function completarDatosCartas() {
+  const mias = dep.misCartas();
+  if (!mias?.size || pidiendoDatosCartas) return;
+  const carga = cargaActual;
+  pidiendoDatosCartas = true;
+  try {
+    await pedirDatosCartas(mias.keys(), () => {
+      if (carga === cargaActual) redibujarSugerencias();
+    });
+  } finally {
+    pidiendoDatosCartas = false;
+  }
+}
+
+/**
+ * "Seguir" en una sugerencia: pasa a la lista sin recargar.
+ * @param {object} s
+ * @param {'progreso'|'inicio'} pantalla  donde se tocó
+ */
+async function seguirSugerencia(s, pantalla) {
+  const clave = claveDe(s);
+  const { MAX_OBJETIVOS } = dep.coleccion();
+  const limite = `Llegaste al límite de ${MAX_OBJETIVOS} objetivos. Deja de seguir alguno para agregar otro.`;
+  if (objetivos.length >= MAX_OBJETIVOS) {
+    estadoSugerencias.set(clave, { mensaje: limite });
+    redibujarSugerencias();
+    return;
+  }
+
+  const carga = cargaActual;
+  estadoSugerencias.set(clave, { ocupado: true });
+  redibujarSugerencias();
+  try {
+    const nuevo = await dep.coleccion().seguirObjetivo(s);
+    if (carga !== cargaActual) return; // cerró sesión mientras guardaba
+    objetivos = [nuevo, ...objetivos.filter((o) => o.id !== nuevo.id)];
+    estadoSugerencias.delete(clave);
+    // La sugerencia desaparece: si tenía el foco (teclado), pasa al objetivo nuevo
+    if (document.activeElement?.closest('[data-sugerencia]')) {
+      enfocarLuego = { pantalla, href: ui.enlaceObjetivo(nuevo) };
+    }
+  } catch (error) {
+    if (carga !== cargaActual) return;
+    console.error(error);
+    estadoSugerencias.set(clave, {
+      mensaje: error.limite ? limite : 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.',
+    });
+    redibujarSugerencias();
+    return;
+  }
+  dep.alCambiarObjetivos();
 }
 
 // --- Detalle de un objetivo ------------------------------------

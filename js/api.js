@@ -276,6 +276,90 @@ export async function obtenerCartasObjetivo(o) {
   return { nombre: set.name, cartas, lista };
 }
 
+// --- Pokémon de cada carta (sugerencias) -----------------------
+// La colección no guarda el número de Pokédex: para sugerir Pokémon se
+// pide a TCGdex el dexId y el nombre de cada carta, varias por pedido
+// con alias (c0: card(id: "…") { dexId name }). Los datos de una carta
+// no cambian, así que se guardan sin vencimiento en localStorage.
+// Medido el 2026-09-28: el tiempo crece con cada carta (50 = 1,7 s;
+// 200 = 5,4 s). Por eso van en tandas de 50, hasta 3 pedidos a la vez.
+// Dentro de set { cards } TCGdex no entrega dexId (llega null).
+
+const CLAVE_DATOS_CARTAS = 'pt-dex:v1';
+const TANDA_CARTAS = 50;
+const PEDIDOS_A_LA_VEZ = 3;
+let datosCartas = null; // Map id de carta → { dex: number[], nombre: string }
+
+/**
+ * Lo que ya se sabe de cada carta, sin pedir nada a la red.
+ * Cartas sin Pokémon (Entrenador, Energía) quedan con dex = [].
+ * @returns {Map<string, {dex: number[], nombre: string}>}
+ */
+export function datosCartasGuardados() {
+  if (datosCartas) return datosCartas;
+  datosCartas = new Map();
+  try {
+    // Formato compacto: { "bw3-40": [[603], "Eelektrik"], … }
+    const guardado = JSON.parse(localStorage.getItem(CLAVE_DATOS_CARTAS)) ?? {};
+    for (const [id, [dex, nombre] = []] of Object.entries(guardado)) {
+      if (Array.isArray(dex) && typeof nombre === 'string') datosCartas.set(id, { dex, nombre });
+    }
+  } catch {
+    // Sin almacenamiento o dato roto: se piden de nuevo
+  }
+  return datosCartas;
+}
+
+function guardarDatosCartas() {
+  const compacto = Object.fromEntries([...datosCartas].map(([id, d]) => [id, [d.dex, d.nombre]]));
+  try {
+    localStorage.setItem(CLAVE_DATOS_CARTAS, JSON.stringify(compacto));
+  } catch {
+    // Sin almacenamiento: quedan solo en memoria
+  }
+}
+
+/**
+ * Pide a TCGdex el dexId y el nombre de las cartas que aún no se conocen.
+ * La primera tanda va sola: si falla (sin conexión), no se piden las
+ * demás. Una carta que TCGdex ya no tiene queda como "sin Pokémon".
+ *
+ * @param {Iterable<string>} ids
+ * @param {() => void} alLlegar  después de cada tanda guardada
+ * @returns {Promise<{fallo: boolean}>}
+ */
+export async function pedirDatosCartas(ids, alLlegar) {
+  const conocidos = datosCartasGuardados();
+  const faltan = [...new Set(ids)].filter((id) => !conocidos.has(id));
+  const tandas = [];
+  for (let i = 0; i < faltan.length; i += TANDA_CARTAS) tandas.push(faltan.slice(i, i + TANDA_CARTAS));
+  let fallo = false;
+
+  const pedirTanda = async (tanda) => {
+    try {
+      const partes = tanda.map((id, j) => `c${j}: card(id: ${JSON.stringify(id)}) { dexId name }`);
+      const data = await consultar(`{ ${partes.join(' ')} }`);
+      tanda.forEach((id, j) => {
+        const c = data[`c${j}`];
+        conocidos.set(id, { dex: c?.dexId ?? [], nombre: c?.name ?? '' });
+      });
+      guardarDatosCartas();
+      alLlegar();
+    } catch (error) {
+      console.error(error);
+      fallo = true;
+    }
+  };
+
+  if (tandas.length) await pedirTanda(tandas.shift());
+  // El resto, hasta 3 a la vez: cada pedido toma la siguiente tanda
+  const pedidos = Array.from({ length: Math.min(PEDIDOS_A_LA_VEZ, tandas.length) }, async () => {
+    while (tandas.length && !fallo) await pedirTanda(tandas.shift());
+  });
+  await Promise.all(pedidos);
+  return { fallo };
+}
+
 /** El nombre que más se repite (ej: "Joltik" antes que "N's Joltik"). */
 function nombreMasComun(cartas) {
   const cuenta = new Map();

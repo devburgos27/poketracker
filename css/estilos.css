@@ -891,6 +891,40 @@ select:disabled { opacity: 0.6; }
   color: var(--texto-suave);
 }
 #progreso-aviso { max-width: 720px; margin-inline: auto; }
+
+/* Inicio: "Tu progreso" con "Ver todo" al lado del título */
+.seccion__cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--esp-2);
+}
+.seccion__enlace { font-weight: 600; }
+#inicio-progreso .objetivos { margin: var(--esp-3) 0 0; }
+
+/* Sugerencias: "Unified Minds · tienes 2 cartas [Seguir]" */
+.sugerencias-caja { max-width: 720px; margin: var(--esp-4) auto var(--esp-6); }
+#inicio-progreso .sugerencias-caja { margin: var(--esp-3) 0 0; }
+.sugerencias__texto { margin: var(--esp-2) 0 var(--esp-3); color: var(--texto-suave); }
+.sugerencias {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--esp-2);
+}
+.sugerencia {
+  justify-content: space-between;
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-m);
+  background: var(--superficie);
+}
+.sugerencia__datos { display: grid; gap: var(--esp-1); min-width: 0; }
+.sugerencia__nombre { font-weight: 700; }
+.sugerencia__cantidad { color: var(--texto-suave); }
 #progreso-aviso .vacio { margin: 0 0 var(--esp-3); }
 
 /* Detalle de un objetivo */

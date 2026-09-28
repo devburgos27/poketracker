@@ -293,8 +293,12 @@ async function cambiarDesdeLista(carta, tengo) {
   if (!tengo) {
     cartasColeccion = cartasColeccion.filter((c) => c.id !== carta.id);
     cartasRecientes = cartasRecientes.filter((c) => c.id !== carta.id);
-    if (rutaActual === 'inicio') dibujarRecientes();
-    else dibujarColeccion();
+    if (rutaActual === 'inicio') {
+      dibujarRecientes();
+      objetivos.redibujarInicio(); // la carta ya no cuenta en "Tu progreso"
+    } else {
+      dibujarColeccion();
+    }
   }
 }
 
@@ -480,18 +484,22 @@ function redibujarPantalla() {
   cartasColeccion = cartasColeccion.filter((c) => misCartas.has(c.id));
   cartasRecientes = cartasRecientes.filter((c) => misCartas.has(c.id));
   if (rutaActual === 'coleccion') dibujarColeccion();
-  else if (rutaActual === 'inicio') dibujarRecientes();
-  else if (rutaActual === 'progreso') objetivos.redibujar();
+  else if (rutaActual === 'inicio') {
+    dibujarRecientes();
+    objetivos.redibujarInicio();
+  } else if (rutaActual === 'progreso') objetivos.redibujar();
 }
 
 objetivos.preparar({
   misCartas: () => misCartas,
   coleccion: () => coleccion,
   guardarCambio,
-  // Al cargar los objetivos (o reintentar): se actualiza lo que los usa
+  // Al cargar los objetivos (o reintentar, o seguir una sugerencia):
+  // se actualiza lo que los usa
   alCambiarObjetivos: () => {
     if (rutaActual === 'progreso') mostrarRuta();
     else if (rutaActual === 'buscar') dibujarBusqueda();
+    else if (rutaActual === 'inicio') objetivos.mostrarInicio();
     if (detalle && !detalle.cerrado) {
       objetivos.mostrarSeguir('#detalle-seguir', objetivos.candidatoDeCarta(detalle.carta));
     }
@@ -550,8 +558,10 @@ function irA(vista, params) {
   pantallaActual = pantalla;
 
   ui.mostrarVista(vista, TITULOS[vista]);
-  if (vista === 'inicio') cargarRecientes();
-  else if (vista === 'coleccion') cargarColeccion();
+  if (vista === 'inicio') {
+    cargarRecientes();
+    objetivos.mostrarInicio();
+  } else if (vista === 'coleccion') cargarColeccion();
   else if (vista === 'progreso') objetivos.mostrar(params);
   else buscarDesdeRuta(params.get('q')?.trim() ?? '');
 

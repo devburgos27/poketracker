@@ -64,16 +64,31 @@ function contarCopias(fila) {
 }
 
 /**
- * Todas las cartas que tiene el usuario: id de carta → fila y copias.
+ * Lo que la app recuerda de cada carta guardada (en misCartas).
+ * setId y nombreSet sirven para sugerir expansiones; '' en filas
+ * antiguas sin set_id.
+ * @returns {{filaId: number, copias: number, setId: string, nombreSet: string}}
+ */
+function guardadaDe(fila) {
+  return {
+    filaId: fila.id,
+    copias: contarCopias(fila),
+    setId: fila.set_id ?? '',
+    nombreSet: fila.nombre_set ?? '',
+  };
+}
+
+/**
+ * Todas las cartas que tiene el usuario: id de carta → fila, copias y set.
  * Paginada: el progreso de los objetivos depende de que esté completa.
- * @returns {Promise<Map<string, {filaId: number, copias: number}>>}
+ * @returns {Promise<Map<string, {filaId: number, copias: number, setId: string, nombreSet: string}>>}
  */
 export async function cargarMisCartas() {
   const filas = await traerTodas(() => supabase
     .from('coleccion')
-    .select('id, id_carta, copias(count)', { count: 'exact' })
+    .select('id, id_carta, set_id, nombre_set, copias(count)', { count: 'exact' })
     .order('id'));
-  return new Map(filas.map((fila) => [fila.id_carta, { filaId: fila.id, copias: contarCopias(fila) }]));
+  return new Map(filas.map((fila) => [fila.id_carta, guardadaDe(fila)]));
 }
 
 /**
@@ -121,8 +136,8 @@ export async function listarRecientes(cantidad) {
 
 /**
  * Convierte una fila de la tabla al formato "carta" de la app.
- * Además trae "guardada" ({ filaId, copias }) para saber cuántas
- * copias tiene sin otra consulta.
+ * Además trae "guardada" ({ filaId, copias, setId, nombreSet }) para
+ * saber cuántas copias tiene sin otra consulta.
  */
 function adaptarFila(fila) {
   // Se guarda la imagen chica (low.webp); la grande sale cambiando el sufijo
@@ -138,7 +153,7 @@ function adaptarFila(fila) {
     fechaSet: '',
     imagenChica: chica,
     imagenGrande: chica.replace(/\/low\.webp$/, '/high.webp'),
-    guardada: { filaId: fila.id, copias: contarCopias(fila) },
+    guardada: guardadaDe(fila),
   };
 }
 
@@ -147,7 +162,7 @@ function adaptarFila(fila) {
  * Se copian nombre, set, número e imagen para poder mostrar la
  * colección sin volver a la API.
  *
- * @returns {Promise<{filaId: number, copias: number}>}
+ * @returns {Promise<{filaId: number, copias: number, setId: string, nombreSet: string}>}
  */
 export async function marcarTengo(carta) {
   const { data, error } = await supabase
@@ -174,18 +189,18 @@ export async function marcarTengo(carta) {
   } catch (errorCopia) {
     console.error('No se pudo crear la primera copia:', errorCopia);
   }
-  return { filaId: data.id, copias: 1 };
+  return { filaId: data.id, copias: 1, setId: carta.setId ?? '', nombreSet: carta.nombreSet ?? '' };
 }
 
-/** Fila y cantidad de copias de una carta que ya está en la colección. */
+/** Fila, copias y set de una carta que ya está en la colección. */
 async function buscarMiCarta(idCarta) {
   const { data, error } = await supabase
     .from('coleccion')
-    .select('id, copias(count)')
+    .select('id, set_id, nombre_set, copias(count)')
     .eq('id_carta', idCarta)
     .single();
   if (error) throw error;
-  return { filaId: data.id, copias: contarCopias(data) };
+  return guardadaDe(data);
 }
 
 /** Quita una carta de la colección ("Me falta"), con todas sus copias. */

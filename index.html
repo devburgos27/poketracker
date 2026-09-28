@@ -139,6 +139,17 @@
           </div>
         </section>
 
+        <!-- Tu progreso: 3 objetivos más recientes, o sugerencias si no sigue nada (lo llena ui.js) -->
+        <section id="inicio-progreso" aria-labelledby="titulo-inicio-progreso" hidden>
+          <div class="seccion__cabecera">
+            <h3 id="titulo-inicio-progreso" class="seccion__titulo">Tu progreso</h3>
+            <a id="inicio-ver-todo" href="#/progreso" class="seccion__enlace" hidden>Ver todo<span class="visualmente-oculto"> tu progreso</span></a>
+          </div>
+          <p id="estado-inicio-progreso" class="estado" role="status" aria-live="polite"></p>
+          <div id="inicio-progreso-contenido"></div>
+          <div id="inicio-sugerencias" class="sugerencias-caja" hidden></div>
+        </section>
+
         <section aria-labelledby="titulo-recientes">
           <h3 id="titulo-recientes" class="seccion__titulo">Agregadas recientemente</h3>
           <p id="estado-inicio" class="estado" role="status" aria-live="polite"></p>
@@ -205,6 +216,8 @@
           <p id="estado-progreso" class="estado" role="status" aria-live="polite"></p>
           <div id="progreso-contenido"></div>
           <p id="progreso-pie" class="progreso-pie" hidden></p>
+          <!-- Sugerencias según la colección (lo llena ui.js) -->
+          <div id="progreso-sugerencias" class="sugerencias-caja" hidden></div>
         </div>
 
         <!-- Detalle de un objetivo (#/progreso?tipo=…&clave=…) -->
