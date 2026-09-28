@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#ffffff">
   <!-- Aplica el tema guardado en la app antes de pintar -->
   <script>try{var t=localStorage.getItem('pt-tema');if(t==='claro'||t==='oscuro')document.documentElement.dataset.tema=t}catch(e){}</script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
@@ -25,7 +26,7 @@
   <main class="contenedor">
     <article class="legal">
       <h1>Política de privacidad</h1>
-      <p class="legal__fecha">Última actualización: 27 de septiembre de 2026</p>
+      <p class="legal__fecha">Última actualización: 28 de septiembre de 2026</p>
 
       <p>
         PokéTracker es un proyecto personal y sin fines comerciales para llevar el registro
@@ -96,6 +97,10 @@
         Las imágenes y los datos de las cartas vienen de
         <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>, una API abierta.
         Al buscar, tu navegador se conecta directamente a TCGdex para obtenerlos.
+        Algunas cartas no tienen imagen en TCGdex: para esas, algunas imágenes se cargan desde
+        <a href="https://pokemontcg.io" target="_blank" rel="noopener">images.pokemontcg.io</a>
+        (el sitio de imágenes de pokemontcg.io), así que tu navegador también se conecta a ese servidor.
+        No se le envía ningún dato tuyo más allá de lo que implica pedir una imagen (como tu dirección IP).
         Pokémon y sus marcas pertenecen a Nintendo, Game Freak y The Pokémon Company.
         PokéTracker no está afiliado a ninguna de ellas.
       </p>

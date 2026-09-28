@@ -620,6 +620,39 @@ select:disabled { opacity: 0.6; }
   text-align: center;
 }
 
+/* Recuadro de respaldo (sin imagen en ninguna fuente): nombre, número y
+   expansión, centrados en el mismo espacio que ocuparía la imagen */
+.respaldo {
+  align-content: center;
+  gap: var(--esp-1);
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+.respaldo p { margin: 0; overflow-wrap: anywhere; }
+.respaldo__nombre { color: var(--texto); font-size: var(--texto-s); font-weight: 700; }
+.respaldo__numero { font-variant-numeric: tabular-nums; }
+.respaldo__nota { margin-top: var(--esp-2) !important; font-style: italic; }
+
+/* Imagen de respaldo mientras se prueba: encima del recuadro e invisible
+   (así se descarga con la carga diferida, como las demás) */
+.carta__imagen { position: relative; }
+.carta__imagen .carta__img-probando {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  width: calc(100% - 1.2rem);
+  opacity: 0;
+}
+
+/* "Imagen en español": la imagen es de la carta en otro idioma */
+.carta__idioma {
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  color: var(--texto-suave);
+}
+#detalle-imagen-nota { margin-top: var(--esp-2); text-align: center; }
+
 /* "×2": más de una copia. Amarillo con texto oscuro en ambos temas */
 .carta__copias {
   position: absolute;

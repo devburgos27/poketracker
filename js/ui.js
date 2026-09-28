@@ -2,10 +2,13 @@
 // Interfaz: todo lo que se dibuja en pantalla
 // =============================================================
 // Este archivo no llama a la API ni a Supabase: solo recibe datos
-// y los muestra. Los elementos se crean con createElement y
-// textContent (no con innerHTML) para que ningún texto externo
+// y los muestra (para las cartas sin imagen, imagenes.js le dice qué
+// imagen de respaldo probar). Los elementos se crean con createElement
+// y textContent (no con innerHTML) para que ningún texto externo
 // pueda inyectar código en la página.
 // =============================================================
+
+import * as imagenes from './imagenes.js';
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -359,22 +362,7 @@ function crearTarjeta(carta, marcado) {
   boton.setAttribute('aria-label', `Ver detalle de ${carta.nombre}${etiquetaCopias}`);
   boton.addEventListener('click', () => alAbrirCarta(carta));
 
-  if (carta.imagenChica) {
-    const img = document.createElement('img');
-    img.src = carta.imagenChica;
-    img.alt = `${carta.nombre} — ${carta.nombreSet} ${carta.numero}`;
-    img.loading = 'lazy';      // solo se descarga cuando aparece en pantalla
-    img.decoding = 'async';
-    img.width = 245;           // tamaño aproximado de la imagen: evita saltos
-    img.height = 342;
-    boton.append(img);
-  } else {
-    // Algunas cartas aún no tienen imagen en la API
-    const vacia = document.createElement('div');
-    vacia.className = 'carta__sin-imagen';
-    vacia.textContent = 'Imagen no disponible';
-    boton.append(vacia);
-  }
+  ponerImagenTarjeta(boton, tarjeta, carta);
 
   // "×2" sobre la imagen cuando hay más de una copia
   // (el lector de pantalla ya lo oye en la etiqueta del botón)
@@ -405,6 +393,126 @@ function crearTarjeta(carta, marcado) {
   if (marcado) info.append(crearMarcado(carta, tarjeta, marcado));
   tarjeta.append(boton, info);
   return tarjeta;
+}
+
+// --- Imagen de la carta y respaldo ----------------------------
+// Orden: imagen de TCGdex en inglés → pokemontcg.io → TCGdex en otro
+// idioma (con la etiqueta "Imagen en español") → recuadro con forma de
+// carta. Las alternativas las decide imagenes.js.
+
+function crearImg(src, carta) {
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = `${carta.nombre} — ${carta.nombreSet} ${carta.numero}`;
+  img.loading = 'lazy';      // solo se descarga cuando aparece en pantalla
+  img.decoding = 'async';
+  img.width = 245;           // tamaño aproximado de la imagen: evita saltos
+  img.height = 342;
+  return img;
+}
+
+// El servidor de imágenes de TCGdex a veces corta la conexión
+// (ERR_CONNECTION_CLOSED) o responde 503 durante unos segundos, en
+// cualquier idioma (visto el 2026-09-28). Cada imagen tiene un solo
+// reintento tras 1 s. El parámetro ?reintento=1 hace que el navegador
+// la pida de nuevo; los servidores lo ignoran.
+const ESPERA_REINTENTO = 1000;
+const conReintento = (src) => `${src}${src.includes('?') ? '&' : '?'}reintento=1`;
+const esReintento = (src) => /[?&]reintento=1\b/.test(src);
+
+/**
+ * Espera a que una imagen termine de cargar, con un solo reintento si
+ * falla. Sirve para <img> en la página y para new Image(); hay que
+ * llamarla en el mismo paso en que se le pone el src.
+ * @returns {Promise<'ok'|'reverso'|'error'>}  reverso: el genérico de pokemontcg.io
+ */
+function esperarImagen(img) {
+  return new Promise((resolve) => {
+    img.addEventListener('load', () => resolve(imagenes.esReverso(img) ? 'reverso' : 'ok'));
+    img.addEventListener('error', () => {
+      if (esReintento(img.src)) {
+        resolve('error');
+        return;
+      }
+      setTimeout(() => { img.src = conReintento(img.src); }, ESPERA_REINTENTO);
+    });
+  });
+}
+
+/** Recuadro con forma de carta cuando no hay imagen: nombre, número y expansión. */
+function crearRespaldo(carta) {
+  const caja = document.createElement('div');
+  caja.className = 'carta__sin-imagen respaldo';
+  const lineas = [
+    ['respaldo__nombre', carta.nombre],
+    ['respaldo__numero', carta.totalSet ? `${carta.numero}/${carta.totalSet}` : carta.numero],
+    ['respaldo__set', carta.nombreSet],
+    ['respaldo__nota', 'Sin imagen'],
+  ];
+  caja.append(...lineas.filter(([, texto]) => texto).map(([clase, texto]) => {
+    const p = document.createElement('p');
+    p.className = clase;
+    p.textContent = texto;
+    return p;
+  }));
+  return caja;
+}
+
+/** "Imagen en español": la imagen es de la carta en otro idioma. */
+function textoIdioma(idioma) {
+  return `Imagen en ${imagenes.NOMBRES_IDIOMA[idioma] ?? idioma}`;
+}
+
+function ponerImagenTarjeta(boton, tarjeta, carta) {
+  const respaldo = crearRespaldo(carta);
+  if (carta.imagenChica) {
+    const img = crearImg(carta.imagenChica, carta);
+    boton.append(img);
+    // Si no carga ni con el reintento (por ejemplo, sin conexión), el recuadro
+    esperarImagen(img).then((resultado) => {
+      if (resultado === 'error') img.replaceWith(respaldo);
+    });
+    return;
+  }
+  boton.append(respaldo);
+  probarAlternativas(boton, tarjeta, carta, respaldo);
+}
+
+/**
+ * Prueba las imágenes de respaldo en orden. Cada una va encima del
+ * recuadro, invisible y con carga diferida (se descarga al acercarse a
+ * la pantalla, como las demás). Si carga bien reemplaza al recuadro; si
+ * falla (también tras el reintento) o es el reverso genérico de
+ * pokemontcg.io, se quita y se prueba la siguiente.
+ */
+async function probarAlternativas(boton, tarjeta, carta, respaldo) {
+  const opciones = await imagenes.alternativas(carta);
+  if (!opciones) return; // sin la lista (sin conexión): queda el recuadro
+  let falloDeRed = false;
+  for (const alternativa of opciones) {
+    if (!tarjeta.isConnected) return; // la grilla se redibujó
+    const img = crearImg(alternativa.chica, carta);
+    img.classList.add('carta__img-probando');
+    boton.append(img);
+    const resultado = await esperarImagen(img);
+    if (resultado === 'error') falloDeRed = true;
+    if (resultado === 'ok') {
+      img.classList.remove('carta__img-probando');
+      respaldo.remove();
+      if (alternativa.idioma) {
+        const etiqueta = document.createElement('p');
+        etiqueta.className = 'carta__idioma';
+        etiqueta.textContent = textoIdioma(alternativa.idioma);
+        tarjeta.querySelector('.carta__info')?.prepend(etiqueta);
+      }
+      imagenes.recordar(carta.id, alternativa);
+      return;
+    }
+    img.remove();
+  }
+  // Si alguna falló por la red, no se anota como "sin imagen": al
+  // redibujar (o en el detalle) se vuelve a probar
+  if (!falloDeRed) imagenes.recordar(carta.id, null);
 }
 
 /**
@@ -509,9 +617,22 @@ export function prepararDetalle(acciones) {
   $('#copias-sumar').addEventListener('click', acciones.alSumar);
   $('#copias-restar').addEventListener('click', acciones.alRestar);
 
-  // Si la imagen visible no carga, el recuadro "Imagen no disponible"
-  // en vez del ícono de imagen rota con el texto alternativo
-  $('#detalle-imagen').addEventListener('error', mostrarSinImagen);
+  $('#detalle-imagen').addEventListener('error', alFallarImagenDetalle);
+}
+
+/**
+ * La imagen visible del detalle no cargó: el recuadro con forma de carta
+ * (en vez del ícono de imagen rota) y un solo reintento tras 1 s.
+ */
+function alFallarImagenDetalle() {
+  const src = $('#detalle-imagen').getAttribute('src');
+  mostrarSinImagen();
+  if (!src || esReintento(src)) return;
+  const pedido = imagenPedida;
+  setTimeout(() => {
+    // Solo si sigue el recuadro (la grande pudo llegar mientras tanto)
+    if (pedido === imagenPedida && !$('#detalle-imagen').getAttribute('src')) mostrarImagen(conReintento(src));
+  }, ESPERA_REINTENTO);
 }
 
 let imagenPedida = 0; // para ignorar la imagen grande de una carta anterior
@@ -533,28 +654,61 @@ function mostrarSinImagen() {
 /**
  * Imagen del detalle: primero la chica (ya está en caché por la
  * grilla) y, cuando la grande termina de cargar, se cambia por ella.
- * Si la grande falla, queda la chica; si fallan ambas, el recuadro
- * "Imagen no disponible". Las dos ocupan el mismo recuadro fijo.
+ * Si la grande falla, queda la chica; si fallan ambas, el recuadro con
+ * forma de carta. Todas ocupan el mismo recuadro fijo.
+ * Sin imagen en TCGdex: las mismas alternativas que en la grilla.
  */
-function cargarImagenDetalle(carta) {
+async function cargarImagenDetalle(carta) {
   const pedido = ++imagenPedida;
   $('#detalle-imagen').alt = `${carta.nombre} — ${carta.nombreSet} ${carta.numero}`;
+  $('#detalle-sin-imagen').replaceChildren(...crearRespaldo(carta).childNodes);
+  mostrarNotaImagen(null);
 
-  if (carta.imagenChica) mostrarImagen(carta.imagenChica);
-  else mostrarSinImagen();
-  if (!carta.imagenGrande) return;
+  if (carta.imagenChica) {
+    mostrarImagen(carta.imagenChica);
+    cargarGrande(carta.imagenGrande, pedido);
+    return;
+  }
+  mostrarSinImagen();
+  const opciones = await imagenes.alternativas(carta);
+  let falloDeRed = false;
+  for (const alternativa of opciones ?? []) {
+    const chica = new Image();
+    chica.src = alternativa.chica;
+    const resultado = await esperarImagen(chica);
+    if (pedido !== imagenPedida) return; // se abrió otra carta
+    if (resultado === 'error') falloDeRed = true;
+    if (resultado !== 'ok') continue; // falló (con reintento) o es el reverso: la siguiente
+    imagenes.recordar(carta.id, alternativa);
+    mostrarImagen(chica.src); // ya está en caché (con ?reintento=1 si hizo falta)
+    mostrarNotaImagen(alternativa.idioma);
+    cargarGrande(alternativa.grande, pedido);
+    return;
+  }
+  if (opciones && !falloDeRed) imagenes.recordar(carta.id, null);
+}
 
-  // La grande se descarga aparte; decode() espera a que esté lista
-  // para pintarse, así el cambio no deja un instante en blanco
+/**
+ * La imagen grande se descarga aparte (con un reintento); decode()
+ * espera a que esté lista para pintarse, así el cambio no deja un
+ * instante en blanco. Si falla o es el reverso, se queda la chica.
+ */
+function cargarGrande(src, pedido) {
+  if (!src) return;
   const grande = new Image();
-  grande.src = carta.imagenGrande;
-  grande.decode()
-    .then(() => {
-      if (pedido === imagenPedida) mostrarImagen(carta.imagenGrande);
-    })
-    .catch(() => {
-      // Falló la grande: se queda la chica (o el recuadro si tampoco cargó)
-    });
+  grande.src = src;
+  esperarImagen(grande).then(async (resultado) => {
+    if (resultado !== 'ok' || pedido !== imagenPedida) return;
+    await grande.decode().catch(() => {});
+    if (pedido === imagenPedida) mostrarImagen(grande.src);
+  });
+}
+
+/** "Imagen en español" bajo la imagen del detalle (null la oculta). */
+function mostrarNotaImagen(idioma) {
+  const nota = $('#detalle-imagen-nota');
+  nota.hidden = !idioma;
+  nota.textContent = idioma ? textoIdioma(idioma) : '';
 }
 
 /** Abre el detalle con los datos que ya se tienen de la carta. */

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Rayo de la marca: amarillo sobre fondo oscuro, se ve en pestañas claras y oscuras -->
+  <rect width="32" height="32" rx="7" fill="#121829"/>
+  <path fill="#ffd60a" d="M18.7 3 5.3 19h8l-2.7 10L24 13h-8z"/>
+</svg>

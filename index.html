@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#ffffff">
   <!-- Aplica el tema guardado antes de pintar, para que no parpadee -->
   <script>try{var t=localStorage.getItem('pt-tema');if(t==='claro'||t==='oscuro')document.documentElement.dataset.tema=t}catch(e){}</script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/estilos.css">
   <!-- Precarga la conexión a la API de cartas para que la primera búsqueda sea más rápida -->
   <link rel="preconnect" href="https://api.tcgdex.net">
@@ -278,7 +279,8 @@
   </main>
 
   <footer class="pie contenedor">
-    <p>Datos e imágenes de cartas: <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>.
+    <p>Datos e imágenes de cartas: <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>
+       y, cuando TCGdex no tiene la imagen, <a href="https://pokemontcg.io" target="_blank" rel="noopener">pokemontcg.io</a>.
        Pokémon y sus marcas pertenecen a Nintendo, Game Freak y The Pokémon Company. Proyecto sin fines comerciales.</p>
     <p><a href="privacidad.html">Privacidad</a></p>
   </footer>
@@ -294,7 +296,9 @@
       <div class="detalle__cuerpo">
         <div class="detalle__imagen">
           <img id="detalle-imagen" src="" alt="">
-          <div id="detalle-sin-imagen" class="carta__sin-imagen" hidden>Imagen no disponible</div>
+          <!-- Recuadro con forma de carta: nombre, número y expansión (lo llena ui.js) -->
+          <div id="detalle-sin-imagen" class="carta__sin-imagen respaldo" hidden></div>
+          <p id="detalle-imagen-nota" class="carta__idioma" hidden></p>
         </div>
 
         <div class="detalle__info">
