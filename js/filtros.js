@@ -79,15 +79,53 @@ export function escribirFiltros(params, filtros, config) {
 /** ¿Hay algún filtro (no orden) activo? */
 export const hayFiltros = (f) => Boolean(f.set || f.rareza);
 
+// "set" puede traer varias expansiones separadas por coma (set=basep,bwp):
+// pasa cuando el texto de expansión de la búsqueda ("pikachu 025 promos")
+// coincide con más de una. Los id de set no llevan comas.
+const idsDeSet = (set) => (set ? set.split(',') : []);
+
 /**
  * Las cartas que pasan los filtros.
  * @param {'set'|'rareza'} [ignorar]  para contar las opciones de un select
  *   con los demás filtros aplicados
  */
 export function filtrar(cartas, filtros, ignorar = null) {
+  const sets = idsDeSet(filtros.set);
   return cartas.filter((c) =>
-    (ignorar === 'set' || !filtros.set || c.setId === filtros.set) &&
+    (ignorar === 'set' || !sets.length || sets.includes(c.setId)) &&
     (ignorar === 'rareza' || !filtros.rareza || c.rareza === filtros.rareza));
+}
+
+/**
+ * Texto comparable: sin tildes, mayúsculas, apóstrofos, símbolos ni
+ * espacios, y "&" igual que "and". Así "black and white" y
+ * "black & white" encuentran "Black & White"; "champions path",
+ * "Champion's Path"; y "fire red", "FireRed & LeafGreen".
+ */
+function normalizar(texto) {
+  return texto
+    .normalize('NFD').replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\band\b/g, ' ')
+    .replace(/\s+/g, '');
+}
+
+/**
+ * Las expansiones de estas cartas cuyo nombre o id contiene el texto
+ * ("wizards" → basep; "sv04" → sv04; "black" → bw1 y las Black Star Promos
+ * que haya entre las cartas). Sin coincidencias, [].
+ * @returns {string[]} ids de set
+ */
+export function setsQueCoinciden(cartas, texto) {
+  const buscado = normalizar(texto);
+  if (!buscado) return [];
+  const sets = new Set();
+  for (const c of cartas) {
+    if (c.setId && (normalizar(c.nombreSet).includes(buscado) || normalizar(c.setId).includes(buscado))) sets.add(c.setId);
+  }
+  return [...sets];
 }
 
 /** Ordena sin tocar el arreglo original. */
@@ -110,11 +148,26 @@ export function opcionesSet(cartas, filtros) {
     s.cantidad++;
     sets.set(c.setId, s);
   }
-  if (filtros.set && !sets.has(filtros.set)) {
+  const elegidos = idsDeSet(filtros.set);
+  if (elegidos.length === 1 && !sets.has(filtros.set)) {
     const carta = cartas.find((c) => c.setId === filtros.set);
     sets.set(filtros.set, { valor: filtros.set, texto: carta?.nombreSet || filtros.set, cantidad: 0, fecha: '' });
   }
-  return [...sets.values()].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.texto.localeCompare(b.texto));
+  const opciones = [...sets.values()].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.texto.localeCompare(b.texto));
+  if (elegidos.length > 1) {
+    // Varias a la vez (desde el texto de la búsqueda): una opción que las
+    // nombra todas, primero, para que se vea qué se filtró
+    // Con más de 2 se nombran las 2 primeras: "A + B + 8 más"
+    const incluidas = elegidos.map((id) => sets.get(id) ?? { texto: id, cantidad: 0 });
+    const nombres = incluidas.slice(0, 2).map((s) => s.texto);
+    if (incluidas.length > 2) nombres.push(`${incluidas.length - 2} más`);
+    opciones.unshift({
+      valor: filtros.set,
+      texto: nombres.join(' + '),
+      cantidad: incluidas.reduce((suma, s) => suma + s.cantidad, 0),
+    });
+  }
+  return opciones;
 }
 
 /** Opciones del select de rareza, de la más común a la más rara. */

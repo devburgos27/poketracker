@@ -47,6 +47,12 @@ Actualizado: 2026-09-28
   - "025/182": sets con ese total impreso (`cardCount.official`, lista pedida aparte una vez por sesión: con el total pesa ~20 KB y no se agrega a cada búsqueda), sus cartas (solo `id localId`) en un pedido con alias y luego los datos completos solo de las coincidencias (se confirma que el id devuelto sea el pedido). "1/102" = 7 KB. Si ningún set tiene ese total, responde sin consultar.
   - "025" solo: menor que 100 responde sin consultar "Hay demasiadas cartas…: prueba con 025/182 o Pikachu 025" (del 1 al 99 todos pasan de 100: 25 → 149, 60 → 127, 99 → 108). Desde 100 consulta y muestra el mismo mensaje si hay más de 100.
   - Números con letras (TG25, SV001) quedan fuera por ahora.
+- **Texto de expansión en la búsqueda** (mejora de la 8b): "pikachu 025 wizards", "joltik 44 black", "joltik phantom forces".
+  - Con número: lo de antes es el nombre, lo de después la expansión. Sin número: si el nombre completo no trae cartas, se quitan palabras del final (hasta 5) y se usan como expansión; un pedido por intento, se detiene en el primero con cartas. Sin pedidos extra en los demás casos: la expansión se filtra en el navegador.
+  - Comparación "contiene" con el nombre y el id del set, sin tildes, mayúsculas, apóstrofos, símbolos ni espacios, y "and" = "&": "black and white", "champions path", "fire red", "sv04" y "pokémon go" encuentran su set.
+  - Si coincide: la búsqueda queda como su base y el set como filtro, en el select y en la URL (`q=pikachu 025&set=basep`); así se ve qué se filtró y "Limpiar filtros" muestra todas las de la base. Varias coincidencias van juntas (`set=2014xy,2015xy,…`) en una opción "A + B + 8 más".
+  - Si no coincide pero el nombre (y número) sí tienen cartas: se muestran todas con "No encontramos la expansión «wizards»; mostramos todas las de Pikachu 025 (4 cartas)."
+  - Límite: un número siempre separa nombre y expansión ("joltik sv 04" busca el número 4); el id va junto ("joltik sv04").
 - **Búsqueda pública:** buscar cartas no requiere login (sirve para visitantes del portafolio); marcar sí lo requerirá. El login se carga con import() dinámico: si Supabase falla, la búsqueda sigue funcionando.
 - **Frontend:** HTML + CSS + JS vanilla con módulos ES, supabase-js v2 desde CDN (jsDelivr). Sin build. Debe abrirse con Live Server (no con doble clic / file://).
 - **API de cartas: TCGdex (GraphQL)** — migrado desde pokemontcg.io el 2026-09-26 porque pokemontcg.io devolvía error 500, cerró registros y deja de funcionar el 2027-03-01. Todo aislado en `js/api.js`.

@@ -22,6 +22,7 @@ import * as filtrado from './filtros.js';
 
 let cartasActuales = [];   // resultado de la última búsqueda
 let busquedaActual = '';   // texto de esa búsqueda ('' = ninguna)
+let avisoBusqueda = '';    // "No encontramos la expansión «…»" ('' = ninguno)
 let busquedaEnCurso = null; // texto que se está buscando ahora
 let pedidoBusqueda = 0;    // para descartar respuestas de búsquedas viejas
 // Últimas búsquedas (texto → { cartas, demasiadas }): Atrás/Adelante no repiten la consulta
@@ -130,12 +131,19 @@ function actualizarConteos(visibles = cartasBusquedaFiltradas()) {
   ui.mostrarFiltros({ todas: total, tengo, falta: total - tengo }, filtro);
 }
 
-/** "20 cartas encontradas para "Joltik"" o, con filtros, "5 de 20 cartas…" */
+/**
+ * "20 cartas encontradas para "Joltik"" o, con filtros, "5 de 20 cartas…".
+ * Si el texto de expansión no coincidió: el aviso y la cantidad.
+ */
 function mostrarResumen(visibles = cartasBusquedaFiltradas()) {
   const total = cartasActuales.length;
   if (total === 0) return;
+  const cuantas = filtrado.hayFiltros(filtrosBusqueda) && visibles.length !== total ? `${visibles.length} de ${total}` : total;
+  if (avisoBusqueda) {
+    ui.mensajeEstado(`${avisoBusqueda} (${cuantas} ${total === 1 ? 'carta' : 'cartas'}).`);
+    return;
+  }
   const texto = total === 1 ? 'carta encontrada' : 'cartas encontradas';
-  const cuantas = filtrado.hayFiltros(filtrosBusqueda) ? `${visibles.length} de ${total}` : total;
   ui.mensajeEstado(`${cuantas} ${texto} para "${busquedaActual}"`);
 }
 
@@ -164,31 +172,82 @@ async function cambiarDesdeBusqueda(carta, tengo) {
   else dibujarBusqueda();
 }
 
-// --- Búsqueda por número --------------------------------------
-// "025" solo, "Pikachu 025" (nombre + número) o "025/182" (número y
-// total impreso en la carta). Las consultas están en api.js.
+// --- Búsqueda por número y expansión --------------------------
+// "025" solo, "Pikachu 025" (nombre + número), "025/182" (número y
+// total impreso en la carta) y, detrás, texto de expansión:
+// "pikachu 025 wizards", "joltik phantom forces". Las consultas están
+// en api.js; la expansión se filtra en el navegador (filtros.js).
 
 const MAX_POR_NUMERO = 100;
+// Sin número, cuántas palabras del final se prueban como expansión
+// ("Wizards Black Star Promos" = 4; "HS trainer Kit (Raichu)" = 4)
+const MAX_PALABRAS_EXPANSION = 5;
 
 /**
  * Qué pide el texto del buscador. numero null = búsqueda por nombre.
+ * Con número, lo de antes es el nombre y lo de después, la expansión.
  * "Porygon2" es un nombre: el número tiene que ir separado por un espacio.
- * @returns {{nombre: string, numero: number|null, total: number|null}}
+ * @returns {{nombre: string, numero: number|null, textoNumero: string,
+ *   total: number|null, expansion: string, base: string}}
+ *   base: el texto sin la expansión ("pikachu 025")
  */
 function leerBusqueda(texto) {
-  const partes = texto.match(/^(?:(.*?)\s+)?#?(\d{1,3})(?:\s*\/\s*(\d{1,3}))?$/);
-  if (!partes) return { nombre: texto, numero: null, total: null };
-  return { nombre: partes[1] ?? '', numero: Number(partes[2]), total: partes[3] ? Number(partes[3]) : null };
+  const partes = texto.match(/^(?:(.*?)\s+)?#?(\d{1,3})(?:\s*\/\s*(\d{1,3}))?(?:\s+(.+))?$/);
+  if (!partes) return { nombre: texto, numero: null, textoNumero: '', total: null, expansion: '', base: texto };
+  const [, nombre = '', textoNumero, textoTotal, expansion = ''] = partes;
+  return {
+    nombre,
+    numero: Number(textoNumero),
+    textoNumero,
+    total: textoTotal ? Number(textoTotal) : null,
+    expansion,
+    base: [nombre, textoTotal ? `${textoNumero}/${textoTotal}` : textoNumero].filter(Boolean).join(' '),
+  };
+}
+
+/** "pikachu 025" → "Pikachu 025"; "n's joltik" → "N's Joltik" */
+const conMayusculas = (texto) => texto.replace(/(^|\s)\S/g, (letra) => letra.toUpperCase());
+
+/**
+ * Aplica el texto de expansión a las cartas de la base (nombre y número).
+ * Si coincide con alguna, sets: sus ids (main las pone en el select); si
+ * no, se muestran todas con un aviso.
+ */
+function conExpansion(cartas, base, expansion) {
+  if (cartas.length === 0) return { cartas };
+  const sets = filtrado.setsQueCoinciden(cartas, expansion);
+  if (sets.length) return { cartas, base, sets };
+  return { cartas, aviso: `No encontramos la expansión «${expansion}»; mostramos todas las de ${conMayusculas(base)}` };
+}
+
+/**
+ * Por nombre. Si el nombre completo no trae cartas, se prueban quitando
+ * palabras del final como texto de expansión ("joltik phantom forces" →
+ * "joltik phantom" + "forces", luego "joltik" + "phantom forces"). Un
+ * pedido por intento; se detiene en el primero que trae cartas.
+ */
+async function consultarPorNombre(texto) {
+  const cartas = await buscarCartas(texto);
+  const palabras = texto.split(/\s+/);
+  if (cartas.length || palabras.length < 2) return { cartas };
+  for (let quitar = 1; quitar < palabras.length && quitar <= MAX_PALABRAS_EXPANSION; quitar++) {
+    const nombre = palabras.slice(0, -quitar).join(' ');
+    const deNombre = await buscarCartas(nombre);
+    if (deNombre.length) return conExpansion(deNombre, nombre, palabras.slice(-quitar).join(' '));
+  }
+  return { cartas: [] };
 }
 
 /**
  * Hace la búsqueda que pide el texto.
  * demasiadas: un número solo con más de 100 cartas (no se muestran).
- * @returns {Promise<{cartas: Array, demasiadas?: boolean}>}
+ * base y sets: el texto de expansión coincidió (se aplica como filtro).
+ * aviso: el texto de expansión no coincidió con ninguna.
+ * @returns {Promise<{cartas: Array, demasiadas?: boolean, base?: string, sets?: string[], aviso?: string}>}
  */
 async function consultarBusqueda(texto) {
   const busqueda = leerBusqueda(texto);
-  if (busqueda.numero === null) return { cartas: await buscarCartas(texto) };
+  if (busqueda.numero === null) return consultarPorNombre(texto);
 
   const soloNumero = !busqueda.nombre && busqueda.total === null;
   // Del 1 al 99, cada número está en más de 100 cartas (25 → 149,
@@ -196,7 +255,7 @@ async function consultarBusqueda(texto) {
   if (soloNumero && busqueda.numero < 100) return { cartas: [], demasiadas: true };
   const cartas = await buscarPorNumero(busqueda);
   if (soloNumero && cartas.length > MAX_POR_NUMERO) return { cartas: [], demasiadas: true };
-  return { cartas };
+  return busqueda.expansion ? conExpansion(cartas, busqueda.base, busqueda.expansion) : { cartas };
 }
 
 /** Mensaje cuando la búsqueda no trae cartas, según lo que se buscó. */
@@ -211,14 +270,28 @@ function mensajeSinResultados(texto) {
 }
 
 /** Deja una búsqueda terminada en pantalla. */
-function mostrarBusqueda(texto, { cartas, demasiadas = false }) {
+function mostrarBusqueda(texto, { cartas, demasiadas = false, base = '', sets = [], aviso = '' }) {
+  if (sets.length) {
+    // El texto de expansión encontró su expansión: queda como filtro en
+    // el select y en la URL, y la búsqueda como su base
+    // ("pikachu 025 wizards" → q=pikachu 025&set=basep). Así se ve qué
+    // se filtró, y "Limpiar filtros" muestra todas las de la base.
+    filtrosBusqueda = { ...filtrosBusqueda, set: sets.join(',') };
+    busquedasGuardadas.set(base, { cartas });
+    texto = base;
+    const destino = hashBuscar(texto, filtrosBusqueda);
+    history.replaceState(null, '', destino);
+    ui.actualizarEnlaces('buscar', destino);
+    formBusqueda.pokemon.value = texto;
+  }
   cartasActuales = cartas;
   busquedaActual = texto;
+  avisoBusqueda = aviso;
   filtro = 'todas';
 
   if (demasiadas) {
     ui.mensajeEstado(
-      `Hay demasiadas cartas con el número ${texto}. Agrega el total impreso o el nombre: prueba con 025/182 o Pikachu 025.`,
+      `Hay demasiadas cartas con el número ${leerBusqueda(texto).textoNumero}. Agrega el total impreso o el nombre: prueba con 025/182 o Pikachu 025.`,
       'error',
     );
   } else if (cartas.length === 0) {
@@ -252,6 +325,7 @@ async function buscarDesdeRuta(texto, reintento = false) {
 
   cartasActuales = [];
   busquedaActual = '';
+  avisoBusqueda = '';
   filtro = 'todas';
   // En un reintento queda a la vista "Reintentando…" hasta que responda
   if (!reintento) {
