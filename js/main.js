@@ -13,9 +13,10 @@
 // rutas: el router arranca después de que Supabase los procesa.
 // =============================================================
 
-import { buscarCartas, obtenerCarta } from './api.js';
+import { buscarCartas, obtenerCarta, fechasDeSets } from './api.js';
 import * as ui from './ui.js';
 import * as objetivos from './objetivos.js';
+import * as filtrado from './filtros.js';
 
 // --- Estado de la pantalla -----------------------------------
 
@@ -27,7 +28,10 @@ let pedidoBusqueda = 0;    // para descartar respuestas de búsquedas viejas
 const busquedasGuardadas = new Map();
 const MAX_BUSQUEDAS_GUARDADAS = 10;
 let filtro = 'todas';      // pestaña activa: 'todas' | 'tengo' | 'falta'
-// Cartas que tengo: id de carta → { filaId, copias }; null = sin sesión
+// Expansión, rareza y orden (vienen de la URL): ver filtros.js
+let filtrosBusqueda = filtrado.leerFiltros(new URLSearchParams(), filtrado.BUSCAR);
+let filtrosColeccion = filtrado.leerFiltros(new URLSearchParams(), filtrado.COLECCION);
+// Cartas que tengo: id de carta → { filaId, copias, setId, nombreSet }; null = sin sesión
 let misCartas = null;
 let coleccion = null;      // módulo coleccion.js (se carga junto con el login)
 
@@ -52,40 +56,87 @@ const VACIO_POR_FILTRO = {
   falta: '¡Tienes todas estas cartas!',
 };
 
-/** Dibuja la grilla de búsqueda según la sesión y la pestaña activa. */
+const VACIO_CON_FILTROS = 'Ninguna carta coincide con los filtros.';
+
+/** Datos para los selects de filtros (Buscar y Colección). */
+function datosFiltros(cartas, filtros, config) {
+  return {
+    sets: filtrado.opcionesSet(cartas, filtros),
+    rarezas: config.conRareza ? filtrado.opcionesRareza(cartas, filtros) : null,
+    ordenes: config.ordenes.map((valor) => ({ valor, texto: filtrado.NOMBRES_ORDEN[valor] })),
+    filtros,
+    hayFiltros: filtrado.hayFiltros(filtros),
+  };
+}
+
+/** #/buscar?q=joltik&set=sv04&orden=numero */
+function hashBuscar(texto, filtros) {
+  if (!texto) return '#/buscar';
+  return `#/buscar?${filtrado.escribirFiltros(new URLSearchParams({ q: texto }), filtros, filtrado.BUSCAR)}`;
+}
+
+/** Las cartas de la búsqueda con expansión, rareza y orden aplicados. */
+function cartasBusquedaFiltradas() {
+  const filtradas = filtrado.filtrar(cartasActuales, filtrosBusqueda);
+  return filtrado.ordenar(filtradas, filtrosBusqueda.orden, filtrado.BUSCAR);
+}
+
+/** Dibuja la grilla de búsqueda según la sesión, los filtros y la pestaña activa. */
 function dibujarBusqueda() {
+  const visibles = cartasBusquedaFiltradas();
+  const vacioFiltros = filtrado.hayFiltros(filtrosBusqueda) ? VACIO_CON_FILTROS : '';
+  ui.mostrarFiltrosCartas(
+    '#filtros-busqueda',
+    cartasActuales.length ? datosFiltros(cartasActuales, filtrosBusqueda, filtrado.BUSCAR) : null,
+    cambiarFiltrosBusqueda,
+  );
   if (!misCartas) {
     ui.mostrarFiltros(null);
-    ui.mostrarCartas(cartasActuales);
+    ui.mostrarCartas(visibles, null, vacioFiltros);
   } else {
-    actualizarConteos();
+    actualizarConteos(visibles);
     ui.mostrarCartas(
-      cartasActuales.filter(FILTROS[filtro]),
+      visibles.filter(FILTROS[filtro]),
       { misCartas, alCambiar: cambiarDesdeBusqueda },
-      VACIO_POR_FILTRO[filtro],
+      visibles.length ? VACIO_POR_FILTRO[filtro] : vacioFiltros,
     );
   }
-  mostrarResumen();
+  mostrarResumen(visibles);
   objetivos.mostrarSeguir('#seguir-busqueda', objetivos.candidatoDeBusqueda(busquedaActual, cartasActuales));
 }
 
-/** Actualiza los números de las pestañas sin redibujar las cartas. */
-function actualizarConteos() {
-  const total = cartasActuales.length;
-  if (!misCartas || total === 0) {
+/** Expansión, rareza u orden desde los selects (null = "Limpiar filtros"). */
+function cambiarFiltrosBusqueda(cambio) {
+  filtrosBusqueda = cambio ? { ...filtrosBusqueda, ...cambio } : { ...filtrosBusqueda, set: '', rareza: '' };
+  // replaceState: no agrega una entrada al historial por cada select
+  // (Atrás sigue yendo a la pantalla anterior) ni dispara hashchange
+  const destino = hashBuscar(busquedaActual, filtrosBusqueda);
+  history.replaceState(null, '', destino);
+  ui.actualizarEnlaces('buscar', destino);
+  dibujarBusqueda();
+}
+
+/**
+ * Actualiza los números de las pestañas sin redibujar las cartas.
+ * Cuentan solo las cartas que pasan los filtros de expansión y rareza.
+ */
+function actualizarConteos(visibles = cartasBusquedaFiltradas()) {
+  if (!misCartas || cartasActuales.length === 0) {
     ui.mostrarFiltros(null);
     return;
   }
-  const tengo = cartasActuales.filter(FILTROS.tengo).length;
+  const total = visibles.length;
+  const tengo = visibles.filter(FILTROS.tengo).length;
   ui.mostrarFiltros({ todas: total, tengo, falta: total - tengo }, filtro);
 }
 
-/** "20 cartas encontradas para "Joltik"" */
-function mostrarResumen() {
+/** "20 cartas encontradas para "Joltik"" o, con filtros, "5 de 20 cartas…" */
+function mostrarResumen(visibles = cartasBusquedaFiltradas()) {
   const total = cartasActuales.length;
   if (total === 0) return;
   const texto = total === 1 ? 'carta encontrada' : 'cartas encontradas';
-  ui.mensajeEstado(`${total} ${texto} para "${busquedaActual}"`);
+  const cuantas = filtrado.hayFiltros(filtrosBusqueda) ? `${visibles.length} de ${total}` : total;
+  ui.mensajeEstado(`${cuantas} ${texto} para "${busquedaActual}"`);
 }
 
 /** Guarda "Tengo" / "Me falta" en Supabase y en misCartas. */
@@ -135,7 +186,7 @@ function mostrarBusqueda(texto, cartas) {
  */
 async function buscarDesdeRuta(texto, reintento = false) {
   formBusqueda.pokemon.value = texto;
-  ui.actualizarEnlacesBuscar(texto);
+  ui.actualizarEnlaces('buscar', hashBuscar(texto, filtrosBusqueda));
   if (texto === busquedaEnCurso) return; // ya se está buscando
 
   const pedido = ++pedidoBusqueda;
@@ -194,7 +245,8 @@ formBusqueda.addEventListener('submit', (e) => {
   const texto = formBusqueda.pokemon.value.trim();
   if (!texto) return;
 
-  const destino = `#/buscar?q=${encodeURIComponent(texto)}`;
+  // Una búsqueda nueva parte sin filtros ni orden
+  const destino = hashBuscar(texto, filtrado.leerFiltros(new URLSearchParams(), filtrado.BUSCAR));
   // Misma URL: no habrá hashchange, así que se llama directo
   if (window.location.hash === destino) buscarDesdeRuta(texto);
   else window.location.hash = destino;
@@ -255,28 +307,76 @@ async function cargarColeccion(reintento = false) {
     // Por si se agregaron cartas desde otra pestaña o dispositivo
     cartas.forEach((c) => misCartas?.set(c.id, c.guardada));
     dibujarColeccion();
+    completarFechasColeccion();
   } catch (error) {
     if (pedido !== ultimoPedido) return;
     console.error(error);
+    ui.mostrarFiltrosCartas('#filtros-coleccion', null);
     ui.errorColeccion(() => cargarColeccion(true));
   }
 }
 
+/** #/coleccion?set=sv04&orden=numero */
+function hashColeccion(filtros) {
+  const params = String(filtrado.escribirFiltros(new URLSearchParams(), filtros, filtrado.COLECCION));
+  return params ? `#/coleccion?${params}` : '#/coleccion';
+}
+
 function dibujarColeccion() {
   const total = cartasColeccion.length;
-  const vacio = textoColeccion
-    ? `No tienes cartas de "${textoColeccion}".`
-    : 'Aún no tienes cartas. Busca un Pokémon y marca las que tengas.';
+  const conFiltros = filtrado.hayFiltros(filtrosColeccion);
+  const visibles = filtrado.ordenar(
+    filtrado.filtrar(cartasColeccion, filtrosColeccion),
+    filtrosColeccion.orden,
+    filtrado.COLECCION,
+  );
+  let vacio = 'Aún no tienes cartas. Busca un Pokémon y marca las que tengas.';
+  if (total && conFiltros) vacio = VACIO_CON_FILTROS;
+  else if (textoColeccion) vacio = `No tienes cartas de "${textoColeccion}".`;
 
-  ui.mostrarColeccion(cartasColeccion, { misCartas, alCambiar: cambiarDesdeLista }, vacio);
+  ui.mostrarFiltrosCartas(
+    '#filtros-coleccion',
+    total ? datosFiltros(cartasColeccion, filtrosColeccion, filtrado.COLECCION) : null,
+    cambiarFiltrosColeccion,
+  );
+  ui.mostrarColeccion(visibles, { misCartas, alCambiar: cambiarDesdeLista }, vacio);
 
   if (total === 0) {
     ui.mensajeColeccion('');
   } else {
     const cartas = total === 1 ? 'carta' : 'cartas';
+    const cuantas = conFiltros ? `${visibles.length} de ${total}` : total;
     ui.mensajeColeccion(textoColeccion
-      ? `${total} ${cartas} de "${textoColeccion}"`
-      : `${total} ${cartas} en tu colección`);
+      ? `${cuantas} ${cartas} de "${textoColeccion}"`
+      : `${cuantas} ${cartas} en tu colección`);
+  }
+}
+
+/** Expansión u orden desde los selects (null = "Limpiar filtros"). Igual que en Buscar. */
+function cambiarFiltrosColeccion(cambio) {
+  filtrosColeccion = cambio ? { ...filtrosColeccion, ...cambio } : { ...filtrosColeccion, set: '' };
+  const destino = hashColeccion(filtrosColeccion);
+  history.replaceState(null, '', destino);
+  ui.actualizarEnlaces('coleccion', destino);
+  dibujarColeccion();
+  completarFechasColeccion();
+}
+
+/**
+ * La colección no guarda la fecha de cada expansión: para ordenar por
+ * fecha se toma de la lista de sets de TCGdex (un pedido por sesión,
+ * el mismo que usan la búsqueda y los objetivos). Solo se pide si se
+ * eligió ese orden; sin conexión, las cartas quedan agrupadas por set.
+ */
+async function completarFechasColeccion() {
+  if (filtrosColeccion.orden !== 'fecha' || cartasColeccion.every((c) => c.fechaSet || !c.setId)) return;
+  const cartas = cartasColeccion;
+  try {
+    const fechas = await fechasDeSets();
+    cartas.forEach((c) => { c.fechaSet ||= fechas.get(c.setId) ?? ''; });
+    if (cartas === cartasColeccion && rutaActual === 'coleccion') dibujarColeccion();
+  } catch (error) {
+    console.error(error);
   }
 }
 
@@ -561,9 +661,16 @@ function irA(vista, params) {
   if (vista === 'inicio') {
     cargarRecientes();
     objetivos.mostrarInicio();
-  } else if (vista === 'coleccion') cargarColeccion();
-  else if (vista === 'progreso') objetivos.mostrar(params);
-  else buscarDesdeRuta(params.get('q')?.trim() ?? '');
+  } else if (vista === 'coleccion') {
+    filtrosColeccion = filtrado.leerFiltros(params, filtrado.COLECCION);
+    ui.actualizarEnlaces('coleccion', hashColeccion(filtrosColeccion));
+    cargarColeccion();
+  } else if (vista === 'progreso') {
+    objetivos.mostrar(params);
+  } else {
+    filtrosBusqueda = filtrado.leerFiltros(params, filtrado.BUSCAR);
+    buscarDesdeRuta(params.get('q')?.trim() ?? '');
+  }
 
   // En la carga inicial el foco queda donde lo pone el navegador
   if (pantallaNueva && !primeraVez) ui.enfocarTitulo(vista);

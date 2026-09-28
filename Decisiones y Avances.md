@@ -34,6 +34,13 @@ Actualizado: 2026-09-28
   - Pokémon: `coleccion` no guarda el dexId y no se agregan columnas. Se pide a TCGdex con alias (`c0: card(id: "…") { dexId name }`), en tandas de 50 (medido: 50 = 1,7 s; 200 = 5,4 s, crece por carta), la primera sola y el resto hasta 3 a la vez; si una falla, no se piden más. Se guarda sin vencimiento en `localStorage` (`pt-dex:v1`), porque los datos de una carta no cambian. Dentro de `set { cards }` el dexId llega null, así que no sirve agrupar por set.
   - Solo cuentan cartas con un único Pokémon (los Tag Team no suman). Nombre sugerido = el más corto entre sus cartas ("Joltik", no "N's Joltik"; "Pikachu", no "Pikachu V").
   - El pedido a TCGdex sale solo al entrar a Inicio o Progreso (no al redibujar): sin conexión es un pedido por visita, sin reintentos automáticos. Si falla, se sugieren igual las expansiones.
+- **Filtros y orden** (Bloque 8, `js/filtros.js`): expansión, rareza (solo Buscar: Colección no la guarda) y orden, todo en el navegador sobre las cartas ya cargadas.
+  - En la URL: `#/buscar?q=joltik&set=sv04&rareza=Rare&orden=numero`, `#/coleccion?set=sv04&orden=numero`. Al cambiar un select se usa `history.replaceState` (sin entrada nueva en el historial ni hashchange); los enlaces de la barra a Buscar y Colección llevan los filtros. Una búsqueda nueva parte sin filtros.
+  - "Limpiar filtros" quita expansión y rareza; el orden se mantiene (no es un filtro). La pestaña Todas / Tengo / Me falta no va en la URL, como antes.
+  - Las cantidades de cada select cuentan con el otro filtro aplicado; las pestañas cuentan solo las cartas que pasan los filtros. Un valor de la URL que no está en los resultados se muestra con "(0)" y "Limpiar filtros"; un orden desconocido vuelve al de base.
+  - Orden de base (no reordena): Buscar = fecha de la expansión; Colección = nombre (como llega de Supabase). Todos desempatan por fecha, set y número.
+  - Rareza: de la más común a la más rara, con una lista fija armada desde `/v2/en/rarities` (2026-09-28). Desconocidas después; Promo y sin rareza al final.
+  - Colección ordenada por fecha: la fecha sale de la lista de sets de TCGdex (el mismo pedido por sesión de la búsqueda). Solo se pide al elegir ese orden.
 - **Búsqueda pública:** buscar cartas no requiere login (sirve para visitantes del portafolio); marcar sí lo requerirá. El login se carga con import() dinámico: si Supabase falla, la búsqueda sigue funcionando.
 - **Frontend:** HTML + CSS + JS vanilla con módulos ES, supabase-js v2 desde CDN (jsDelivr). Sin build. Debe abrirse con Live Server (no con doble clic / file://).
 - **API de cartas: TCGdex (GraphQL)** — migrado desde pokemontcg.io el 2026-09-26 porque pokemontcg.io devolvía error 500, cerró registros y deja de funcionar el 2027-03-01. Todo aislado en `js/api.js`.
@@ -75,6 +82,7 @@ index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, a
   - [x] Google Cloud: origen autorizado de JavaScript https://poketracker-ten.vercel.app.
   - [x] Supabase: Site URL = https://poketracker-ten.vercel.app y Redirect URL https://poketracker-ten.vercel.app/** (se mantienen las de 127.0.0.1 y localhost para desarrollo).
   - [x] Google Auth Platform: marca completada (página principal, privacidad.html, dominio autorizado) y app publicada; ya no está en modo Prueba. Probado entrando con otra cuenta de Google en incógnito.
+- [ ] Bloque 8: filtros por expansión y rareza y orden en Buscar; expansión y orden en Colección (hecho, probado con módulos falsos en Edge headless). Búsqueda por número: pendiente de aprobar la propuesta (el filtro `localId` de TCGdex es "contiene").
 - [x] Bloque 7c: "Tu progreso" en Inicio, sugerencias de expansiones y Pokémon a partir de la colección, "<1 %" en la barra, privacidad.html actualizada. Funcionalidad probada con módulos falsos en Edge headless; el estilo se revisa después.
 - [x] Bloque 7b: migración `004_objetivos.sql` (probada en PGlite; la ejecuta el usuario), pantalla Progreso con detalle por objetivo, "Seguir" en búsqueda y en el detalle de carta, barra de progreso accesible.
 - [x] Bloque 7a: migración `003_permisos_coleccion.sql` (authenticated queda solo con SELECT, INSERT y DELETE en `coleccion`; probada en PGlite, la ejecuta el usuario) y paginación de más de 1000 filas. Plan completo del Bloque 7 en `docs/plan-bloque-7.md`.

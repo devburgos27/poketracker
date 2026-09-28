@@ -892,6 +892,26 @@ select:disabled { opacity: 0.6; }
 }
 #progreso-aviso { max-width: 720px; margin-inline: auto; }
 
+/* Filtros de cartas: expansión, rareza, orden y "Limpiar filtros" */
+.filtros-cartas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--esp-2) var(--esp-3);
+  margin-bottom: var(--esp-4);
+}
+.filtros-cartas__campo {
+  display: grid;
+  gap: var(--esp-1);
+  min-width: 0;
+  max-width: 100%;
+  font-size: var(--texto-s);
+  font-weight: 600;
+}
+.filtros-cartas__campo select { min-height: var(--alto-toque); max-width: 100%; }
+.filtros-cartas__limpiar { min-height: var(--alto-toque); }
+
 /* Inicio: "Tu progreso" con "Ver todo" al lado del título */
 .seccion__cabecera {
   display: flex;

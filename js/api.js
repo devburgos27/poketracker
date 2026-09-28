@@ -59,6 +59,16 @@ function obtenerInfoSets() {
 
 const esDigital = (setId, infoSets) => SERIES_DIGITALES.has(infoSets.get(setId)?.serie);
 
+/**
+ * Fecha de lanzamiento de cada set ("AAAA-MM-DD"), de la misma lista
+ * pedida una vez por sesión. La usa Colección para ordenar por fecha.
+ * @returns {Promise<Map<string, string>>}
+ */
+export async function fechasDeSets() {
+  const infoSets = await obtenerInfoSets();
+  return new Map([...infoSets].map(([id, info]) => [id, info.fecha]));
+}
+
 // --- Búsqueda --------------------------------------------------
 
 // Una sola consulta trae las cartas y la lista de sets.

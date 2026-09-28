@@ -64,7 +64,7 @@
           <svg class="icono" aria-hidden="true"><use href="#icono-buscar"/></svg>
           <span>Buscar</span>
         </a>
-        <a href="#/coleccion" class="barra-nav__item" data-ruta="coleccion">
+        <a href="#/coleccion" class="barra-nav__item" data-ruta="coleccion" data-enlace-coleccion>
           <svg class="icono" aria-hidden="true"><use href="#icono-coleccion"/></svg>
           <span>Colección</span>
         </a>
@@ -135,7 +135,7 @@
           <h2 data-titulo tabindex="-1">Tu colección</h2>
           <div class="acciones">
             <a href="#/buscar" class="boton" data-enlace-buscar>Buscar cartas</a>
-            <a href="#/coleccion" class="boton boton--secundario">Ver colección</a>
+            <a href="#/coleccion" class="boton boton--secundario" data-enlace-coleccion>Ver colección</a>
           </div>
         </section>
 
@@ -178,6 +178,9 @@
 
       <!-- "Seguir Joltik": solo con sesión y si el nombre coincide exacto -->
       <div id="seguir-busqueda" class="seguir" hidden></div>
+
+      <!-- Expansión, rareza y orden: con resultados, con o sin sesión (lo llena ui.js) -->
+      <div id="filtros-busqueda" class="filtros-cartas" role="group" aria-label="Filtrar y ordenar resultados" hidden></div>
 
       <!-- Filtro por estado: solo con sesión y con resultados -->
       <div id="filtros" class="filtros pestanas" role="group" aria-label="Filtrar resultados" hidden>
@@ -266,6 +269,8 @@
 
       <div data-solo="usuario" hidden>
         <p id="estado-coleccion" class="estado" role="status" aria-live="polite"></p>
+        <!-- Expansión y orden (lo llena ui.js) -->
+        <div id="filtros-coleccion" class="filtros-cartas" role="group" aria-label="Filtrar y ordenar tu colección" hidden></div>
         <section id="grilla-coleccion" class="grilla" aria-label="Mi colección"></section>
       </div>
     </div>
