@@ -41,6 +41,12 @@ Actualizado: 2026-09-28
   - Orden de base (no reordena): Buscar = fecha de la expansión; Colección = nombre (como llega de Supabase). Todos desempatan por fecha, set y número.
   - Rareza: de la más común a la más rara, con una lista fija armada desde `/v2/en/rarities` (2026-09-28). Desconocidas después; Promo y sin rareza al final.
   - Colección ordenada por fecha: la fecha sale de la lista de sets de TCGdex (el mismo pedido por sesión de la búsqueda). Solo se pide al elegir ese orden.
+- **Búsqueda por número** (Bloque 8b): "025", "Pikachu 025", "025/182" o "Pikachu 025/182" (el número va separado del nombre por un espacio: "Porygon2" es un nombre).
+  - El filtro `localId` de TCGdex es "contiene" ("25" trae 125, 225, TG25) y no hay coincidencia exacta (`eq:25` devuelve 0, también en REST); `card(id)` también es aproximado (`sv04-25` trae `sv04-250`). El número exacto se filtra en `api.js`: solo `localId` numérico igual al buscado ("025" = 25). Medido 2026-09-28: "25" = 380 cartas / 80 KB (149 exactas); "1" = 2,1 MB.
+  - "Pikachu 025": `cards(filters: { name, localId })` en una consulta.
+  - "025/182": sets con ese total impreso (`cardCount.official`, lista pedida aparte una vez por sesión: con el total pesa ~20 KB y no se agrega a cada búsqueda), sus cartas (solo `id localId`) en un pedido con alias y luego los datos completos solo de las coincidencias (se confirma que el id devuelto sea el pedido). "1/102" = 7 KB. Si ningún set tiene ese total, responde sin consultar.
+  - "025" solo: menor que 100 responde sin consultar "Hay demasiadas cartas…: prueba con 025/182 o Pikachu 025" (del 1 al 99 todos pasan de 100: 25 → 149, 60 → 127, 99 → 108). Desde 100 consulta y muestra el mismo mensaje si hay más de 100.
+  - Números con letras (TG25, SV001) quedan fuera por ahora.
 - **Búsqueda pública:** buscar cartas no requiere login (sirve para visitantes del portafolio); marcar sí lo requerirá. El login se carga con import() dinámico: si Supabase falla, la búsqueda sigue funcionando.
 - **Frontend:** HTML + CSS + JS vanilla con módulos ES, supabase-js v2 desde CDN (jsDelivr). Sin build. Debe abrirse con Live Server (no con doble clic / file://).
 - **API de cartas: TCGdex (GraphQL)** — migrado desde pokemontcg.io el 2026-09-26 porque pokemontcg.io devolvía error 500, cerró registros y deja de funcionar el 2027-03-01. Todo aislado en `js/api.js`.
@@ -82,7 +88,8 @@ index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, a
   - [x] Google Cloud: origen autorizado de JavaScript https://poketracker-ten.vercel.app.
   - [x] Supabase: Site URL = https://poketracker-ten.vercel.app y Redirect URL https://poketracker-ten.vercel.app/** (se mantienen las de 127.0.0.1 y localhost para desarrollo).
   - [x] Google Auth Platform: marca completada (página principal, privacidad.html, dominio autorizado) y app publicada; ya no está en modo Prueba. Probado entrando con otra cuenta de Google en incógnito.
-- [ ] Bloque 8: filtros por expansión y rareza y orden en Buscar; expansión y orden en Colección (hecho, probado con módulos falsos en Edge headless). Búsqueda por número: pendiente de aprobar la propuesta (el filtro `localId` de TCGdex es "contiene").
+- [x] Bloque 8b: búsqueda por número ("Pikachu 025", "025/182", "150"), con el número exacto filtrado en el navegador; ejemplo en la ayuda del buscador. Probado contra TCGdex en Node y en Edge headless.
+- [x] Bloque 8a: filtros por expansión y rareza y orden en Buscar; expansión y orden en Colección (probado con módulos falsos en Edge headless).
 - [x] Bloque 7c: "Tu progreso" en Inicio, sugerencias de expansiones y Pokémon a partir de la colección, "<1 %" en la barra, privacidad.html actualizada. Funcionalidad probada con módulos falsos en Edge headless; el estilo se revisa después.
 - [x] Bloque 7b: migración `004_objetivos.sql` (probada en PGlite; la ejecuta el usuario), pantalla Progreso con detalle por objetivo, "Seguir" en búsqueda y en el detalle de carta, barra de progreso accesible.
 - [x] Bloque 7a: migración `003_permisos_coleccion.sql` (authenticated queda solo con SELECT, INSERT y DELETE en `coleccion`; probada en PGlite, la ejecuta el usuario) y paginación de más de 1000 filas. Plan completo del Bloque 7 en `docs/plan-bloque-7.md`.

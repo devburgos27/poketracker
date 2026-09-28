@@ -109,6 +109,87 @@ export async function buscarCartas(nombre) {
     .sort(compararCartas);
 }
 
+// --- Búsqueda por número ---------------------------------------
+// El filtro localId de TCGdex es "contiene" ("25" trae 125, 225, TG25)
+// y no hay coincidencia exacta (eq:25 devuelve 0, también en REST):
+// el número exacto se filtra aquí. Medido el 2026-09-28: "25" = 380
+// cartas (80 KB), 149 con número exacto; "1" = 2,1 MB. Por eso:
+//   "Pikachu 025": nombre + número en una consulta (siempre chica).
+//   "025/182": sets con ese total impreso, sus cartas (solo ids) y
+//     luego los datos completos solo de las que coinciden.
+//   "150" solo: la consulta por número (main.js no la hace si es < 100).
+// Números con letras (TG25, SV001) no se buscan por ahora.
+
+/** ¿El número de la carta (localId) es exactamente ese? "025" = 25; "TG25" no. */
+const esNumero = (localId, numero) => /^\d+$/.test(localId ?? '') && Number(localId) === numero;
+
+const CONSULTA_NUMERO = `
+  query Numero($numero: String!) {
+    cards(filters: { localId: $numero }) { ${CAMPOS_CARTA} }
+    ${CAMPOS_SETS}
+  }
+`;
+const CONSULTA_NOMBRE_NUMERO = `
+  query NombreNumero($nombre: String!, $numero: String!) {
+    cards(filters: { name: $nombre, localId: $numero }) { ${CAMPOS_CARTA} }
+    ${CAMPOS_SETS}
+  }
+`;
+
+let totalesGuardados = null; // Promise<Map id de set → total impreso> de la sesión
+
+/** Total impreso (cardCount.official) de cada set físico, pedido una vez por sesión. */
+function obtenerTotalesSets() {
+  totalesGuardados ??= consultar('{ sets { id cardCount { official } serie { id } } }').then((data) => new Map(
+    data.sets
+      .filter((s) => !SERIES_DIGITALES.has(s.serie?.id))
+      .map((s) => [s.id, s.cardCount?.official ?? null]),
+  ));
+  totalesGuardados.catch(() => { totalesGuardados = null; }); // si falló, se reintenta la próxima vez
+  return totalesGuardados;
+}
+
+/**
+ * Busca cartas por número, con nombre o total impreso opcionales.
+ * Mismo formato y orden que buscarCartas().
+ *
+ * @param {{numero: number, nombre?: string, total?: number}} busqueda
+ */
+export async function buscarPorNumero({ numero, nombre = '', total = null }) {
+  if (nombre || total === null) {
+    const data = nombre
+      ? await consultar(CONSULTA_NOMBRE_NUMERO, { nombre, numero: String(numero) })
+      : await consultar(CONSULTA_NUMERO, { numero: String(numero) });
+    const infoSets = armarInfoSets(data.sets);
+    infoSetsGuardada ??= Promise.resolve(infoSets);
+    return data.cards
+      .filter((c) => esNumero(c.localId, numero) && !esDigital(c.set.id, infoSets))
+      .filter((c) => total === null || c.set.cardCount?.official === total)
+      .map((c) => adaptarCarta(c, infoSets.get(c.set.id)))
+      .sort(compararCartas);
+  }
+
+  // "025/182": los sets con ese total, y de ellos las cartas con ese número
+  const totales = await obtenerTotalesSets();
+  const sets = [...totales].filter(([, t]) => t === total).map(([id]) => id);
+  if (sets.length === 0) return [];
+  const listas = await consultar(`{ ${sets.map((id, i) => `s${i}: set(id: ${JSON.stringify(id)}) { cards { id localId } }`).join(' ')} }`);
+  const ids = sets.flatMap((_, i) => (listas[`s${i}`]?.cards ?? []).filter((c) => esNumero(c.localId, numero)).map((c) => c.id));
+  if (ids.length === 0) return [];
+
+  // Datos completos (rareza, imagen, set) solo de las coincidencias
+  const [data, infoSets] = await Promise.all([
+    consultar(`{ ${ids.map((id, i) => `c${i}: card(id: ${JSON.stringify(id)}) { ${CAMPOS_CARTA} }`).join(' ')} }`),
+    obtenerInfoSets(),
+  ]);
+  return ids
+    .map((id, i) => data[`c${i}`])
+    // card(id) también es aproximado ("sv04-25" trae sv04-250): se confirma el id
+    .filter((c, i) => c?.id === ids[i])
+    .map((c) => adaptarCarta(c, infoSets.get(c.set.id)))
+    .sort(compararCartas);
+}
+
 const CONSULTA_CARTA = `
   query Carta($id: ID!) {
     card(id: $id) { ${CAMPOS_CARTA} }

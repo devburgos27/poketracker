@@ -13,7 +13,7 @@
 // rutas: el router arranca después de que Supabase los procesa.
 // =============================================================
 
-import { buscarCartas, obtenerCarta, fechasDeSets } from './api.js';
+import { buscarCartas, buscarPorNumero, obtenerCarta, fechasDeSets } from './api.js';
 import * as ui from './ui.js';
 import * as objetivos from './objetivos.js';
 import * as filtrado from './filtros.js';
@@ -24,7 +24,7 @@ let cartasActuales = [];   // resultado de la última búsqueda
 let busquedaActual = '';   // texto de esa búsqueda ('' = ninguna)
 let busquedaEnCurso = null; // texto que se está buscando ahora
 let pedidoBusqueda = 0;    // para descartar respuestas de búsquedas viejas
-// Últimas búsquedas (texto → cartas): Atrás/Adelante no repiten la consulta
+// Últimas búsquedas (texto → { cartas, demasiadas }): Atrás/Adelante no repiten la consulta
 const busquedasGuardadas = new Map();
 const MAX_BUSQUEDAS_GUARDADAS = 10;
 let filtro = 'todas';      // pestaña activa: 'todas' | 'tengo' | 'falta'
@@ -164,17 +164,65 @@ async function cambiarDesdeBusqueda(carta, tengo) {
   else dibujarBusqueda();
 }
 
+// --- Búsqueda por número --------------------------------------
+// "025" solo, "Pikachu 025" (nombre + número) o "025/182" (número y
+// total impreso en la carta). Las consultas están en api.js.
+
+const MAX_POR_NUMERO = 100;
+
+/**
+ * Qué pide el texto del buscador. numero null = búsqueda por nombre.
+ * "Porygon2" es un nombre: el número tiene que ir separado por un espacio.
+ * @returns {{nombre: string, numero: number|null, total: number|null}}
+ */
+function leerBusqueda(texto) {
+  const partes = texto.match(/^(?:(.*?)\s+)?#?(\d{1,3})(?:\s*\/\s*(\d{1,3}))?$/);
+  if (!partes) return { nombre: texto, numero: null, total: null };
+  return { nombre: partes[1] ?? '', numero: Number(partes[2]), total: partes[3] ? Number(partes[3]) : null };
+}
+
+/**
+ * Hace la búsqueda que pide el texto.
+ * demasiadas: un número solo con más de 100 cartas (no se muestran).
+ * @returns {Promise<{cartas: Array, demasiadas?: boolean}>}
+ */
+async function consultarBusqueda(texto) {
+  const busqueda = leerBusqueda(texto);
+  if (busqueda.numero === null) return { cartas: await buscarCartas(texto) };
+
+  const soloNumero = !busqueda.nombre && busqueda.total === null;
+  // Del 1 al 99, cada número está en más de 100 cartas (25 → 149,
+  // 60 → 127, 99 → 108; medido el 2026-09-28): se responde sin consultar
+  if (soloNumero && busqueda.numero < 100) return { cartas: [], demasiadas: true };
+  const cartas = await buscarPorNumero(busqueda);
+  if (soloNumero && cartas.length > MAX_POR_NUMERO) return { cartas: [], demasiadas: true };
+  return { cartas };
+}
+
+/** Mensaje cuando la búsqueda no trae cartas, según lo que se buscó. */
+function mensajeSinResultados(texto) {
+  const { numero, nombre, total } = leerBusqueda(texto);
+  if (numero === null) {
+    return `No encontramos cartas de "${texto}". Revisa que el nombre esté en inglés (ej: Pikachu, Joltik, Charizard).`;
+  }
+  if (nombre) return `No encontramos "${texto}". Revisa que el nombre esté en inglés y el número (ej: Pikachu 025).`;
+  if (total !== null) return `No encontramos la carta ${texto}. Revisa el número y el total impresos en la carta (ej: 025/182).`;
+  return `No encontramos cartas con el número ${texto}.`;
+}
+
 /** Deja una búsqueda terminada en pantalla. */
-function mostrarBusqueda(texto, cartas) {
+function mostrarBusqueda(texto, { cartas, demasiadas = false }) {
   cartasActuales = cartas;
   busquedaActual = texto;
   filtro = 'todas';
 
-  if (cartas.length === 0) {
+  if (demasiadas) {
     ui.mensajeEstado(
-      `No encontramos cartas de "${texto}". Revisa que el nombre esté en inglés (ej: Pikachu, Joltik, Charizard).`,
+      `Hay demasiadas cartas con el número ${texto}. Agrega el total impreso o el nombre: prueba con 025/182 o Pikachu 025.`,
       'error',
     );
+  } else if (cartas.length === 0) {
+    ui.mensajeEstado(mensajeSinResultados(texto), 'error');
   }
   dibujarBusqueda();
 }
@@ -215,15 +263,15 @@ async function buscarDesdeRuta(texto, reintento = false) {
   busquedaEnCurso = texto;
   ui.buscando(true);
   try {
-    const cartas = await buscarCartas(texto);
+    const resultado = await consultarBusqueda(texto);
     if (pedido !== pedidoBusqueda) return; // el usuario ya pidió otra cosa
 
-    busquedasGuardadas.set(texto, cartas);
+    busquedasGuardadas.set(texto, resultado);
     if (busquedasGuardadas.size > MAX_BUSQUEDAS_GUARDADAS) {
       // Un Map recuerda el orden de llegada: la primera es la más antigua
       busquedasGuardadas.delete(busquedasGuardadas.keys().next().value);
     }
-    mostrarBusqueda(texto, cartas);
+    mostrarBusqueda(texto, resultado);
   } catch (error) {
     if (pedido !== pedidoBusqueda) return;
     console.error(error);
