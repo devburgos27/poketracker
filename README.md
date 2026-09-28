@@ -17,6 +17,7 @@ No hay servidor propio ni paso de compilación: es un sitio estático.
 - **Cartas:** se consultan en vivo a la API GraphQL de TCGdex (gratis, sin API key). Todas esas llamadas están aisladas en `js/api.js`. Esto ya se puso a prueba: el proyecto partió con pokemontcg.io, que anunció su cierre para marzo de 2027, y migrar a TCGdex solo requirió reescribir ese archivo.
 - **Colección:** bajo cada carta hay botones **Tengo** / **Me falta**. Al tocar una carta se abre su detalle, donde se registran las copias (cantidad, y opcionalmente idioma y condición de cada una). En Supabase se guardan **solo las cartas que el usuario tiene**. "Me falta" se calcula comparando las cartas de la API con las guardadas, así que los resultados de una búsqueda se pueden filtrar en "Todas", "Tengo" y "Me falta". La pestaña **Mi colección** lista todas tus cartas y se puede filtrar por Pokémon.
 - **Navegación:** tres pantallas (Inicio, Buscar y Colección) con rutas en el hash (`#/buscar?q=joltik`), así el botón Atrás, recargar y compartir un enlace funcionan sin servidor. En móvil la navegación es una barra inferior.
+- **Progreso:** puedes seguir un Pokémon (todas sus cartas, por número de Pokédex) o una expansión, y ver cuántas tienes con una barra de progreso. La lista de cartas de cada objetivo viene de TCGdex y se guarda un día en el navegador.
 - **Usuarios:** login con Google (Supabase Auth). Es la única forma de entrar: la app no maneja contraseñas.
 - **Tema claro y oscuro:** sigue la preferencia del sistema y se puede cambiar con el botón ☀️/🌙 de la cabecera; la elección se guarda en el navegador.
 - **Seguridad:** reglas RLS en la base de datos garantizan que cada usuario solo pueda ver y modificar sus propias cartas (ver `sql/schema.sql`).
@@ -34,13 +35,15 @@ js/
   supabase.js   cliente de Supabase
   api.js        adaptador de la API de cartas
   auth.js       login con Google y sesión
-  coleccion.js  listar, guardar y quitar cartas de tu colección
+  coleccion.js  tu colección, copias y objetivos en Supabase
+  objetivos.js  objetivos, progreso y la pantalla Progreso
   ui.js         todo lo que se dibuja en pantalla
   main.js       punto de entrada
 sql/
   schema.sql      esquema completo (proyectos nuevos)
   002_copias.sql  migración: copias por carta
   003_permisos_coleccion.sql  migración: solo los permisos que usa la app
+  004_objetivos.sql  migración: objetivos (Pokémon o expansiones que sigues)
 ```
 
 ## Correr en local

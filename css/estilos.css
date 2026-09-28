@@ -28,6 +28,7 @@
   --advertencia: #9a4a00;
   --error: #b3261e;
   --foco: #0a63b8;
+  --progreso: #8a5a00;          /* relleno de las barras de progreso */
   --sobre-error: #ffffff;       /* texto sobre fondo de error (botón peligro) */
   --error-hover: #9c2019;
   --capa: rgb(233 237 245 / 0.88);  /* fondo de los avisos a pantalla completa */
@@ -92,6 +93,7 @@
   --advertencia: #ffa94d;
   --error: #ff6b6b;
   --foco: #ffd60a;
+  --progreso: #ffd60a;
   --sobre-error: #0b1020;
   --error-hover: #ff8787;
   --capa: rgb(7 11 24 / 0.82);
@@ -128,6 +130,7 @@
     --advertencia: #ffa94d;
     --error: #ff6b6b;
     --foco: #ffd60a;
+    --progreso: #ffd60a;
     --sobre-error: #0b1020;
     --error-hover: #ff8787;
     --capa: rgb(7 11 24 / 0.82);
@@ -788,6 +791,139 @@ select:disabled { opacity: 0.6; }
 .copia__quitar { min-height: var(--alto-toque); }
 .copias__vacia { color: var(--texto-suave); }
 
+/* --- Seguir un objetivo ------------------------------------ */
+.seguir {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--esp-2) var(--esp-3);
+  margin-bottom: var(--esp-4);
+}
+.seguir--izquierda { justify-content: flex-start; }
+.seguir__estado { font-weight: 700; }
+.seguir__enlace { font-weight: 600; }
+.seguir__mensaje {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--texto-s);
+  color: var(--texto-suave);
+}
+.seguir [aria-disabled="true"] { opacity: 0.6; cursor: wait; }
+.seguir--izquierda .seguir__mensaje { text-align: left; }
+.seguir:not(.seguir--izquierda) .seguir__mensaje { text-align: center; }
+.detalle__info .seguir { margin: 0 0 var(--esp-5); }
+
+/* --- Progreso ---------------------------------------------- */
+/* Barra: la cifra "12 / 21 · 57 %" siempre visible, así no depende
+   solo del color. Pista con borde de 3:1 contra el fondo. */
+.progreso { display: grid; gap: var(--esp-1); }
+.progreso__barra {
+  height: 12px;
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-pill);
+  background: var(--superficie-2);
+  overflow: hidden;
+}
+.progreso__relleno {
+  height: 100%;
+  width: 0;
+  background: var(--progreso);
+  transition: width var(--duracion) ease-out;
+}
+.progreso--completo .progreso__relleno { background: var(--exito); }
+.progreso--sin-datos .progreso__barra { border-style: dashed; }
+.progreso__cifra {
+  margin: 0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.progreso--completo .progreso__cifra { color: var(--exito); }
+.progreso--sin-datos .progreso__cifra { font-weight: 400; color: var(--texto-suave); }
+.progreso__master {
+  margin: 0;
+  font-size: var(--texto-s);
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lista de objetivos: cada uno es un enlace completo al detalle */
+.objetivos {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 720px;
+  display: grid;
+  gap: var(--esp-3);
+}
+.objetivo {
+  display: grid;
+  gap: var(--esp-2);
+  padding: var(--esp-4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-m);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+  color: var(--texto);
+  text-decoration: none;
+  transition: border-color var(--duracion);
+}
+.objetivo:hover { border-color: var(--borde-control); }
+.objetivo__tipo {
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+.objetivo__nombre { font-size: var(--texto-l); font-weight: 700; }
+.objetivo__ver {
+  justify-self: end;
+  font-size: var(--texto-s);
+  font-weight: 600;
+  color: var(--info);
+}
+.progreso-pie {
+  max-width: 720px;
+  margin: var(--esp-4) auto var(--esp-6);
+  text-align: center;
+  font-size: var(--texto-s);
+  color: var(--texto-suave);
+}
+#progreso-aviso { max-width: 720px; margin-inline: auto; }
+#progreso-aviso .vacio { margin: 0 0 var(--esp-3); }
+
+/* Detalle de un objetivo */
+.volver {
+  display: inline-block;
+  margin-top: var(--esp-5);
+  font-weight: 600;
+}
+.objetivo-cabecera {
+  max-width: 720px;
+  padding-block: var(--esp-3) var(--esp-2);
+}
+.objetivo-cabecera__titulo {
+  margin: var(--esp-1) 0 var(--esp-2);
+  font-size: var(--texto-xl);
+  letter-spacing: -0.02em;
+}
+.objetivo__incluye,
+.objetivo__nota {
+  margin: 0 0 var(--esp-3);
+  color: var(--texto-suave);
+}
+.objetivo__nota { margin-top: var(--esp-2); font-size: var(--texto-s); }
+.objetivo-cabecera .progreso { max-width: 480px; }
+
+/* Título dentro de un estado vacío */
+.vacio .vacio__titulo {
+  margin: 0 0 var(--esp-1);
+  color: var(--texto);
+  font-size: var(--texto-l);
+  font-weight: 700;
+}
+
 /* --- Confirmación a pantalla completa ---------------------- */
 /* El <dialog> ocupa toda la pantalla: la capa difumina lo de atrás
    y el contenido va centrado, sin ventanita. */
@@ -904,10 +1040,12 @@ select:disabled { opacity: 0.6; }
 .legal ul { margin: 0 0 var(--esp-3); padding-left: 1.25rem; }
 .legal li + li { margin-top: var(--esp-2); }
 
-/* --- Móvil ------------------------------------------------- */
+/* --- Móvil y tablet ---------------------------------------- */
 /* Navegación como barra fija abajo. La zona segura
-   (safe-area-inset-bottom) deja libre la barra de gestos del iPhone. */
-@media (max-width: 720px) {
+   (safe-area-inset-bottom) deja libre la barra de gestos del iPhone.
+   Hasta 960 px: con 4 ítems, la sesión y el tema no caben en la
+   cabecera en anchos menores sin partirse en dos filas. */
+@media (max-width: 960px) {
   :root { --alto-barra-nav: 56px; }
 
   body {

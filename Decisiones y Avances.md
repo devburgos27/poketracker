@@ -21,6 +21,11 @@ Actualizado: 2026-09-27
   - Colección sin sesión no redirige: muestra una invitación a entrar.
 - **supabase-js fijado en 2.117.2 y sin reintentos automáticos** (`db: { retry: false }`): desde esa versión postgrest-js repite cada lectura hasta 3 veces si falla (1 s, 2 s, 4 s); sin conexión eran 4 pedidos por consulta, que se acumulaban al navegar (29 en 10 s). Ahora: un intento y un mensaje con "Reintentar". La versión va fija para que el CDN no cambie el comportamiento sin aviso.
 - **Confirmaciones:** `ui.confirmar()` con un `<dialog>` a pantalla completa (sin `confirm()`/`alert()` del navegador).
+- **Objetivos y progreso** (Bloque 7b, migración `sql/004_objetivos.sql`): tabla `objetivos` (tipo `pokemon` por número de Pokédex, o `expansion` por id de set; `nombre` para mostrar). Máximo 30 por usuario.
+  - La policy de INSERT cuenta con `privado.cantidad_objetivos()` (security definer, schema no expuesto por la API): una policy no puede consultar su propia tabla (Postgres lo rechaza por recursión infinita).
+  - Progreso = intersección de `misCartas` con la lista de TCGdex (cartas distintas, no copias). Expansiones: barra = set base (`localId` numérico <= `cardCount.official`), debajo "Master set: X / Y".
+  - Listas de TCGdex: un pedido con alias por cada 10 objetivos, solo ids, sin TCG Pocket; caché de 24 h en `localStorage` (`pt-obj:v1:…`). Dentro de `set { cards }` TCGdex entrega cartas resumidas: pedir `rarity` ahí hace fallar la consulta.
+  - Lógica en `js/objetivos.js` (main.js le pasa la colección y la sesión). Navegación con 4 ítems; barra inferior hasta 960 px.
 - **Búsqueda pública:** buscar cartas no requiere login (sirve para visitantes del portafolio); marcar sí lo requerirá. El login se carga con import() dinámico: si Supabase falla, la búsqueda sigue funcionando.
 - **Frontend:** HTML + CSS + JS vanilla con módulos ES, supabase-js v2 desde CDN (jsDelivr). Sin build. Debe abrirse con Live Server (no con doble clic / file://).
 - **API de cartas: TCGdex (GraphQL)** — migrado desde pokemontcg.io el 2026-09-26 porque pokemontcg.io devolvía error 500, cerró registros y deja de funcionar el 2027-03-01. Todo aislado en `js/api.js`.
@@ -62,6 +67,7 @@ index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, a
   - [x] Google Cloud: origen autorizado de JavaScript https://poketracker-ten.vercel.app.
   - [x] Supabase: Site URL = https://poketracker-ten.vercel.app y Redirect URL https://poketracker-ten.vercel.app/** (se mantienen las de 127.0.0.1 y localhost para desarrollo).
   - [x] Google Auth Platform: marca completada (página principal, privacidad.html, dominio autorizado) y app publicada; ya no está en modo Prueba. Probado entrando con otra cuenta de Google en incógnito.
+- [x] Bloque 7b: migración `004_objetivos.sql` (probada en PGlite; la ejecuta el usuario), pantalla Progreso con detalle por objetivo, "Seguir" en búsqueda y en el detalle de carta, barra de progreso accesible.
 - [x] Bloque 7a: migración `003_permisos_coleccion.sql` (authenticated queda solo con SELECT, INSERT y DELETE en `coleccion`; probada en PGlite, la ejecuta el usuario) y paginación de más de 1000 filas. Plan completo del Bloque 7 en `docs/plan-bloque-7.md`.
 - [x] Bloque 6: migración `002_copias.sql` (escrita y probada en PGlite; la ejecuta el usuario), detalle de carta con "Tus copias" (− N +, idioma y condición por copia), insignia ×N en las tarjetas.
 - [x] Bloque 5: rutas hash, barra de navegación (inferior en móvil), Inicio (presentación sin sesión; accesos rápidos y últimas 6 cartas con sesión), Colección con invitación a entrar.

@@ -86,11 +86,78 @@ create index copias_coleccion_idx
   on public.copias (coleccion_id);
 
 
+-- 2b) Tabla de objetivos: lo que el usuario sigue para ver su progreso
+-- (el progreso no se guarda: la app lo calcula con la lista de TCGdex)
+create table public.objetivos (
+  id          bigint generated always as identity primary key,
+
+  -- Dueño del objetivo. Igual que en coleccion: lo completa auth.uid()
+  user_id     uuid not null default auth.uid()
+              references auth.users (id) on delete cascade,
+
+  -- 'pokemon': todas las cartas de un Pokémon (por número de Pokédex)
+  -- 'expansion': todas las cartas de un set
+  tipo        text not null
+              constraint objetivos_tipo_valido
+              check (tipo in ('pokemon', 'expansion')),
+
+  -- Pokémon: número de Pokédex (ej: '595' = Joltik)
+  -- Expansión: id del set según la API (ej: 'sv04' = Paradox Rift)
+  clave       text not null,
+
+  -- Nombre para mostrar sin consultar la API (ej: 'Joltik')
+  nombre      text not null
+              constraint objetivos_nombre_largo
+              check (char_length(nombre) between 1 and 80),
+
+  created_at  timestamptz not null default now(),
+
+  -- No se puede seguir dos veces lo mismo
+  constraint objetivos_usuario_unico unique (user_id, tipo, clave),
+
+  -- Formato de la clave según el tipo
+  constraint objetivos_clave_pokemon
+    check (tipo <> 'pokemon' or clave ~ '^[0-9]{1,4}$'),
+  constraint objetivos_clave_expansion
+    check (tipo <> 'expansion' or clave ~ '^[A-Za-z0-9._-]{1,40}$')
+);
+-- (El unique ya crea un índice que empieza por user_id.)
+
+
+-- 2c) Función para el límite de 30 objetivos
+-- Cuántos objetivos tiene el usuario que hace el pedido. Lo usa la
+-- policy de INSERT para el límite de 30: una policy no puede consultar
+-- su propia tabla (Postgres lo rechaza por "recursión infinita"), así
+-- que el conteo va en una función "security definer" (corre con los
+-- permisos de su dueño, sin RLS) que solo cuenta las filas de auth.uid().
+-- Vive en el schema "privado", que la API de Supabase NO expone: no se
+-- puede llamar desde la app, solo la usa la policy.
+create schema if not exists privado;
+revoke all on schema privado from public, anon;
+grant usage on schema privado to authenticated;
+
+create function privado.cantidad_objetivos()
+  returns integer
+  language sql
+  stable
+  security definer
+  set search_path = ''
+as $$
+  select count(*)::integer
+  from public.objetivos
+  where user_id = (select auth.uid());
+$$;
+
+revoke all on function privado.cantidad_objetivos() from public, anon;
+grant execute on function privado.cantidad_objetivos() to authenticated;
+
+
 -- 3) Seguridad: Row Level Security (RLS)
 -- Con RLS activado, NADIE puede leer ni escribir la tabla
 -- salvo lo que permitan explícitamente las reglas (policies) de abajo.
 alter table public.coleccion enable row level security;
 alter table public.copias enable row level security;
+alter table public.objetivos enable row level security;
 
 -- --- coleccion ---
 
@@ -159,6 +226,34 @@ create policy "borrar mis copias"
   using ((select auth.uid()) = user_id);
 
 
+-- --- objetivos ---
+
+-- Cada usuario solo VE sus propios objetivos
+create policy "ver mis objetivos"
+  on public.objetivos for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+-- Solo puede AGREGAR objetivos a su nombre, y hasta 30 en total.
+-- (No es a prueba de dos pedidos exactamente simultáneos; para uso
+--  personal basta.)
+create policy "agregar mis objetivos"
+  on public.objetivos for insert
+  to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and (select privado.cantidad_objetivos()) < 30
+  );
+
+-- Solo puede BORRAR ("dejar de seguir") sus propios objetivos
+create policy "borrar mis objetivos"
+  on public.objetivos for delete
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+-- (Sin policy de UPDATE: un objetivo no se edita, se sigue o se deja.)
+
+
 -- 4) Permisos explícitos
 -- Supabase da por defecto TODOS los permisos sobre las tablas de
 -- "public" a anon y authenticated: se quitan y se dan solo los que
@@ -174,3 +269,7 @@ grant select, insert, delete on public.coleccion to authenticated;
 revoke all on public.copias from anon, authenticated;
 grant select, insert, delete on public.copias to authenticated;
 grant update (idioma, condicion) on public.copias to authenticated;
+
+-- objetivos: leer, seguir y dejar de seguir
+revoke all on public.objetivos from anon, authenticated;
+grant select, insert, delete on public.objetivos to authenticated;

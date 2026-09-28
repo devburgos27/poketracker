@@ -138,7 +138,7 @@ export function prepararSelectorTema() {
 
 // --- Navegación -----------------------------------------------
 
-const VISTAS = ['inicio', 'buscar', 'coleccion'];
+const VISTAS = ['inicio', 'buscar', 'coleccion', 'progreso'];
 
 /**
  * Muestra una pantalla, marca su ítem en la barra y cambia el
@@ -200,9 +200,10 @@ export function buscando(activo) {
  *
  * @param {null | {todas: number, tengo: number, falta: number}} conteos
  * @param {'todas'|'tengo'|'falta'} activo
+ * @param {string} [selector]  grupo de pestañas (Buscar o detalle de un objetivo)
  */
-export function mostrarFiltros(conteos, activo = 'todas') {
-  const filtros = $('#filtros');
+export function mostrarFiltros(conteos, activo = 'todas', selector = '#filtros') {
+  const filtros = $(selector);
   filtros.hidden = !conteos;
   if (!conteos) return;
 
@@ -678,4 +679,287 @@ export function prepararConfirmacion() {
     if (e.target === dialogo) dialogo.close('no');
   });
   // Esc cierra el <dialog> solo, sin returnValue: cuenta como cancelar
+}
+
+// --- Progreso: barra ------------------------------------------
+
+/** "57 %": redondeado hacia abajo, así 20 de 21 no dice "100 %". */
+const porcentaje = (tengo, total) => (total ? Math.floor((tengo / total) * 100) : 0);
+
+/**
+ * Barra de progreso accesible: role="progressbar" con los valores y la
+ * cifra "12 / 21 · 57 %" siempre visible (no depende del color).
+ *
+ * @param {null | {estado: 'sin-datos'|'no-disponible'} | {
+ *   principal: {tengo: number, total: number},
+ *   master?: {tengo: number, total: number}
+ * }} progreso  null = calculando
+ * @param {string} idEtiqueta  id del elemento con el nombre del objetivo
+ */
+export function crearBarraProgreso(progreso, idEtiqueta) {
+  const bloque = document.createElement('div');
+  bloque.className = 'progreso';
+
+  const barra = document.createElement('div');
+  barra.className = 'progreso__barra';
+  const relleno = document.createElement('div');
+  relleno.className = 'progreso__relleno';
+  barra.append(relleno);
+
+  const cifra = document.createElement('p');
+  cifra.className = 'progreso__cifra';
+  bloque.append(barra, cifra);
+
+  if (!progreso?.principal) {
+    // Sin números todavía: la barra queda vacía y el texto explica por qué
+    barra.setAttribute('aria-hidden', 'true');
+    bloque.classList.add('progreso--sin-datos');
+    cifra.textContent = {
+      'sin-datos': 'Sin datos: no pudimos conectar con TCGdex.',
+      'no-disponible': 'No disponible en TCGdex.',
+    }[progreso?.estado] ?? 'Calculando…';
+    return bloque;
+  }
+
+  const { tengo, total } = progreso.principal;
+  const pct = porcentaje(tengo, total);
+  const completo = total > 0 && tengo === total;
+  barra.setAttribute('role', 'progressbar');
+  barra.setAttribute('aria-labelledby', idEtiqueta);
+  barra.setAttribute('aria-valuemin', '0');
+  barra.setAttribute('aria-valuemax', String(total));
+  barra.setAttribute('aria-valuenow', String(tengo));
+  barra.setAttribute('aria-valuetext', `${tengo} de ${total} cartas, ${pct} %${completo ? ', completo' : ''}`);
+  // Con al menos una carta se ve un poco de relleno, aunque sea < 1 %
+  relleno.style.width = `${tengo > 0 ? Math.max(pct, 1) : 0}%`;
+  bloque.classList.toggle('progreso--completo', completo);
+  cifra.textContent = completo
+    ? `✓ Completo · ${tengo} / ${total}`
+    : `${tengo} / ${total} · ${pct} %`;
+
+  if (progreso.master) {
+    const master = document.createElement('p');
+    master.className = 'progreso__master';
+    master.textContent = `Master set: ${progreso.master.tengo} / ${progreso.master.total}`;
+    bloque.append(master);
+  }
+  return bloque;
+}
+
+// --- Progreso: lista de objetivos ------------------------------
+
+const TIPOS_OBJETIVO = { pokemon: 'Pokémon', expansion: 'Expansión' };
+
+/** Enlace al detalle de un objetivo. */
+export const enlaceObjetivo = (o) => `#/progreso?tipo=${o.tipo}&clave=${encodeURIComponent(o.clave)}`;
+
+/** Muestra la lista (true) o el detalle (false) dentro de la pantalla Progreso. */
+export function mostrarVistaProgreso(detalle) {
+  $('#progreso-lista').hidden = detalle;
+  $('#progreso-detalle').hidden = !detalle;
+}
+
+/** Texto de estado de la lista ("Cargando tus objetivos…"). */
+export function mensajeProgreso(texto, tipo = 'info') {
+  escribirMensaje($('#estado-progreso'), texto, tipo);
+}
+
+/** Sin objetivos: estado vacío con la telaraña y un acceso a Buscar. */
+export function mostrarProgresoVacio() {
+  mensajeProgreso('');
+  $('#progreso-pie').hidden = true;
+  const caja = document.createElement('div');
+  caja.className = 'vacio';
+  const titulo = document.createElement('p');
+  titulo.className = 'vacio__titulo';
+  titulo.textContent = 'Todavía no sigues nada.';
+  const texto = document.createElement('p');
+  texto.textContent = 'Sigue un Pokémon desde la búsqueda o una expansión desde el detalle de una carta.';
+  const buscar = document.createElement('a');
+  buscar.className = 'boton';
+  buscar.href = '#/buscar';
+  buscar.dataset.enlaceBuscar = '';
+  buscar.textContent = 'Buscar cartas';
+  caja.append(titulo, texto, buscar);
+  $('#progreso-contenido').replaceChildren(caja);
+}
+
+/** No se pudieron cargar los objetivos: estado "No pudimos conectar". */
+export function errorProgreso(alReintentar) {
+  mensajeProgreso('');
+  $('#progreso-pie').hidden = true;
+  $('#progreso-contenido').replaceChildren(crearErrorConexion(alReintentar));
+}
+
+/** Aviso sobre la lista (listas de TCGdex que no llegaron). null lo quita. */
+export function avisoProgreso(alReintentar) {
+  $('#progreso-aviso').replaceChildren(...(alReintentar ? [crearErrorConexion(alReintentar, { compacto: true })] : []));
+}
+
+/**
+ * Dibuja la lista de objetivos con su progreso.
+ * @param {Array<{objetivo: object, progreso: object|null}>} items
+ */
+export function mostrarObjetivos(items) {
+  mensajeProgreso('');
+  // Se redibuja cuando llega cada lista: el foco no debe perderse
+  const enfocado = document.activeElement?.closest?.('#progreso-contenido a')?.getAttribute('href');
+
+  const lista = document.createElement('ul');
+  lista.className = 'objetivos';
+  lista.append(...items.map(({ objetivo, progreso }) => {
+    const idNombre = `objetivo-nombre-${objetivo.id}`;
+    const enlace = document.createElement('a');
+    enlace.className = 'objetivo';
+    enlace.href = enlaceObjetivo(objetivo);
+
+    const tipo = document.createElement('span');
+    tipo.className = 'objetivo__tipo';
+    tipo.textContent = objetivo.tipo === 'pokemon'
+      ? `${TIPOS_OBJETIVO.pokemon} · #${objetivo.clave}`
+      : TIPOS_OBJETIVO.expansion;
+    const nombre = document.createElement('span');
+    nombre.className = 'objetivo__nombre';
+    nombre.id = idNombre;
+    nombre.textContent = objetivo.nombre;
+    const ver = document.createElement('span');
+    ver.className = 'objetivo__ver';
+    ver.setAttribute('aria-hidden', 'true');
+    ver.textContent = 'Ver faltantes ›';
+
+    enlace.append(tipo, nombre, crearBarraProgreso(progreso, idNombre), ver);
+    const item = document.createElement('li');
+    item.append(enlace);
+    return item;
+  }));
+  $('#progreso-contenido').replaceChildren(lista);
+
+  if (enfocado) $(`#progreso-contenido a[href="${CSS.escape(enfocado)}"]`)?.focus();
+}
+
+/**
+ * Pie de la lista: de cuándo son las listas de TCGdex y "Actualizar".
+ * @param {null | {fecha: number|null, sinConexion: boolean, alActualizar: () => void}} datos
+ */
+export function mostrarPieProgreso(datos) {
+  const pie = $('#progreso-pie');
+  pie.hidden = !datos?.fecha;
+  if (!datos?.fecha) return;
+  const cuando = new Date(datos.fecha).toLocaleString('es', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const texto = datos.sinConexion
+    ? `Sin conexión: se muestran las listas de TCGdex del ${cuando}.`
+    : `Listas de TCGdex del ${cuando}.`;
+  const boton = document.createElement('button');
+  boton.type = 'button';
+  boton.className = 'boton boton--texto';
+  boton.textContent = 'Actualizar';
+  boton.addEventListener('click', () => {
+    boton.disabled = true;
+    boton.textContent = 'Actualizando…';
+    datos.alActualizar();
+  });
+  pie.replaceChildren(document.createTextNode(texto + ' '), boton);
+}
+
+// --- Progreso: detalle de un objetivo -------------------------
+
+/**
+ * Cabecera del detalle: tipo, nombre, qué incluye y la barra.
+ * @param {{tipo: string, clave: string, nombre: string, progreso: object|null, base?: number|null}} datos
+ *   base: último número del set base (expansiones)
+ */
+export function mostrarCabeceraObjetivo({ tipo, clave, nombre, progreso, base = null }) {
+  $('#objetivo-tipo').textContent = tipo === 'pokemon'
+    ? `${TIPOS_OBJETIVO.pokemon} · #${clave}`
+    : TIPOS_OBJETIVO.expansion;
+  $('#objetivo-titulo').textContent = nombre || 'Cargando…';
+
+  let incluye = '';
+  if (tipo === 'pokemon' && nombre) incluye = `Incluye todas las cartas de ${nombre} (#${clave}).`;
+  else if (tipo === 'expansion' && base) incluye = `La barra cuenta el set base (hasta el n.º ${base}). El master set suma las cartas secretas.`;
+  $('#objetivo-incluye').textContent = incluye;
+  $('#objetivo-incluye').hidden = !incluye;
+
+  $('#objetivo-barra').replaceChildren(crearBarraProgreso(progreso, 'objetivo-titulo'));
+}
+
+/** Texto de estado del detalle ("Cargando cartas…", errores). */
+export function mensajeObjetivo(texto, tipo = 'info') {
+  escribirMensaje($('#estado-objetivo'), texto, tipo);
+}
+
+/** Cartas del objetivo (mismos parámetros que mostrarCartas). */
+export function mostrarCartasObjetivo(cartas, marcado, textoVacio) {
+  dibujarGrilla($('#grilla-objetivo'), cartas, marcado, textoVacio);
+}
+
+/** No se pudieron traer las cartas del objetivo. */
+export function errorObjetivo(alReintentar) {
+  mensajeObjetivo('');
+  $('#filtros-objetivo').hidden = true;
+  $('#grilla-objetivo').replaceChildren(crearErrorConexion(alReintentar));
+}
+
+// --- Seguir ----------------------------------------------------
+
+/**
+ * "Seguir Joltik" o "Siguiendo Joltik ✓ · Ver progreso · Dejar de seguir".
+ * Mientras guarda, los botones quedan con aria-disabled (no disabled)
+ * para no perder el foco del teclado.
+ *
+ * @param {string} selector  contenedor
+ * @param {null | {
+ *   nombre: string, siguiendo: boolean, ocupado?: boolean, mensaje?: string,
+ *   enlace?: string|null, alSeguir: () => void, alDejar: () => void
+ * }} estado  null lo oculta
+ */
+export function mostrarSeguir(selector, estado) {
+  const caja = $(selector);
+  const teniaFoco = caja.contains(document.activeElement);
+  caja.hidden = !estado;
+  if (!estado) {
+    caja.replaceChildren();
+    return;
+  }
+
+  const boton = (texto, clase, accion, etiqueta) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = clase;
+    b.textContent = texto;
+    if (etiqueta) b.setAttribute('aria-label', etiqueta);
+    if (estado.ocupado) b.setAttribute('aria-disabled', 'true');
+    b.addEventListener('click', () => {
+      if (b.getAttribute('aria-disabled') !== 'true') accion();
+    });
+    return b;
+  };
+
+  const hijos = [];
+  if (estado.siguiendo) {
+    const texto = document.createElement('span');
+    texto.className = 'seguir__estado';
+    texto.textContent = `Siguiendo ${estado.nombre} ✓`;
+    hijos.push(texto);
+    if (estado.enlace) {
+      const ver = document.createElement('a');
+      ver.className = 'seguir__enlace';
+      ver.href = estado.enlace;
+      ver.textContent = 'Ver progreso';
+      hijos.push(ver);
+    }
+    hijos.push(boton(estado.ocupado ? 'Guardando…' : 'Dejar de seguir', 'boton boton--texto', estado.alDejar,
+      estado.ocupado ? null : `Dejar de seguir ${estado.nombre}`));
+  } else {
+    hijos.push(boton(estado.ocupado ? 'Guardando…' : `Seguir ${estado.nombre}`, 'boton boton--secundario', estado.alSeguir));
+  }
+  if (estado.mensaje) {
+    const mensaje = document.createElement('p');
+    mensaje.className = 'seguir__mensaje';
+    mensaje.setAttribute('role', 'status');
+    mensaje.textContent = estado.mensaje;
+    hijos.push(mensaje);
+  }
+  caja.replaceChildren(...hijos);
+  if (teniaFoco) caja.querySelector('button, a')?.focus();
 }

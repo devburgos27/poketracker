@@ -36,6 +36,9 @@
       <path d="M20 12a8 8 0 1 1-2.34-5.66"/>
       <path d="M20 4v5h-5"/>
     </symbol>
+    <symbol id="icono-progreso" viewBox="0 0 24 24">
+      <path d="M4 20V13M10 20V8M16 20v-9M22 20V4"/>
+    </symbol>
     <symbol id="icono-coleccion" viewBox="0 0 24 24">
       <rect x="8" y="3" width="12" height="16" rx="2"/>
       <path d="M4 7v12a2 2 0 0 0 2 2h9"/>
@@ -64,6 +67,10 @@
         <a href="#/coleccion" class="barra-nav__item" data-ruta="coleccion">
           <svg class="icono" aria-hidden="true"><use href="#icono-coleccion"/></svg>
           <span>Colección</span>
+        </a>
+        <a href="#/progreso" class="barra-nav__item" data-ruta="progreso">
+          <svg class="icono" aria-hidden="true"><use href="#icono-progreso"/></svg>
+          <span>Progreso</span>
         </a>
       </nav>
 
@@ -158,6 +165,9 @@
 
       <p id="estado" class="estado" role="status" aria-live="polite"></p>
 
+      <!-- "Seguir Joltik": solo con sesión y si el nombre coincide exacto -->
+      <div id="seguir-busqueda" class="seguir" hidden></div>
+
       <!-- Filtro por estado: solo con sesión y con resultados -->
       <div id="filtros" class="filtros pestanas" role="group" aria-label="Filtrar resultados" hidden>
         <button type="button" class="pestanas__item" data-filtro="todas" aria-pressed="true">Todas</button>
@@ -166,6 +176,60 @@
       </div>
 
       <section id="grilla" class="grilla" aria-label="Resultados"></section>
+    </div>
+
+    <!-- Pantalla: progreso (lista de objetivos y detalle de uno) -->
+    <div id="vista-progreso" hidden>
+      <!-- Sin sesión: invitación a entrar (no se redirige) -->
+      <div data-solo="visitante">
+        <section class="intro">
+          <h2 data-titulo tabindex="-1">Progreso</h2>
+        </section>
+        <div class="vacio">
+          <p>Entra con Google para seguir Pokémon o expansiones y ver cuánto te falta.</p>
+          <button type="button" class="boton boton--google" data-accion="google">
+            <svg class="boton--google__logo" width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
+            Entrar con Google
+          </button>
+        </div>
+      </div>
+
+      <div data-solo="usuario" hidden>
+        <!-- Lista de objetivos (#/progreso) -->
+        <div id="progreso-lista">
+          <section class="intro">
+            <h2 data-titulo tabindex="-1">Progreso</h2>
+            <p class="intro__aviso">Cuenta cartas distintas, no copias.</p>
+          </section>
+          <div id="progreso-aviso"></div>
+          <p id="estado-progreso" class="estado" role="status" aria-live="polite"></p>
+          <div id="progreso-contenido"></div>
+          <p id="progreso-pie" class="progreso-pie" hidden></p>
+        </div>
+
+        <!-- Detalle de un objetivo (#/progreso?tipo=…&clave=…) -->
+        <div id="progreso-detalle" hidden>
+          <a href="#/progreso" class="volver">‹ Todos los objetivos</a>
+          <section class="objetivo-cabecera" aria-labelledby="objetivo-titulo">
+            <p id="objetivo-tipo" class="objetivo__tipo"></p>
+            <h2 id="objetivo-titulo" class="objetivo-cabecera__titulo" data-titulo tabindex="-1"></h2>
+            <p id="objetivo-incluye" class="objetivo__incluye"></p>
+            <div id="objetivo-barra"></div>
+            <p class="objetivo__nota">Cuenta cartas distintas, no copias.</p>
+            <div id="objetivo-seguir" class="seguir seguir--izquierda" hidden></div>
+          </section>
+
+          <p id="estado-objetivo" class="estado" role="status" aria-live="polite"></p>
+
+          <div id="filtros-objetivo" class="filtros pestanas" role="group" aria-label="Filtrar cartas del objetivo" hidden>
+            <button type="button" class="pestanas__item" data-filtro="todas" aria-pressed="false">Todas</button>
+            <button type="button" class="pestanas__item" data-filtro="tengo" aria-pressed="false">Tengo</button>
+            <button type="button" class="pestanas__item" data-filtro="falta" aria-pressed="true">Me falta</button>
+          </div>
+
+          <section id="grilla-objetivo" class="grilla" aria-label="Cartas del objetivo"></section>
+        </div>
+      </div>
     </div>
 
     <!-- Pantalla: mi colección -->
@@ -217,6 +281,10 @@
 
         <div class="detalle__info">
           <dl id="detalle-datos" class="detalle__datos"></dl>
+
+          <div data-solo="usuario" hidden>
+            <div id="detalle-seguir" class="seguir seguir--izquierda" hidden></div>
+          </div>
 
           <section class="detalle__copias" data-solo="usuario" hidden aria-labelledby="detalle-copias-titulo">
             <h3 id="detalle-copias-titulo">Tus copias</h3>

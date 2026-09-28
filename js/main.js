@@ -7,6 +7,7 @@
 //
 // Rutas en el hash (el sitio sigue siendo estático):
 //   #/inicio   #/buscar?q=joltik   #/coleccion
+//   #/progreso   #/progreso?tipo=pokemon&clave=595
 // Solo cuentan los hashes que empiezan con "#/". Los que trae
 // Supabase al volver del login (#access_token=…, #error=…) no son
 // rutas: el router arranca después de que Supabase los procesa.
@@ -14,6 +15,7 @@
 
 import { buscarCartas, obtenerCarta } from './api.js';
 import * as ui from './ui.js';
+import * as objetivos from './objetivos.js';
 
 // --- Estado de la pantalla -----------------------------------
 
@@ -34,7 +36,8 @@ let textoColeccion = '';   // filtro por Pokémon de "Mi colección"
 let cartasRecientes = [];  // "Agregadas recientemente" en Inicio
 let ultimoPedido = 0;      // para descartar respuestas viejas de Supabase
 
-let rutaActual = null;     // pantalla visible: 'inicio' | 'buscar' | 'coleccion'
+let rutaActual = null;     // vista visible: 'inicio' | 'buscar' | 'coleccion' | 'progreso'
+let pantallaActual = null; // como rutaActual, pero distingue la lista y el detalle de Progreso
 
 // --- Resultados de búsqueda -----------------------------------
 
@@ -63,6 +66,7 @@ function dibujarBusqueda() {
     );
   }
   mostrarResumen();
+  objetivos.mostrarSeguir('#seguir-busqueda', objetivos.candidatoDeBusqueda(busquedaActual, cartasActuales));
 }
 
 /** Actualiza los números de las pestañas sin redibujar las cartas. */
@@ -327,6 +331,7 @@ function abrirDetalle(carta) {
   const d = { carta, copias: null, cambio: false, cerrado: false };
   detalle = d;
   ui.abrirDetalle(carta);
+  objetivos.mostrarSeguir('#detalle-seguir', objetivos.candidatoDeCarta(carta));
   completarDatos(d);
   if (misCartas) cargarCopias(d);
 }
@@ -476,7 +481,22 @@ function redibujarPantalla() {
   cartasRecientes = cartasRecientes.filter((c) => misCartas.has(c.id));
   if (rutaActual === 'coleccion') dibujarColeccion();
   else if (rutaActual === 'inicio') dibujarRecientes();
+  else if (rutaActual === 'progreso') objetivos.redibujar();
 }
+
+objetivos.preparar({
+  misCartas: () => misCartas,
+  coleccion: () => coleccion,
+  guardarCambio,
+  // Al cargar los objetivos (o reintentar): se actualiza lo que los usa
+  alCambiarObjetivos: () => {
+    if (rutaActual === 'progreso') mostrarRuta();
+    else if (rutaActual === 'buscar') dibujarBusqueda();
+    if (detalle && !detalle.cerrado) {
+      objetivos.mostrarSeguir('#detalle-seguir', objetivos.candidatoDeCarta(detalle.carta));
+    }
+  },
+});
 
 ui.prepararConfirmacion();
 ui.prepararDetalle({
@@ -494,6 +514,7 @@ const TITULOS = {
   inicio: 'PokéTracker · Tu colección de cartas Pokémon',
   buscar: 'Buscar · PokéTracker',
   coleccion: 'Colección · PokéTracker',
+  progreso: 'Progreso · PokéTracker',
 };
 const RUTA_POR_DEFECTO = '#/inicio';
 // Ruta donde estaba el usuario antes de ir a Google (sessionStorage)
@@ -521,17 +542,21 @@ function mostrarRuta() {
 }
 
 function irA(vista, params) {
-  const primeraVez = rutaActual === null;
-  const pantallaNueva = vista !== rutaActual;
+  // La lista y el detalle de Progreso cuentan como pantallas distintas
+  const pantalla = vista === 'progreso' && params.has('clave') ? 'progreso-detalle' : vista;
+  const primeraVez = pantallaActual === null;
+  const pantallaNueva = pantalla !== pantallaActual;
   rutaActual = vista;
+  pantallaActual = pantalla;
 
   ui.mostrarVista(vista, TITULOS[vista]);
-  // En la carga inicial el foco queda donde lo pone el navegador
-  if (pantallaNueva && !primeraVez) ui.enfocarTitulo(vista);
-
   if (vista === 'inicio') cargarRecientes();
   else if (vista === 'coleccion') cargarColeccion();
+  else if (vista === 'progreso') objetivos.mostrar(params);
   else buscarDesdeRuta(params.get('q')?.trim() ?? '');
+
+  // En la carga inicial el foco queda donde lo pone el navegador
+  if (pantallaNueva && !primeraVez) ui.enfocarTitulo(vista);
 }
 
 /**
@@ -559,7 +584,12 @@ function iniciarRouter() {
     history.replaceState(null, '', destino);
   }
 
-  window.addEventListener('hashchange', mostrarRuta);
+  window.addEventListener('hashchange', () => {
+    // Un enlace dentro del detalle de carta ("Ver progreso") o Atrás
+    // cambian de pantalla: el detalle no debe quedar abierto encima
+    ui.cerrarDetalle();
+    mostrarRuta();
+  });
   mostrarRuta();
 }
 
@@ -619,6 +649,7 @@ async function iniciarLogin() {
 
     if (!usuario) {
       misCartas = null;
+      objetivos.olvidar();
       ui.cerrarDetalle();
       ui.mostrarAvisoConexion(null);
       ultimoPedido++; // descarta cargas de Supabase en curso
@@ -642,6 +673,7 @@ async function iniciarLogin() {
       if (usuarioId !== id) return; // salió mientras cargaba
       misCartas = cartas;
       ui.mostrarAvisoConexion(null);
+      objetivos.cargar(); // aparte: si falla, la colección igual funciona
     } catch (error) {
       console.error(error);
       if (usuarioId !== id) return;

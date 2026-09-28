@@ -243,3 +243,61 @@ export async function quitarCopia(id) {
   const { error } = await supabase.from('copias').delete().eq('id', id);
   if (error) throw error;
 }
+
+// --- Objetivos ------------------------------------------------
+// Lo que el usuario sigue (un Pokémon o una expansión). El progreso no
+// se guarda: se calcula en la app con la lista de TCGdex.
+
+const COLUMNAS_OBJETIVO = 'id, tipo, clave, nombre, created_at';
+
+// Máximo por usuario (lo impone también la base de datos)
+export const MAX_OBJETIVOS = 30;
+
+/**
+ * Los objetivos del usuario, del más reciente al más antiguo.
+ * Son pocos (máximo 30): no hace falta paginar.
+ * @returns {Promise<Array<{id: number, tipo: string, clave: string, nombre: string, created_at: string}>>}
+ */
+export async function listarObjetivos() {
+  const { data, error } = await supabase
+    .from('objetivos')
+    .select(COLUMNAS_OBJETIVO)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Empieza a seguir un objetivo. Si ya lo seguía (otra pestaña), devuelve
+ * el que existe. Si llegó al límite, el error trae limite: true.
+ * @param {{tipo: 'pokemon'|'expansion', clave: string, nombre: string}} objetivo
+ */
+export async function seguirObjetivo({ tipo, clave, nombre }) {
+  const { data, error } = await supabase
+    .from('objetivos')
+    .insert({ tipo, clave, nombre: nombre.slice(0, 80) })
+    .select(COLUMNAS_OBJETIVO)
+    .single();
+
+  if (error?.code === YA_EXISTE) {
+    const existente = await supabase
+      .from('objetivos')
+      .select(COLUMNAS_OBJETIVO)
+      .eq('tipo', tipo)
+      .eq('clave', clave)
+      .single();
+    if (existente.error) throw existente.error;
+    return existente.data;
+  }
+  // 42501: la policy rechazó la fila; para el dueño, solo pasa por el límite
+  if (error?.code === '42501') throw Object.assign(new Error('Límite de objetivos'), { limite: true });
+  if (error) throw error;
+  return data;
+}
+
+/** Deja de seguir un objetivo (no toca la colección). */
+export async function dejarDeSeguir(id) {
+  const { error } = await supabase.from('objetivos').delete().eq('id', id);
+  if (error) throw error;
+}
