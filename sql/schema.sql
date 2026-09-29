@@ -44,7 +44,32 @@ create table public.coleccion (
 
   -- Un usuario no puede tener la misma carta registrada dos veces
   -- (las copias repetidas van en la tabla copias)
-  constraint coleccion_usuario_carta_unica unique (user_id, id_carta)
+  constraint coleccion_usuario_carta_unica unique (user_id, id_carta),
+
+  -- Largos máximos (migración 005), holgados: en todo TCGdex el más
+  -- largo es id 15, nombre 51, set 31, número 7, set_id 11, imagen 56.
+  -- Un check con null pasa: las columnas nullable siguen aceptándolo.
+  constraint coleccion_id_carta_largo
+    check (char_length(id_carta) between 1 and 40),
+  constraint coleccion_nombre_pokemon_largo
+    check (char_length(nombre_pokemon) between 1 and 80),
+  constraint coleccion_nombre_set_largo
+    check (char_length(nombre_set) <= 80),
+  constraint coleccion_numero_largo
+    check (char_length(numero) <= 20),
+  constraint coleccion_set_id_largo
+    check (char_length(set_id) <= 40),
+
+  -- Solo imágenes de TCGdex, o vacía (carta sin imagen). Así, si algún
+  -- día se comparte una colección, no sirve para mostrar imágenes de
+  -- terceros ni para rastrear a quien la mira. La barra final impide
+  -- "assets.tcgdex.net.otro.com".
+  constraint coleccion_imagen_url_valida
+    check (
+      imagen_url = ''
+      or (char_length(imagen_url) <= 300
+          and starts_with(imagen_url, 'https://assets.tcgdex.net/'))
+    )
 );
 
 -- Índice para que filtrar "mis cartas de Joltik" sea rápido
@@ -124,9 +149,10 @@ create table public.objetivos (
 -- (El unique ya crea un índice que empieza por user_id.)
 
 
--- 2c) Función para el límite de 30 objetivos
--- Cuántos objetivos tiene el usuario que hace el pedido. Lo usa la
--- policy de INSERT para el límite de 30: una policy no puede consultar
+-- 2c) Funciones para los límites de cantidad
+-- (30 objetivos, 20 000 cartas y 99 copias por carta)
+-- Cuántas filas tiene el usuario que hace el pedido. Las usan las
+-- policies de INSERT para los límites: una policy no puede consultar
 -- su propia tabla (Postgres lo rechaza por "recursión infinita"), así
 -- que el conteo va en una función "security definer" (corre con los
 -- permisos de su dueño, sin RLS) que solo cuenta las filas de auth.uid().
@@ -148,8 +174,40 @@ as $$
   where user_id = (select auth.uid());
 $$;
 
+-- Cuántas cartas tiene el usuario que hace el pedido
+create function privado.cantidad_cartas()
+  returns integer
+  language sql
+  stable
+  security definer
+  set search_path = ''
+as $$
+  select count(*)::integer
+  from public.coleccion
+  where user_id = (select auth.uid());
+$$;
+
+-- Cuántas copias tiene una carta del usuario que hace el pedido
+-- (0 si la carta no es suya: la policy ya la rechaza por eso)
+create function privado.cantidad_copias(carta bigint)
+  returns integer
+  language sql
+  stable
+  security definer
+  set search_path = ''
+as $$
+  select count(*)::integer
+  from public.copias
+  where coleccion_id = carta
+    and user_id = (select auth.uid());
+$$;
+
 revoke all on function privado.cantidad_objetivos() from public, anon;
+revoke all on function privado.cantidad_cartas() from public, anon;
+revoke all on function privado.cantidad_copias(bigint) from public, anon;
 grant execute on function privado.cantidad_objetivos() to authenticated;
+grant execute on function privado.cantidad_cartas() to authenticated;
+grant execute on function privado.cantidad_copias(bigint) to authenticated;
 
 
 -- 3) Seguridad: Row Level Security (RLS)
@@ -167,11 +225,16 @@ create policy "ver mis cartas"
   to authenticated
   using ((select auth.uid()) = user_id);
 
--- Cada usuario solo puede AGREGAR cartas a su nombre
+-- Cada usuario solo puede AGREGAR cartas a su nombre, hasta 20 000.
+-- (Como el de objetivos, el límite no es a prueba de pedidos
+--  exactamente simultáneos; para uso personal basta.)
 create policy "agregar mis cartas"
   on public.coleccion for insert
   to authenticated
-  with check ((select auth.uid()) = user_id);
+  with check (
+    (select auth.uid()) = user_id
+    and (select privado.cantidad_cartas()) < 20000
+  );
 
 -- Cada usuario solo puede BORRAR sus propias cartas
 create policy "borrar mis cartas"
@@ -191,7 +254,8 @@ create policy "ver mis copias"
   using ((select auth.uid()) = user_id);
 
 -- Solo puede AGREGAR copias a su nombre y a cartas de SU colección
--- (sin la subconsulta, alguien podría colgar copias de una carta ajena)
+-- (sin la subconsulta, alguien podría colgar copias de una carta ajena),
+-- hasta 99 por carta
 create policy "agregar mis copias"
   on public.copias for insert
   to authenticated
@@ -202,6 +266,7 @@ create policy "agregar mis copias"
       where c.id = coleccion_id
         and c.user_id = (select auth.uid())
     )
+    and privado.cantidad_copias(coleccion_id) < 99
   );
 
 -- Solo puede EDITAR sus copias, y el resultado debe seguir siendo

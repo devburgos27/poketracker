@@ -22,6 +22,9 @@ const COLUMNAS_CARTA = 'id, id_carta, nombre_pokemon, nombre_set, numero, imagen
 // Columnas de una copia
 const COLUMNAS_COPIA = 'id, idioma, condicion';
 
+// Máximo de copias por carta (lo impone la base de datos, migración 005)
+export const MAX_COPIAS = 99;
+
 // Supabase corta cada respuesta en un máximo de filas ("Max rows" de la
 // API, 1000 por defecto). Las listas completas se piden por páginas.
 const TAMANO_PAGINA = 1000;
@@ -237,6 +240,8 @@ export async function listarCopias(filaId) {
 export async function agregarCopias(filaId, cantidad, datos = {}) {
   const filas = Array.from({ length: cantidad }, () => ({ coleccion_id: filaId, ...datos }));
   const { data, error } = await supabase.from('copias').insert(filas).select(COLUMNAS_COPIA);
+  // 42501: la policy rechazó la fila; en una carta propia, solo pasa por el límite
+  if (error?.code === '42501') throw Object.assign(new Error('Límite de copias'), { limite: true });
   if (error) throw error;
   return data;
 }

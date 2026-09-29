@@ -641,7 +641,10 @@ async function cambiarCopias(nuevas, guardar) {
   } catch (error) {
     console.error(error);
     d.copias = antes;
-    if (d === detalle) ui.mensajeDetalle('No se pudo guardar el cambio. Inténtalo de nuevo.', 'error');
+    const mensaje = error.limite
+      ? `Llegaste al máximo de ${coleccion.MAX_COPIAS} copias de esta carta.`
+      : 'No se pudo guardar el cambio. Inténtalo de nuevo.';
+    if (d === detalle) ui.mensajeDetalle(mensaje, 'error');
   }
   if (d === detalle && !d.cerrado) ui.mostrarCopias(d.copias);
 }

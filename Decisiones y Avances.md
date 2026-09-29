@@ -82,11 +82,13 @@ Actualizado: 2026-09-29
 - Tabla `coleccion` creada con `sql/schema.sql`, RLS activo.
 - Site URL: https://poketracker-ten.vercel.app. Redirect URLs: https://poketracker-ten.vercel.app/** más las de desarrollo (127.0.0.1 y localhost).
 - Ojo: el correo integrado de Supabase tiene un límite bajo de envíos por hora.
+- **Límites** (migración `005_limites.sql`, Bloque 10b): `coleccion` con largo máximo por columna (`id_carta` 1–40, `nombre_pokemon` 1–80, `nombre_set` ≤ 80, `numero` ≤ 20, `set_id` ≤ 40) e `imagen_url` vacía, null o de `https://assets.tcgdex.net/` (≤ 300). Hasta 20 000 cartas por usuario y 99 copias por carta, con `privado.cantidad_cartas()` y `privado.cantidad_copias(bigint)` en las policies de INSERT (mismo patrón que los 30 objetivos). Límites holgados: en todo TCGdex el máximo real es id 15, nombre 51, set 31, número 7, set_id 11, imagen 56. El conteo es de antes del INSERT: un insert de varias filas puede pasar el tope por esas filas (la app agrega 1 o 2 por vez). Al llegar a 99 copias, el detalle dice "Llegaste al máximo de 99 copias de esta carta."
 
 ## Estructura
 index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, auth, coleccion, ui, main}.js · sql/schema.sql · README.md · .gitignore
 
 ## Avance
+- [ ] Bloque 10b: migración `005_limites.sql` (escrita y probada en PGlite por el camino original → 002 → 003 → 004 → 005, con el catálogo completo de TCGdex como datos; **la ejecuta el usuario**) y `schema.sql` al día (misma estructura que las migraciones, comparada en PGlite). Mensaje propio al llegar a 99 copias.
 - [x] Bloque 10a: arranque sin pantalla en blanco. El router ya no espera a supabase-js (ni los 3 s de respaldo): un enlace a `#/buscar?q=pikachu` muestra resultados aunque Supabase tarde; con sesión guardada, las pantallas privadas dicen "Cargando…" sin mostrar la invitación a entrar. Al dejar de seguir un objetivo se borra su lista guardada (`pt-obj:v1:…`). Probado en Edge headless por CDP con supabase-js demorado 6 s y bloqueado (visitante, sesión guardada inválida, vuelta de Google con token). Plan de mejora en `docs/auditoria-fase1.md`.
 - [x] Bloque 1: login con enlace mágico + búsqueda con grilla y vista ampliada (TCGdex).
 - [x] Login real probado con Google y con enlace mágico.
