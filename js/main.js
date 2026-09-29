@@ -567,15 +567,58 @@ formColeccion.addEventListener('submit', (e) => {
 /** Copia que se muestra pero aún no existe en la base. */
 const copiaSinGuardar = () => ({ id: null, idioma: null, condicion: null });
 
-let detalle = null; // { carta, copias, cambio, cerrado } de la carta abierta
+let detalle = null; // { carta, indice, copias, cambio, cerrado } de la carta abierta
 
-function abrirDetalle(carta) {
-  const d = { carta, copias: null, cambio: false, cerrado: false };
-  detalle = d;
-  ui.abrirDetalle(carta);
-  objetivos.mostrarSeguir('#detalle-seguir', objetivos.candidatoDeCarta(carta));
+// "Foto" de la lista de la pantalla al abrir el detalle (con sus
+// filtros, pestaña y orden). Anterior / siguiente la recorren aunque la
+// grilla cambie detrás (por ejemplo, al marcar Me falta en "Tengo").
+let listaDetalle = [];
+
+// Guardados de copias en curso, por id de carta. Si se vuelve a una
+// carta que todavía guarda, sus copias se leen cuando termina.
+const guardandoCopias = new Map();
+
+function abrirDetalle(carta, lista = [carta]) {
+  listaDetalle = [...lista];
+  const indice = Math.max(0, listaDetalle.findIndex((c) => c.id === carta.id));
+  const d = nuevoDetalle(indice);
+  ui.abrirDetalle(d.carta, { indice, total: listaDetalle.length });
+  prepararCartaDetalle(d);
+}
+
+/** Anterior (-1) o siguiente (1), sin dar la vuelta en los extremos. */
+function moverDetalle(paso) {
+  const actual = detalle;
+  if (!actual || actual.cerrado) return;
+  const indice = actual.indice + paso;
+  if (indice < 0 || indice >= listaDetalle.length) return;
+  dejarCarta(actual);
+  const d = nuevoDetalle(indice);
+  ui.cambiarCartaDetalle(d.carta, { indice, total: listaDetalle.length });
+  prepararCartaDetalle(d);
+  ui.conservarFocoDetalle();
+}
+
+function nuevoDetalle(indice) {
+  detalle = { carta: listaDetalle[indice], indice, copias: null, cambio: false, cerrado: false };
+  return detalle;
+}
+
+function prepararCartaDetalle(d) {
+  objetivos.mostrarSeguir('#detalle-seguir', objetivos.candidatoDeCarta(d.carta));
   completarDatos(d);
   if (misCartas) cargarCopias(d);
+  ui.precargarDetalle([listaDetalle[d.indice - 1], listaDetalle[d.indice + 1]]);
+}
+
+/**
+ * La carta deja de verse (se cerró el detalle o se pasó a otra). Sus
+ * guardados en curso siguen: al terminar actualizan la pantalla, pero
+ * no el detalle (ver cambiarCopias).
+ */
+function dejarCarta(d) {
+  d.cerrado = true;
+  if (d.cambio) redibujarPantalla();
 }
 
 /** La colección no guarda la rareza: se pide a la API al abrir el detalle. */
@@ -585,6 +628,8 @@ async function completarDatos(d) {
     const completa = await obtenerCarta(d.carta.id);
     if (d !== detalle || !completa) return;
     d.carta = { ...d.carta, rareza: completa.rareza, totalSet: d.carta.totalSet ?? completa.totalSet };
+    // Al volver a esta carta ya no se pide de nuevo
+    if (listaDetalle[d.indice]?.id === d.carta.id) listaDetalle[d.indice] = d.carta;
     ui.mostrarDatosDetalle(d.carta);
   } catch (error) {
     console.error(error); // sin rareza, el resto del detalle sirve igual
@@ -601,7 +646,11 @@ function conCopiaImplicita(copias) {
 }
 
 async function cargarCopias(d) {
-  const guardada = misCartas.get(d.carta.id);
+  // Si esta carta todavía guarda un cambio (se volvió a ella), se espera
+  // a que termine: así no se leen copias viejas
+  await guardandoCopias.get(d.carta.id);
+  if (d !== detalle) return;
+  const guardada = misCartas?.get(d.carta.id);
   if (!guardada) {
     d.copias = [];
     ui.mostrarCopias(d.copias);
@@ -632,21 +681,35 @@ async function cambiarCopias(nuevas, guardar) {
   ui.mensajeDetalle('');
   ui.mostrarCopias(d.copias, true);
 
+  const id = d.carta.id;
+  const guardado = guardarCopias(d, antes, nuevas, guardar);
+  guardandoCopias.set(id, guardado);
+  await guardado;
+  if (guardandoCopias.get(id) === guardado) guardandoCopias.delete(id);
+  // Si ya se pasó a otra carta (o se cerró), el detalle no se toca
+  if (d === detalle && !d.cerrado) ui.mostrarCopias(d.copias);
+}
+
+/** Guarda un cambio de copias; si falla, vuelve a las de antes. Nunca lanza. */
+async function guardarCopias(d, antes, nuevas, guardar) {
   try {
     d.copias = (await guardar()) ?? nuevas;
     d.cambio = true;
     const guardada = misCartas?.get(d.carta.id);
     if (guardada) guardada.copias = d.copias.length;
-    if (d.cerrado) redibujarPantalla(); // se cerró mientras guardaba
+    if (d.cerrado) redibujarPantalla(); // se cerró o se pasó a otra carta mientras guardaba
   } catch (error) {
     console.error(error);
     d.copias = antes;
-    const mensaje = error.limite
-      ? `Llegaste al máximo de ${coleccion.MAX_COPIAS} copias de esta carta.`
-      : 'No se pudo guardar el cambio. Inténtalo de nuevo.';
-    if (d === detalle) ui.mensajeDetalle(mensaje, 'error');
+    const limite = error.limite ? `Llegaste al máximo de ${coleccion.MAX_COPIAS} copias de esta carta.` : '';
+    if (d === detalle && !d.cerrado) {
+      ui.mensajeDetalle(limite || 'No se pudo guardar el cambio. Inténtalo de nuevo.', 'error');
+    } else if (detalle && !detalle.cerrado) {
+      // Ya se ve otra carta: el aviso dice de cuál era el cambio
+      const carta = `${d.carta.nombre} (${d.carta.nombreSet} ${d.carta.numero})`;
+      ui.mensajeDetalle(`No se guardó el cambio en ${carta}. ${limite || 'Vuelve a esa carta e inténtalo de nuevo.'}`, 'error');
+    }
   }
-  if (d === detalle && !d.cerrado) ui.mostrarCopias(d.copias);
 }
 
 /** "+": agrega una copia sin detalles (con 0 copias, es "Tengo"). */
@@ -709,8 +772,7 @@ function cambiarDatoCopia(copia, campo, valor) {
 function alCerrarDetalle() {
   const d = detalle;
   if (!d) return;
-  d.cerrado = true;
-  if (d.cambio) redibujarPantalla();
+  dejarCarta(d);
   ui.enfocarCarta(d.carta.id);
 }
 
@@ -750,6 +812,7 @@ objetivos.preparar({
 ui.prepararConfirmacion();
 ui.prepararDetalle({
   alAbrir: abrirDetalle,
+  alMover: moverDetalle,
   alCerrar: alCerrarDetalle,
   alSumar: sumarCopia,
   alRestar: () => quitarCopia(detalle.copias.at(-1)),

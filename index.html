@@ -294,12 +294,22 @@
       </div>
 
       <div class="detalle__cuerpo">
-        <div class="detalle__imagen">
-          <img id="detalle-imagen" src="" alt="">
-          <!-- Recuadro con forma de carta: nombre, número y expansión (lo llena ui.js) -->
-          <div id="detalle-sin-imagen" class="carta__sin-imagen respaldo" hidden></div>
-          <p id="detalle-imagen-nota" class="carta__idioma" hidden></p>
+        <!-- Imagen con "anterior" / "siguiente" a los lados (en móvil, debajo) -->
+        <div class="detalle__visor">
+          <button id="detalle-anterior" type="button" class="boton boton--icono detalle__flecha detalle__flecha--anterior"
+                  aria-label="Carta anterior" hidden><span aria-hidden="true">‹</span></button>
+          <div class="detalle__imagen">
+            <img id="detalle-imagen" src="" alt="">
+            <!-- Recuadro con forma de carta: nombre, número y expansión (lo llena ui.js) -->
+            <div id="detalle-sin-imagen" class="carta__sin-imagen respaldo" hidden></div>
+            <p id="detalle-imagen-nota" class="carta__idioma" hidden></p>
+          </div>
+          <button id="detalle-siguiente" type="button" class="boton boton--icono detalle__flecha detalle__flecha--siguiente"
+                  aria-label="Carta siguiente" hidden><span aria-hidden="true">›</span></button>
+          <p id="detalle-posicion" class="detalle__posicion" hidden></p>
         </div>
+        <!-- Al cambiar de carta se anuncia su nombre (lo llena ui.js) -->
+        <p id="detalle-anuncio" class="visualmente-oculto" role="status" aria-live="polite"></p>
 
         <div class="detalle__info">
           <dl id="detalle-datos" class="detalle__datos"></dl>

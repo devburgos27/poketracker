@@ -769,6 +769,37 @@ select:disabled { opacity: 0.6; }
   background: var(--superficie-2);
 }
 
+/* Anterior / siguiente: a los lados de la imagen y "3 de 20" debajo;
+   en móvil, las flechas van bajo la imagen (ver el final del archivo) */
+.detalle__visor {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "anterior imagen siguiente"
+    ".        posicion .";
+  align-items: center;
+  gap: var(--esp-2);
+}
+.detalle__imagen { grid-area: imagen; }
+.detalle__flecha--anterior { grid-area: anterior; }
+.detalle__flecha--siguiente { grid-area: siguiente; }
+.detalle__flecha { font-size: var(--texto-l); }
+/* En el borde de la lista: desactivada, sin el cursor de "esperando" */
+.detalle__flecha:disabled { opacity: 0.35; cursor: default; }
+.detalle__posicion {
+  grid-area: posicion;
+  margin: 0;
+  text-align: center;
+  color: var(--texto-suave);
+}
+
+/* Al pasar a otra carta: aparece suave (0 ms con prefers-reduced-motion) */
+.detalle__cuerpo--entrando { animation: detalle-entrar var(--duracion) ease-out; }
+@keyframes detalle-entrar {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+
 .detalle__datos {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1187,7 +1218,14 @@ select:disabled { opacity: 0.6; }
 
   .detalle__contenido { padding: var(--esp-3) var(--esp-4) var(--esp-4); }
   .detalle__cuerpo { grid-template-columns: 1fr; }
-  .detalle__imagen { max-width: 240px; margin-inline: auto; }
+  .detalle__visor {
+    max-width: 240px;
+    margin-inline: auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "imagen   imagen   imagen"
+      "anterior posicion siguiente";
+  }
   .copia { grid-template-columns: 1fr 1fr; }
   .confirmar__acciones { flex-direction: column-reverse; }
   .confirmar__acciones .boton { width: 100%; }

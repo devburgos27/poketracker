@@ -357,11 +357,15 @@ function dibujarGrilla(grilla, cartas, marcado, textoVacio) {
     grilla.replaceChildren(vacio);
     return;
   }
-  grilla.replaceChildren(...cartas.map((carta) => crearTarjeta(carta, marcado)));
+  grilla.replaceChildren(...cartas.map((carta) => crearTarjeta(carta, marcado, cartas)));
 }
 
-/** Crea la tarjeta de una carta. */
-function crearTarjeta(carta, marcado) {
+/**
+ * Crea la tarjeta de una carta.
+ * @param {Array} lista  las cartas de la grilla, tal como se ven: el
+ *   detalle las recorre con "anterior" / "siguiente"
+ */
+function crearTarjeta(carta, marcado, lista) {
   const tarjeta = document.createElement('article');
   tarjeta.className = 'carta';
   tarjeta.dataset.id = carta.id;
@@ -373,7 +377,7 @@ function crearTarjeta(carta, marcado) {
   boton.className = 'carta__imagen';
   const etiquetaCopias = copias > 1 ? ` (${copias} copias)` : '';
   boton.setAttribute('aria-label', `Ver detalle de ${carta.nombre}${etiquetaCopias}`);
-  boton.addEventListener('click', () => alAbrirCarta(carta));
+  boton.addEventListener('click', () => alAbrirCarta(carta, lista));
 
   ponerImagenTarjeta(boton, tarjeta, carta);
 
@@ -614,7 +618,8 @@ let focoPendiente = null; // control que tenía el foco antes de guardar
 /**
  * Conecta el detalle con main.js.
  * @param {{
- *   alAbrir: (carta: object) => void,
+ *   alAbrir: (carta: object, lista: Array) => void,
+ *   alMover: (paso: -1|1) => void,
  *   alCerrar: () => void,
  *   alSumar: () => void,
  *   alRestar: () => void,
@@ -636,6 +641,89 @@ export function prepararDetalle(acciones) {
   $('#copias-restar').addEventListener('click', acciones.alRestar);
 
   $('#detalle-imagen').addEventListener('error', alFallarImagenDetalle);
+  prepararNavegacion(dialogo, acciones.alMover);
+}
+
+// --- Detalle: anterior / siguiente -----------------------------
+// Flechas, teclado (← →) y deslizar el dedo. Qué carta sigue lo decide
+// main.js (con la foto de la lista que tomó al abrir).
+
+// Controles donde ← y → ya hacen algo (o se está eligiendo un valor)
+const TECLAS_PROPIAS = 'select, input, textarea, #copias-sumar, #copias-restar';
+// Tocar un control no es deslizar
+const TOQUE_EN_CONTROL = 'select, input, textarea, button, a, label';
+const DESLIZAR_MINIMO = 50; // px
+
+function prepararNavegacion(dialogo, alMover) {
+  $('#detalle-anterior').addEventListener('click', () => alMover(-1));
+  $('#detalle-siguiente').addEventListener('click', () => alMover(1));
+
+  dialogo.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return; // Alt+← es "Atrás"
+    if (e.target.closest(TECLAS_PROPIAS)) return;
+    e.preventDefault();
+    alMover(e.key === 'ArrowLeft' ? -1 : 1);
+  });
+
+  // Solo un gesto claramente horizontal: al menos 50 px de lado y el
+  // doble de lo que se movió en vertical. Los listeners son pasivos: el
+  // desplazamiento vertical del diálogo sigue igual.
+  let inicio = null;
+  dialogo.addEventListener('touchstart', (e) => {
+    const toque = e.touches[0];
+    inicio = e.touches.length === 1 && !e.target.closest(TOQUE_EN_CONTROL)
+      ? { x: toque.clientX, y: toque.clientY }
+      : null;
+  }, { passive: true });
+  dialogo.addEventListener('touchend', (e) => {
+    if (!inicio) return;
+    const toque = e.changedTouches[0];
+    const dx = toque.clientX - inicio.x;
+    const dy = toque.clientY - inicio.y;
+    inicio = null;
+    if (Math.abs(dx) >= DESLIZAR_MINIMO && Math.abs(dx) > 2 * Math.abs(dy)) {
+      alMover(dx < 0 ? 1 : -1); // dedo hacia la izquierda: la siguiente
+    }
+  }, { passive: true });
+  dialogo.addEventListener('touchcancel', () => { inicio = null; }, { passive: true });
+}
+
+/**
+ * Flechas e indicador "3 de 20". Con una sola carta no se muestran.
+ * En la primera y la última, la flecha de ese lado queda desactivada.
+ */
+function mostrarPosicion({ indice, total }) {
+  const anterior = $('#detalle-anterior');
+  const siguiente = $('#detalle-siguiente');
+  const posicion = $('#detalle-posicion');
+  const conNavegacion = total > 1;
+  anterior.hidden = !conNavegacion;
+  siguiente.hidden = !conNavegacion;
+  posicion.hidden = !conNavegacion;
+  posicion.textContent = `${indice + 1} de ${total}`;
+
+  // Si la flecha con el foco se desactiva (llegó al borde), el foco pasa
+  // a la otra en vez de perderse
+  const conFoco = document.activeElement;
+  anterior.disabled = indice === 0;
+  siguiente.disabled = indice === total - 1;
+  if (conFoco?.disabled && (conFoco === anterior || conFoco === siguiente)) {
+    (conFoco === anterior ? siguiente : anterior).focus();
+  }
+}
+
+/**
+ * Descarga de antemano las imágenes de las cartas vecinas, así el
+ * cambio es inmediato. Las cartas sin imagen en TCGdex no se precargan:
+ * sus alternativas se buscan al mostrarlas, como siempre.
+ */
+export function precargarDetalle(cartas) {
+  for (const carta of cartas) {
+    if (!carta?.imagenChica) continue;
+    new Image().src = carta.imagenChica;
+    new Image().src = carta.imagenGrande;
+  }
 }
 
 /**
@@ -734,14 +822,47 @@ function mostrarNotaImagen(idioma) {
   nota.textContent = idioma ? textoIdioma(idioma) : '';
 }
 
-/** Abre el detalle con los datos que ya se tienen de la carta. */
-export function abrirDetalle(carta) {
+/**
+ * Abre el detalle con los datos que ya se tienen de la carta.
+ * @param {{indice: number, total: number}} posicion  en la lista de la pantalla
+ */
+export function abrirDetalle(carta, posicion) {
+  $('#detalle-anuncio').textContent = '';
+  mostrarCartaDetalle(carta, posicion);
+  $('#dialogo-carta').showModal();
+}
+
+/** Con el detalle abierto, pasa a otra carta de la lista. */
+export function cambiarCartaDetalle(carta, posicion) {
+  mostrarCartaDetalle(carta, posicion);
+  // Transición breve (sin movimiento con prefers-reduced-motion)
+  const cuerpo = $('#dialogo-carta .detalle__cuerpo');
+  cuerpo.classList.remove('detalle__cuerpo--entrando');
+  void cuerpo.offsetWidth; // reinicia la animación si se cambia rápido
+  cuerpo.classList.add('detalle__cuerpo--entrando');
+  // El título cambia sin mover el foco: se anuncia para lectores de pantalla
+  $('#detalle-anuncio').textContent = `${carta.nombre}, ${posicion.indice + 1} de ${posicion.total}`;
+}
+
+/**
+ * Tras cambiar de carta, si el control con el foco desapareció (una
+ * copia de la carta anterior, "Seguir"…), el foco va a una flecha.
+ * Se llama cuando main.js terminó de dibujar la carta nueva.
+ */
+export function conservarFocoDetalle() {
+  const dialogo = $('#dialogo-carta');
+  if (dialogo.contains(document.activeElement) && document.activeElement !== dialogo) return;
+  const flecha = [$('#detalle-siguiente'), $('#detalle-anterior')].find((b) => !b.hidden && !b.disabled);
+  (flecha ?? $('#dialogo-cerrar')).focus();
+}
+
+function mostrarCartaDetalle(carta, posicion) {
   cargarImagenDetalle(carta);
   mostrarDatosDetalle(carta);
+  mostrarPosicion(posicion);
   mensajeDetalle('');
   focoPendiente = null;
   mostrarCopias(null);
-  $('#dialogo-carta').showModal();
 }
 
 /** Cierra el detalle (por ejemplo, al cerrar sesión). */
