@@ -10,9 +10,11 @@
 //   #/progreso   #/progreso?tipo=pokemon&clave=595
 // Solo cuentan los hashes que empiezan con "#/". Los que trae
 // Supabase al volver del login (#access_token=…, #error=…) no son
-// rutas: el router arranca después de que Supabase los procesa.
+// rutas: con token, el router espera a que Supabase lo lea. En
+// cualquier otro caso arranca de inmediato, sin esperar a supabase-js.
 // =============================================================
 
+import { SUPABASE_URL } from './config.js';
 import { buscarCartas, buscarPorNumero, obtenerCarta, fechasDeSets } from './api.js';
 import * as ui from './ui.js';
 import * as objetivos from './objetivos.js';
@@ -35,6 +37,10 @@ let filtrosColeccion = filtrado.leerFiltros(new URLSearchParams(), filtrado.COLE
 // Cartas que tengo: id de carta → { filaId, copias, setId, nombreSet }; null = sin sesión
 let misCartas = null;
 let coleccion = null;      // módulo coleccion.js (se carga junto con el login)
+// Aún no se sabe si hay sesión (hay una guardada o se vuelve de Google),
+// o ya llegó el usuario y faltan sus cartas: las pantallas privadas
+// dicen "Cargando…" en vez de invitar a entrar.
+let cargandoSesion = hayTokenEnUrl() || haySesionGuardada();
 
 let cartasColeccion = [];  // lo que se ve en "Mi colección"
 let textoColeccion = '';   // filtro por Pokémon de "Mi colección"
@@ -388,7 +394,12 @@ ui.prepararSelectorTema();
 const CANTIDAD_RECIENTES = 6;
 
 async function cargarRecientes(reintento = false) {
-  if (!misCartas) return; // sin sesión, Inicio solo muestra la presentación
+  if (!misCartas) {
+    // Sin sesión, Inicio solo muestra la presentación; si no cargaron
+    // las cartas, el aviso de arriba ofrece Reintentar
+    ui.mensajeInicio(cargandoSesion ? 'Cargando tus cartas…' : '');
+    return;
+  }
   const pedido = ++ultimoPedido;
   if (!reintento) ui.mensajeInicio('Cargando tus cartas…');
 
@@ -417,7 +428,12 @@ function dibujarRecientes() {
 // --- Mi colección ---------------------------------------------
 
 async function cargarColeccion(reintento = false) {
-  if (!misCartas) return; // sin sesión se ve la invitación a entrar
+  if (!misCartas) {
+    // Sin sesión se ve la invitación a entrar; si no cargaron las
+    // cartas, el aviso de arriba ofrece Reintentar
+    ui.mensajeColeccion(cargandoSesion ? 'Cargando tu colección…' : '');
+    return;
+  }
   const pedido = ++ultimoPedido;
   const texto = textoColeccion;
   if (!reintento) ui.mensajeColeccion('Cargando tu colección…');
@@ -798,14 +814,34 @@ function irA(vista, params) {
   if (pantallaNueva && !primeraVez) ui.enfocarTitulo(vista);
 }
 
+/** ¿La URL trae el token de la vuelta de Google (#access_token=…)? */
+function hayTokenEnUrl() {
+  // Como parámetro, para no confundirlo con "#/buscar?q=access_token"
+  return new URLSearchParams(window.location.hash.slice(1)).has('access_token');
+}
+
 /**
- * Arranca el router una sola vez. Se llama después del primer
- * aviso de sesión de Supabase (o si el login no carga).
+ * ¿Hay una sesión de Supabase guardada en este navegador? Se mira
+ * sin cargar supabase-js: si no hay, se sabe desde ya que es visitante.
+ */
+function haySesionGuardada() {
+  // Misma clave que usa supabase-js por defecto: sb-<proyecto>-auth-token
+  const clave = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
+  try {
+    return localStorage.getItem(clave) !== null;
+  } catch {
+    return false; // sin almacenamiento tampoco hay sesión guardada
+  }
+}
+
+/**
+ * Arranca el router una sola vez: al cargar la página, o tras el
+ * primer aviso de sesión si se vuelve de Google con el token.
  */
 function iniciarRouter() {
   if (routerIniciado) return;
   // Si Supabase todavía no leyó el token de la URL, no se toca
-  if (new URLSearchParams(window.location.hash.slice(1)).has('access_token')) return;
+  if (hayTokenEnUrl()) return;
   routerIniciado = true;
 
   let rutaGuardada = null;
@@ -852,18 +888,26 @@ function guardarRutaParaVolver() {
 // Se carga con import() dinámico: si falla, solo se pierde el login.
 
 // Va antes de iniciarLogin() para limpiar la URL antes de que
-// Supabase intente leerla.
+// Supabase intente leerla, y antes del router para que no la pise.
 mostrarErrorDeRetorno();
+
+// La pantalla se dibuja ya, sin esperar a supabase-js (75 KB).
+// Con una sesión guardada, las pantallas privadas dicen "Cargando…"
+// hasta que Supabase la confirma; sin ella, se ve como visitante.
+if (cargandoSesion) ui.mostrarSesionPendiente();
+if (hayTokenEnUrl()) ui.mensajeLogin('Entrando con Google…');
+iniciarRouter(); // con token en la URL espera al primer aviso de sesión
 
 iniciarLogin().catch((error) => {
   console.error('No se pudo cargar el login:', error);
+  cargandoSesion = false;
+  ui.mostrarSesion(null);
   ui.activarBotonesGoogle(false);
   ui.mensajeLogin('El inicio de sesión no está disponible en este momento.', 'error');
-  iniciarRouter(); // sin login, la app sigue funcionando como visitante
+  // Sin Supabase nadie va a leer el token: se quita para que arranque el router
+  if (hayTokenEnUrl()) history.replaceState(null, '', window.location.pathname);
+  actualizarPantalla(); // sin login, la app sigue funcionando como visitante
 });
-
-// Si Supabase tarda demasiado en responder, la app no se queda en blanco
-setTimeout(iniciarRouter, 3000);
 
 async function iniciarLogin() {
   const [{ entrarConGoogle, cerrarSesion, alCambiarSesion }, modColeccion] = await Promise.all([
@@ -874,19 +918,29 @@ async function iniciarLogin() {
 
   let usuarioId = null;
 
+  // Se mira antes de que Supabase limpie el token de la URL
+  let entrandoConGoogle = hayTokenEnUrl();
+
   alCambiarSesion((usuario) => {
     ui.mostrarSesion(usuario);
+    if (entrandoConGoogle) {
+      entrandoConGoogle = false;
+      ui.mensajeLogin(''); // quita "Entrando con Google…"
+    }
 
     // Supabase avisa también al renovar el token: solo se recarga
     // la colección si de verdad cambió el usuario.
     const nuevoId = usuario?.id ?? null;
     if (nuevoId === usuarioId) {
-      iniciarRouter(); // primer aviso sin sesión
+      // Primer aviso sin sesión (o la guardada ya no sirve): visitante
+      if (!usuario) cargandoSesion = false;
+      iniciarRouter();
       return;
     }
     usuarioId = nuevoId;
 
     if (!usuario) {
+      cargandoSesion = false;
       misCartas = null;
       objetivos.olvidar();
       ui.cerrarDetalle();
@@ -899,6 +953,10 @@ async function iniciarLogin() {
       actualizarPantalla();
       return;
     }
+
+    // Mientras llegan sus cartas, las pantallas privadas dicen "Cargando…"
+    cargandoSesion = true;
+    actualizarPantalla();
 
     // setTimeout: Supabase recomienda no llamar a la base de datos
     // dentro de este aviso, porque puede quedar bloqueado.
@@ -918,6 +976,7 @@ async function iniciarLogin() {
       if (usuarioId !== id) return;
       ui.mostrarAvisoConexion(() => cargarMisCartasDe(id));
     }
+    cargandoSesion = false;
     actualizarPantalla();
   }
 

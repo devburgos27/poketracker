@@ -88,6 +88,19 @@ export function mostrarSesion(usuario) {
   $('#usuario-email').textContent = usuario?.email ?? '';
 }
 
+/**
+ * Hay una sesión guardada que Supabase todavía no confirma: las
+ * pantallas muestran su parte de usuario (con "Cargando…") y la
+ * cabecera no ofrece ni "Entrar con Google" ni "Salir". Así no
+ * aparece la invitación a entrar por un instante cuando sí hay sesión.
+ * El detalle de carta (fuera de <main>) sigue como visitante.
+ */
+export function mostrarSesionPendiente() {
+  document.querySelectorAll('[data-solo="visitante"]').forEach((el) => { el.hidden = true; });
+  document.querySelectorAll('[data-solo="usuario"]').forEach((el) => { el.hidden = !el.closest('main'); });
+  $('#usuario-email').textContent = '';
+}
+
 /** Activa o desactiva todos los botones "Entrar con Google". */
 export function activarBotonesGoogle(activos) {
   document.querySelectorAll('[data-accion="google"]').forEach((btn) => { btn.disabled = !activos; });

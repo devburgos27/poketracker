@@ -1,6 +1,6 @@
 # PokéTracker — Decisiones y avance
 
-Actualizado: 2026-09-28
+Actualizado: 2026-09-29
 
 ## Decisiones tomadas
 - **Modelo de datos:** en Supabase se guardan SOLO las cartas que el usuario tiene. "Me falta" = cartas de la API − cartas guardadas. Marcar = INSERT, desmarcar = DELETE. Sin columna `estado`.
@@ -14,7 +14,8 @@ Actualizado: 2026-09-28
   - Si Google/Supabase vuelve con `#error=...` (por ejemplo, el usuario canceló), la app lo lee al cargar (antes de iniciar Supabase), muestra un mensaje genérico y limpia la URL. RLS: cada usuario ve, agrega y borra solo sus filas. Sin policy de UPDATE por ahora.
 - **Temas claro/oscuro:** tokens CSS en `:root`; `data-tema="claro"|"oscuro"` en `<html>` fuerza uno, sin atributo manda el sistema. Preferencia en `localStorage` (`pt-tema`), aplicada con un script inline en el `<head>` para que no parpadee. Amarillo `#FFD60A` solo como fondo con texto oscuro; en tema claro el texto de marca es ámbar `#8A5A00`.
 - **Navegación con rutas hash** (Bloque 5): `#/inicio` (por defecto y para rutas desconocidas), `#/buscar?q=texto`, `#/coleccion`. Router propio en `main.js`, sin librerías.
-  - Solo cuentan los hashes que empiezan con `#/`: `#access_token=…` y `#error=…` son de Supabase. El router arranca después del primer aviso de `onAuthStateChange` (o si el login no carga, o a los 3 s como respaldo), y `auth.js` limpia el token de la URL antes de avisar.
+  - Solo cuentan los hashes que empiezan con `#/`: `#access_token=…` y `#error=…` son de Supabase. Desde el Bloque 10a el router arranca al cargar la página, sin esperar a supabase-js; solo si la URL trae `#access_token` espera al primer aviso de `onAuthStateChange` (mientras, la cabecera dice "Entrando con Google…"), y `auth.js` limpia el token de la URL antes de avisar. Si el login no carga, se quita el token y la app sigue como visitante.
+  - Sesión pendiente (Bloque 10a): si existe la clave `sb-<proyecto>-auth-token` en localStorage (o se vuelve de Google), hasta que Supabase confirma la sesión y llegan las cartas, las pantallas privadas muestran su parte de usuario con "Cargando…" y la cabecera no muestra ni "Entrar con Google" ni "Salir" (`ui.mostrarSesionPendiente`). Sin esa clave se dibuja directo como visitante. Así no parpadea la invitación a entrar cuando sí hay sesión.
   - Antes de ir a Google se guarda la ruta en `sessionStorage` (`pt-ruta-login`); al volver se retoma (si no hay, Inicio).
   - Buscar solo cambia la URL y la ruta hace la consulta. Se guardan en memoria las últimas 10 búsquedas: Atrás/Adelante y volver a Buscar no repiten la consulta.
   - Barra con 3 ítems (Inicio, Buscar, Colección): fija abajo en móvil (≤ 720 px, respeta `safe-area-inset-bottom`), en la cabecera en escritorio. Progreso se agrega en el Bloque 7.
@@ -86,6 +87,7 @@ Actualizado: 2026-09-28
 index.html · privacidad.html · css/estilos.css · js/{config, supabase, api, auth, coleccion, ui, main}.js · sql/schema.sql · README.md · .gitignore
 
 ## Avance
+- [x] Bloque 10a: arranque sin pantalla en blanco. El router ya no espera a supabase-js (ni los 3 s de respaldo): un enlace a `#/buscar?q=pikachu` muestra resultados aunque Supabase tarde; con sesión guardada, las pantallas privadas dicen "Cargando…" sin mostrar la invitación a entrar. Al dejar de seguir un objetivo se borra su lista guardada (`pt-obj:v1:…`). Probado en Edge headless por CDP con supabase-js demorado 6 s y bloqueado (visitante, sesión guardada inválida, vuelta de Google con token). Plan de mejora en `docs/auditoria-fase1.md`.
 - [x] Bloque 1: login con enlace mágico + búsqueda con grilla y vista ampliada (TCGdex).
 - [x] Login real probado con Google y con enlace mágico.
 - [x] Repo git + GitHub público: https://github.com/devburgos27/poketracker (primer commit a954e8b = bloque 1).

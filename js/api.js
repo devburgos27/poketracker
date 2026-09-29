@@ -241,6 +241,16 @@ function guardarLista(o, lista) {
   }
 }
 
+/** Borra la lista guardada de un objetivo (al dejar de seguirlo). */
+export function olvidarLista(o) {
+  listasEnMemoria.delete(claveCache(o));
+  try {
+    localStorage.removeItem(claveCache(o));
+  } catch {
+    // Sin almacenamiento: no había nada guardado
+  }
+}
+
 /** Set base: número (localId) solo con dígitos y <= cardCount.official. */
 function esDelSetBase(localId, oficial) {
   return /^\d+$/.test(localId) && Number(localId) <= oficial;

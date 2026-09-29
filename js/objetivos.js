@@ -13,7 +13,7 @@
 // (colección, sesión) llega por preparar().
 // =============================================================
 
-import { cargarListasObjetivos, obtenerCartasObjetivo, datosCartasGuardados, pedirDatosCartas } from './api.js';
+import { cargarListasObjetivos, obtenerCartasObjetivo, olvidarLista, datosCartasGuardados, pedirDatosCartas } from './api.js';
 import * as ui from './ui.js';
 
 /**
@@ -550,6 +550,7 @@ async function dejarDeSeguir(selector, candidato, opciones) {
   try {
     await dep.coleccion().dejarDeSeguir(actual.id);
     objetivos = objetivos.filter((o) => o.id !== actual.id);
+    olvidarLista(actual); // si la vuelve a seguir, se pide de nuevo
   } catch (error) {
     console.error(error);
     mostrarSeguir(selector, candidato, opciones, { mensaje: 'No se pudo guardar. Revisa tu conexión e inténtalo de nuevo.' });
