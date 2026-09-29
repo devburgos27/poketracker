@@ -103,6 +103,16 @@ create table public.copias (
                 constraint copias_condicion_valida
                 check (condicion in ('NM', 'LP', 'MP', 'HP', 'DMG')),
 
+  -- Acabado (migración 006). Null = sin indicar. La app los muestra en
+  -- español: Normal, Holo, Reverse holo, Reverse Poké Ball,
+  -- Reverse Master Ball, Otro
+  acabado       text
+                constraint copias_acabado_valido
+                check (acabado in ('normal', 'holo', 'reverse', 'pokeball', 'masterball', 'otro')),
+
+  -- Sello promocional o logo de expansión impreso en la carta (006)
+  sello         boolean not null default false,
+
   created_at    timestamptz not null default now()
 );
 
@@ -329,11 +339,12 @@ create policy "borrar mis objetivos"
 revoke all on public.coleccion from anon, authenticated;
 grant select, insert, delete on public.coleccion to authenticated;
 
--- copias: además, UPDATE solo sobre idioma y condicion, así ni
--- siquiera se puede intentar mover una copia a otra carta.
+-- copias: además, UPDATE solo sobre los datos de la copia (idioma,
+-- condición, acabado y sello), así ni siquiera se puede intentar mover
+-- una copia a otra carta.
 revoke all on public.copias from anon, authenticated;
 grant select, insert, delete on public.copias to authenticated;
-grant update (idioma, condicion) on public.copias to authenticated;
+grant update (idioma, condicion, acabado, sello) on public.copias to authenticated;
 
 -- objetivos: leer, seguir y dejar de seguir
 revoke all on public.objetivos from anon, authenticated;

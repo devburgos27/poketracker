@@ -299,10 +299,19 @@
           <button id="detalle-anterior" type="button" class="boton boton--icono detalle__flecha detalle__flecha--anterior"
                   aria-label="Carta anterior" hidden><span aria-hidden="true">‹</span></button>
           <div class="detalle__imagen">
-            <img id="detalle-imagen" src="" alt="">
-            <!-- Recuadro con forma de carta: nombre, número y expansión (lo llena ui.js) -->
-            <div id="detalle-sin-imagen" class="carta__sin-imagen respaldo" hidden></div>
+            <div class="detalle__marco">
+              <img id="detalle-imagen" src="" alt="">
+              <!-- Recuadro con forma de carta: nombre, número y expansión (lo llena ui.js) -->
+              <div id="detalle-sin-imagen" class="carta__sin-imagen respaldo" hidden></div>
+              <!-- Vista por acabado: efecto CSS sobre la misma imagen (no es una foto) -->
+              <div id="detalle-efecto" class="efecto" aria-hidden="true" hidden></div>
+              <p id="detalle-efecto-etiqueta" class="efecto__etiqueta" hidden></p>
+            </div>
             <p id="detalle-imagen-nota" class="carta__idioma" hidden></p>
+            <!-- Acabados registrados en tus copias (lo llena ui.js) -->
+            <fieldset id="detalle-acabados" class="acabados" hidden>
+              <legend class="visualmente-oculto">Ver la carta con el acabado</legend>
+            </fieldset>
           </div>
           <button id="detalle-siguiente" type="button" class="boton boton--icono detalle__flecha detalle__flecha--siguiente"
                   aria-label="Carta siguiente" hidden><span aria-hidden="true">›</span></button>
@@ -325,6 +334,7 @@
               <output id="copias-cantidad" class="contador__numero" aria-live="polite">0</output>
               <button id="copias-sumar" type="button" class="boton boton--icono" aria-label="Agregar una copia" data-foco="sumar">+</button>
             </div>
+            <p id="copias-resumen" class="copias__resumen" hidden></p>
             <p id="estado-detalle" class="mensaje" role="status" hidden></p>
             <ol id="lista-copias" class="copias"></ol>
           </section>

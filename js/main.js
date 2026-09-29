@@ -565,7 +565,7 @@ formColeccion.addEventListener('submit', (e) => {
 // igual que Tengo / Me falta en las tarjetas.
 
 /** Copia que se muestra pero aún no existe en la base. */
-const copiaSinGuardar = () => ({ id: null, idioma: null, condicion: null });
+const copiaSinGuardar = () => ({ id: null, idioma: null, condicion: null, acabado: null, sello: false });
 
 let detalle = null; // { carta, indice, copias, cambio, cerrado } de la carta abierta
 
@@ -696,7 +696,8 @@ async function guardarCopias(d, antes, nuevas, guardar) {
     d.copias = (await guardar()) ?? nuevas;
     d.cambio = true;
     const guardada = misCartas?.get(d.carta.id);
-    if (guardada) guardada.copias = d.copias.length;
+    // Cantidad y acabados de la carta (×N e insignia de Colección)
+    if (guardada) Object.assign(guardada, { copias: d.copias.length, ...coleccion.resumenAcabados(d.copias) });
     if (d.cerrado) redibujarPantalla(); // se cerró o se pasó a otra carta mientras guardaba
   } catch (error) {
     console.error(error);
@@ -751,7 +752,7 @@ function quitarCopia(copia) {
   cambiarCopias(nuevas, () => coleccion.quitarCopia(copia.id));
 }
 
-/** Cambia idioma o condición de una copia (valor null = sin indicar). */
+/** Cambia idioma, condición, acabado (null = sin indicar) o sello de una copia. */
 function cambiarDatoCopia(copia, campo, valor) {
   const d = detalle;
   const editada = { ...copia, [campo]: valor };

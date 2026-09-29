@@ -14,13 +14,19 @@ import { supabase } from './supabase.js';
 // Código de Postgres para "fila duplicada" (unique violation)
 const YA_EXISTE = '23505';
 
-// Columnas necesarias para dibujar una carta guardada.
-// copias(count) cuenta las copias en la misma consulta (sin pedir
-// una consulta por carta).
-const COLUMNAS_CARTA = 'id, id_carta, nombre_pokemon, nombre_set, numero, imagen_url, set_id, copias(count)';
+// Acabado y sello de cada copia, en la misma consulta que la carta (sin
+// un pedido por carta): con ellos se cuentan las copias y se arma la
+// insignia de acabados de Colección. Requiere la migración 006.
+const COPIAS_RESUMEN = 'copias(acabado, sello)';
+
+// Columnas necesarias para dibujar una carta guardada
+const COLUMNAS_CARTA = `id, id_carta, nombre_pokemon, nombre_set, numero, imagen_url, set_id, ${COPIAS_RESUMEN}`;
 
 // Columnas de una copia
-const COLUMNAS_COPIA = 'id, idioma, condicion';
+const COLUMNAS_COPIA = 'id, idioma, condicion, acabado, sello';
+
+// Orden en que se muestran los acabados (igual al check de la base)
+export const ACABADOS = ['normal', 'holo', 'reverse', 'pokeball', 'masterball', 'otro'];
 
 // Máximo de copias por carta (lo impone la base de datos, migración 005)
 export const MAX_COPIAS = 99;
@@ -63,14 +69,28 @@ async function traerTodas(crearConsulta) {
  * entre la migración y el deploy) cuenta como 1 copia.
  */
 function contarCopias(fila) {
-  return Math.max(1, fila.copias?.[0]?.count ?? 0);
+  return Math.max(1, fila.copias?.length ?? 0);
+}
+
+/**
+ * Acabados registrados en unas copias (sin repetir, en el orden de
+ * ACABADOS) y si alguna tiene sello. Las copias sin acabado no cuentan.
+ * @param {Array<{acabado?: string|null, sello?: boolean}>} copias
+ * @returns {{acabados: string[], sello: boolean}}
+ */
+export function resumenAcabados(copias) {
+  const presentes = new Set(copias.map((c) => c.acabado).filter(Boolean));
+  return {
+    acabados: ACABADOS.filter((a) => presentes.has(a)),
+    sello: copias.some((c) => c.sello),
+  };
 }
 
 /**
  * Lo que la app recuerda de cada carta guardada (en misCartas).
  * setId y nombreSet sirven para sugerir expansiones; '' en filas
- * antiguas sin set_id.
- * @returns {{filaId: number, copias: number, setId: string, nombreSet: string}}
+ * antiguas sin set_id. acabados y sello, para la insignia de Colección.
+ * @returns {{filaId: number, copias: number, setId: string, nombreSet: string, acabados: string[], sello: boolean}}
  */
 function guardadaDe(fila) {
   return {
@@ -78,18 +98,19 @@ function guardadaDe(fila) {
     copias: contarCopias(fila),
     setId: fila.set_id ?? '',
     nombreSet: fila.nombre_set ?? '',
+    ...resumenAcabados(fila.copias ?? []),
   };
 }
 
 /**
  * Todas las cartas que tiene el usuario: id de carta → fila, copias y set.
  * Paginada: el progreso de los objetivos depende de que esté completa.
- * @returns {Promise<Map<string, {filaId: number, copias: number, setId: string, nombreSet: string}>>}
+ * @returns {Promise<Map<string, {filaId: number, copias: number, setId: string, nombreSet: string, acabados: string[], sello: boolean}>>}
  */
 export async function cargarMisCartas() {
   const filas = await traerTodas(() => supabase
     .from('coleccion')
-    .select('id, id_carta, set_id, nombre_set, copias(count)', { count: 'exact' })
+    .select(`id, id_carta, set_id, nombre_set, ${COPIAS_RESUMEN}`, { count: 'exact' })
     .order('id'));
   return new Map(filas.map((fila) => [fila.id_carta, guardadaDe(fila)]));
 }
@@ -139,8 +160,8 @@ export async function listarRecientes(cantidad) {
 
 /**
  * Convierte una fila de la tabla al formato "carta" de la app.
- * Además trae "guardada" ({ filaId, copias, setId, nombreSet }) para
- * saber cuántas copias tiene sin otra consulta.
+ * Además trae "guardada" ({ filaId, copias, setId, nombreSet, acabados,
+ * sello }) para saber cuántas copias tiene sin otra consulta.
  */
 function adaptarFila(fila) {
   // Se guarda la imagen chica (low.webp); la grande sale cambiando el sufijo
@@ -165,7 +186,7 @@ function adaptarFila(fila) {
  * Se copian nombre, set, número e imagen para poder mostrar la
  * colección sin volver a la API.
  *
- * @returns {Promise<{filaId: number, copias: number, setId: string, nombreSet: string}>}
+ * @returns {Promise<{filaId: number, copias: number, setId: string, nombreSet: string, acabados: string[], sello: boolean}>}
  */
 export async function marcarTengo(carta) {
   const { data, error } = await supabase
@@ -192,14 +213,14 @@ export async function marcarTengo(carta) {
   } catch (errorCopia) {
     console.error('No se pudo crear la primera copia:', errorCopia);
   }
-  return { filaId: data.id, copias: 1, setId: carta.setId ?? '', nombreSet: carta.nombreSet ?? '' };
+  return { filaId: data.id, copias: 1, setId: carta.setId ?? '', nombreSet: carta.nombreSet ?? '', acabados: [], sello: false };
 }
 
 /** Fila, copias y set de una carta que ya está en la colección. */
 async function buscarMiCarta(idCarta) {
   const { data, error } = await supabase
     .from('coleccion')
-    .select('id, set_id, nombre_set, copias(count)')
+    .select(`id, set_id, nombre_set, ${COPIAS_RESUMEN}`)
     .eq('id_carta', idCarta)
     .single();
   if (error) throw error;
@@ -234,7 +255,7 @@ export async function listarCopias(filaId) {
  * Agrega copias a una carta de la colección.
  * @param {number} filaId
  * @param {number} cantidad
- * @param {{idioma?: string|null, condicion?: string|null}} [datos]  para todas las copias nuevas
+ * @param {{idioma?: string|null, condicion?: string|null, acabado?: string|null, sello?: boolean}} [datos]  para todas las copias nuevas
  * @returns {Promise<Array<{id: number, idioma: string|null, condicion: string|null}>>}
  */
 export async function agregarCopias(filaId, cantidad, datos = {}) {
@@ -247,9 +268,9 @@ export async function agregarCopias(filaId, cantidad, datos = {}) {
 }
 
 /**
- * Cambia idioma y/o condición de una copia (null = sin indicar).
+ * Cambia idioma, condición, acabado (null = sin indicar) o sello de una copia.
  * @param {number} id
- * @param {{idioma?: string|null, condicion?: string|null}} cambios
+ * @param {{idioma?: string|null, condicion?: string|null, acabado?: string|null, sello?: boolean}} cambios
  */
 export async function actualizarCopia(id, cambios) {
   const { data, error } = await supabase.from('copias').update(cambios).eq('id', id).select('id');

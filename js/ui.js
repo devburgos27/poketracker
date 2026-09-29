@@ -330,7 +330,8 @@ export function errorColeccion(alReintentar) {
 
 /** Dibuja las cartas de "Mi colección" (mismos parámetros que mostrarCartas). */
 export function mostrarColeccion(cartas, marcado, textoVacio) {
-  dibujarGrilla($('#grilla-coleccion'), cartas, marcado, textoVacio);
+  // Solo en Colección: insignia con los acabados de tus copias
+  dibujarGrilla($('#grilla-coleccion'), cartas, marcado, textoVacio, { acabados: true });
 }
 
 // --- Grilla de cartas -----------------------------------------
@@ -349,7 +350,7 @@ export function mostrarCartas(cartas, marcado = null, textoVacio = '') {
   dibujarGrilla($('#grilla'), cartas, marcado, textoVacio);
 }
 
-function dibujarGrilla(grilla, cartas, marcado, textoVacio) {
+function dibujarGrilla(grilla, cartas, marcado, textoVacio, opciones = {}) {
   if (cartas.length === 0 && textoVacio) {
     const vacio = document.createElement('p');
     vacio.className = 'vacio grilla__vacio';
@@ -357,29 +358,66 @@ function dibujarGrilla(grilla, cartas, marcado, textoVacio) {
     grilla.replaceChildren(vacio);
     return;
   }
-  grilla.replaceChildren(...cartas.map((carta) => crearTarjeta(carta, marcado, cartas)));
+  grilla.replaceChildren(...cartas.map((carta) => crearTarjeta(carta, marcado, cartas, opciones)));
+}
+
+/**
+ * Textos de la insignia de acabados: corto ("Reverse +1 · Sello") y
+ * largo, para lectores de pantalla ("acabados: Reverse holo, Holo; con
+ * sello"). "Normal" no se muestra: es lo común. null si no hay nada.
+ */
+function textoAcabados(guardada) {
+  const especiales = (guardada?.acabados ?? []).filter((a) => a !== 'normal');
+  const sello = Boolean(guardada?.sello);
+  if (!especiales.length && !sello) return null;
+  const corto = [];
+  const largo = [];
+  if (especiales.length) {
+    corto.push(ACABADOS_CORTOS[especiales[0]] + (especiales.length > 1 ? ` +${especiales.length - 1}` : ''));
+    largo.push(`acabados: ${especiales.map((a) => ACABADOS[a]).join(', ')}`);
+  }
+  if (sello) {
+    corto.push('Sello');
+    largo.push('con sello');
+  }
+  return { corto: corto.join(' · '), largo: largo.join('; ') };
 }
 
 /**
  * Crea la tarjeta de una carta.
  * @param {Array} lista  las cartas de la grilla, tal como se ven: el
  *   detalle las recorre con "anterior" / "siguiente"
+ * @param {{acabados?: boolean}} [opciones]  acabados: insignia con los
+ *   acabados y el sello de tus copias (Colección)
  */
-function crearTarjeta(carta, marcado, lista) {
+function crearTarjeta(carta, marcado, lista, opciones = {}) {
   const tarjeta = document.createElement('article');
   tarjeta.className = 'carta';
   tarjeta.dataset.id = carta.id;
-  const copias = marcado?.misCartas.get(carta.id)?.copias ?? 0;
+  const guardada = marcado?.misCartas.get(carta.id);
+  const copias = guardada?.copias ?? 0;
+  const acabados = opciones.acabados ? textoAcabados(guardada) : null;
 
   // Botón con la imagen: abre el detalle de la carta
   const boton = document.createElement('button');
   boton.type = 'button';
   boton.className = 'carta__imagen';
-  const etiquetaCopias = copias > 1 ? ` (${copias} copias)` : '';
-  boton.setAttribute('aria-label', `Ver detalle de ${carta.nombre}${etiquetaCopias}`);
+  const extras = [copias > 1 ? `${copias} copias` : '', acabados?.largo ?? ''].filter(Boolean);
+  const etiquetaExtras = extras.length ? ` (${extras.join('; ')})` : '';
+  boton.setAttribute('aria-label', `Ver detalle de ${carta.nombre}${etiquetaExtras}`);
   boton.addEventListener('click', () => alAbrirCarta(carta, lista));
 
   ponerImagenTarjeta(boton, tarjeta, carta);
+
+  // "Reverse · Sello" sobre la imagen: acabados especiales y sello de
+  // tus copias (el lector de pantalla lo oye en la etiqueta del botón)
+  if (acabados) {
+    const insignia = document.createElement('span');
+    insignia.className = 'carta__acabado';
+    insignia.setAttribute('aria-hidden', 'true');
+    insignia.textContent = acabados.corto;
+    boton.append(insignia);
+  }
 
   // "×2" sobre la imagen cuando hay más de una copia
   // (el lector de pantalla ya lo oye en la etiqueta del botón)
@@ -609,6 +647,16 @@ const IDIOMAS = {
 };
 const CONDICIONES = {
   NM: 'Excelente', LP: 'Muy buena', MP: 'Buena', HP: 'Regular', DMG: 'Dañada',
+};
+// Acabados, en el orden de la base de datos (coleccion.ACABADOS)
+const ACABADOS = {
+  normal: 'Normal', holo: 'Holo', reverse: 'Reverse holo',
+  pokeball: 'Reverse Poké Ball', masterball: 'Reverse Master Ball', otro: 'Otro',
+};
+// Versión corta, para la insignia de la miniatura
+const ACABADOS_CORTOS = {
+  normal: 'Normal', holo: 'Holo', reverse: 'Reverse',
+  pokeball: 'Poké Ball', masterball: 'Master Ball', otro: 'Otro acabado',
 };
 
 let alAbrirCarta = () => {};
@@ -863,6 +911,7 @@ export function conservarFocoDetalle() {
 }
 
 function mostrarCartaDetalle(carta, posicion) {
+  acabadoVisto = null; // cada carta parte con su primer acabado registrado
   cargarImagenDetalle(carta);
   mostrarDatosDetalle(carta);
   mostrarPosicion(posicion);
@@ -932,6 +981,10 @@ export function mostrarCopias(copias, ocupado = false) {
   $('#copias-restar').disabled = ocupado || cargando || cantidad === 0;
   $('#copias-sumar').disabled = ocupado || cargando;
 
+  if (cargando) mostrarResumenCopias([]);
+  else mostrarResumenCopias(copias);
+  mostrarVistasAcabado(cargando ? [] : copias);
+
   const lista = $('#lista-copias');
   if (cargando) {
     lista.replaceChildren();
@@ -972,9 +1025,113 @@ function crearFilaCopia(copia, indice, ocupado) {
     titulo,
     crearSelector('Idioma', 'idioma', IDIOMAS, copia, indice, ocupado),
     crearSelector('Condición', 'condicion', CONDICIONES, copia, indice, ocupado),
+    crearSelector('Acabado', 'acabado', ACABADOS, copia, indice, ocupado),
+    crearCasillaSello(copia, indice, ocupado),
     quitar,
   );
   return fila;
+}
+
+// --- Detalle: vista por acabado ---------------------------------
+// Si tus copias tienen acabado, bajo la imagen aparece un botón por
+// cada acabado registrado. Elegir uno superpone un efecto CSS propio
+// sobre la misma imagen (brillo metálico en holo y reverse; círculos y
+// destellos en Poké Ball y Master Ball), con una etiqueta que dice que
+// es una simulación. No son fotos de esa versión de la carta.
+
+// Acabados con efecto; "normal" y "otro" solo muestran la etiqueta
+const EFECTOS = new Set(['holo', 'reverse', 'pokeball', 'masterball']);
+
+let acabadoVisto = null;    // acabado elegido en la carta abierta
+let acabadosMostrados = ''; // los botones dibujados ("normal,reverse")
+
+function mostrarVistasAcabado(copias) {
+  const registrados = Object.keys(ACABADOS).filter((a) => copias.some((c) => c.acabado === a));
+  if (!registrados.includes(acabadoVisto)) acabadoVisto = registrados[0] ?? null;
+
+  const grupo = $('#detalle-acabados');
+  grupo.hidden = registrados.length === 0;
+  // Solo se vuelven a dibujar si cambió qué acabados hay: así el foco
+  // no se pierde al guardar un cambio de copias
+  const clave = registrados.join(',');
+  if (clave !== acabadosMostrados) {
+    acabadosMostrados = clave;
+    grupo.replaceChildren(grupo.querySelector('legend'), ...registrados.map((acabado) => {
+      const label = document.createElement('label');
+      label.className = 'acabados__opcion';
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.name = 'detalle-acabado';
+      radio.value = acabado;
+      radio.className = 'visualmente-oculto';
+      radio.addEventListener('change', () => {
+        acabadoVisto = acabado;
+        aplicarEfecto();
+      });
+      const texto = document.createElement('span');
+      texto.textContent = ACABADOS[acabado];
+      label.append(radio, texto);
+      return label;
+    }));
+  }
+  grupo.querySelectorAll('input').forEach((radio) => { radio.checked = radio.value === acabadoVisto; });
+  aplicarEfecto();
+}
+
+function aplicarEfecto() {
+  const efecto = $('#detalle-efecto');
+  const etiqueta = $('#detalle-efecto-etiqueta');
+  const conEfecto = EFECTOS.has(acabadoVisto);
+  efecto.hidden = !conEfecto;
+  efecto.dataset.acabado = conEfecto ? acabadoVisto : '';
+  // La etiqueta aparece con cualquier acabado distinto de normal; con
+  // "otro" no hay efecto, así que no dice "Simulación"
+  etiqueta.hidden = !acabadoVisto || acabadoVisto === 'normal';
+  const prefijo = conEfecto ? 'Simulación' : 'Acabado';
+  etiqueta.textContent = etiqueta.hidden ? '' : `${prefijo}: ${ACABADOS[acabadoVisto]}`;
+}
+
+/** Casilla "Sello promocional" de una copia. */
+function crearCasillaSello(copia, indice, ocupado) {
+  const label = document.createElement('label');
+  label.className = 'copia__sello';
+  const casilla = document.createElement('input');
+  casilla.type = 'checkbox';
+  casilla.checked = Boolean(copia.sello);
+  casilla.disabled = ocupado;
+  casilla.dataset.foco = `sello-${indice}`;
+  casilla.addEventListener('change', () => accionesCopias.alCambiar(copia, 'sello', casilla.checked));
+  const texto = document.createElement('span');
+  texto.textContent = 'Sello promocional';
+  label.append(casilla, texto);
+  return label;
+}
+
+/**
+ * "Acabados: 1 Normal, 2 Reverse holo, 1 sin indicar · Con sello: 1".
+ * Solo si alguna copia tiene acabado o sello.
+ */
+function mostrarResumenCopias(copias) {
+  const resumen = $('#copias-resumen');
+  const conAcabado = copias.filter((c) => c.acabado);
+  const conSello = copias.filter((c) => c.sello).length;
+  resumen.hidden = conAcabado.length === 0 && conSello === 0;
+  if (resumen.hidden) {
+    resumen.textContent = '';
+    return;
+  }
+  const partes = [];
+  if (conAcabado.length) {
+    const cuentas = Object.keys(ACABADOS)
+      .map((a) => [a, copias.filter((c) => c.acabado === a).length])
+      .filter(([, n]) => n > 0)
+      .map(([a, n]) => `${n} ${ACABADOS[a]}`);
+    const sinIndicar = copias.length - conAcabado.length;
+    if (sinIndicar) cuentas.push(`${sinIndicar} sin indicar`);
+    partes.push(`Acabados: ${cuentas.join(', ')}`);
+  }
+  if (conSello) partes.push(`Con sello: ${conSello}`);
+  resumen.textContent = partes.join(' · ');
 }
 
 /** Un <select> con "Sin indicar" y las opciones en español. */
