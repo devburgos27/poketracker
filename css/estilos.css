@@ -769,14 +769,14 @@ select:disabled { opacity: 0.6; }
   background: var(--superficie-2);
 }
 
-/* Anterior / siguiente: a los lados de la imagen y "3 de 20" debajo;
-   en móvil, las flechas van bajo la imagen (ver el final del archivo) */
+/* Anterior / siguiente: bajo la imagen, a los lados de "3 de 20".
+   En escritorio con espacio, las flechas van fuera del panel (ver abajo) */
 .detalle__visor {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas:
-    "anterior imagen siguiente"
-    ".        posicion .";
+    "imagen   imagen   imagen"
+    "anterior posicion siguiente";
   align-items: center;
   gap: var(--esp-2);
 }
@@ -791,6 +791,67 @@ select:disabled { opacity: 0.6; }
   margin: 0;
   text-align: center;
   color: var(--texto-suave);
+}
+
+/* Escritorio con espacio (el panel de 820 px más un canal de 72 px a
+   cada lado): las flechas van fuera del panel, sobre el fondo
+   oscurecido y centradas respecto a él. El <dialog> se ensancha y queda
+   transparente: el panel visible pasa a ser .detalle__contenido (fondo,
+   bordes y desplazamiento). Las flechas se ubican respecto al <dialog>,
+   así el desplazamiento del panel no las recorta ni las mueve. Un clic en
+   los canales no cierra el detalle (ver ui.js: solo cierra fuera del
+   <dialog>). Más angosto, quedan bajo la imagen, como en móvil. */
+@media (min-width: 900px) {
+  .detalle {
+    --canal-flecha: calc(56px + var(--esp-4));
+    width: min(96vw, calc(820px + 2 * var(--canal-flecha)));
+    padding-inline: var(--canal-flecha);
+    background: transparent;
+    border-radius: 0;
+    overflow: visible;
+  }
+  .detalle__contenido {
+    max-height: 92vh;
+    overflow: auto;
+    background: var(--superficie);
+    border-radius: var(--radio-l);
+  }
+  .detalle__visor {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "imagen"
+      "posicion";
+  }
+  .detalle__flecha {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    font-size: var(--texto-xl);
+    /* Relleno del panel (se distingue en tema claro) y borde claro (en oscuro) */
+    background: var(--superficie);
+    color: var(--texto);
+    box-shadow: inset 0 0 0 2px var(--texto-suave);
+  }
+  .detalle__flecha--anterior { left: 0; }
+  .detalle__flecha--siguiente { right: 0; }
+  .detalle__flecha:hover:not(:disabled) {
+    background: var(--superficie-2);
+    color: var(--marca-texto);
+    box-shadow: inset 0 0 0 2px var(--marca-texto);
+  }
+  /* El foco del tema claro (azul) casi no se ve sobre el fondo
+     oscurecido: un halo del color del panel lo separa */
+  .detalle__flecha:focus-visible {
+    outline-offset: 3px;
+    box-shadow: inset 0 0 0 2px var(--texto-suave), 0 0 0 3px var(--superficie);
+  }
+  .detalle__flecha:focus-visible:hover:not(:disabled) {
+    box-shadow: inset 0 0 0 2px var(--marca-texto), 0 0 0 3px var(--superficie);
+  }
+  .detalle__flecha:disabled { opacity: 0.4; }
 }
 
 /* Al pasar a otra carta: aparece suave (0 ms con prefers-reduced-motion) */

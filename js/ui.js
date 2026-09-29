@@ -634,7 +634,13 @@ export function prepararDetalle(acciones) {
   const dialogo = $('#dialogo-carta');
   $('#dialogo-cerrar').addEventListener('click', () => dialogo.close());
   dialogo.addEventListener('click', (e) => {
-    if (e.target === dialogo) dialogo.close(); // clic fuera del contenido
+    // Clic en el fondo oscurecido: fuera del rectángulo del <dialog>. En
+    // escritorio el <dialog> incluye los canales de las flechas, a los
+    // lados del panel: un clic ahí (junto a una flecha) no lo cierra.
+    if (e.target !== dialogo) return;
+    const r = dialogo.getBoundingClientRect();
+    const dentro = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (!dentro) dialogo.close();
   });
   dialogo.addEventListener('close', acciones.alCerrar);
   $('#copias-sumar').addEventListener('click', acciones.alSumar);
