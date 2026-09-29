@@ -18,7 +18,7 @@ No hay servidor propio ni paso de compilación: es un sitio estático.
 - **Colección:** bajo cada carta hay botones **Tengo** / **Me falta**. Al tocar una carta se abre su detalle, donde se registran las copias (cantidad, y opcionalmente idioma y condición de cada una). En Supabase se guardan **solo las cartas que el usuario tiene**. "Me falta" se calcula comparando las cartas de la API con las guardadas, así que los resultados de una búsqueda se pueden filtrar en "Todas", "Tengo" y "Me falta". También se puede buscar por el número impreso en la carta: `Pikachu 025` (nombre y número) o `025/182` (número y total del set). Al final se puede agregar parte del nombre de la expansión (`Pikachu 025 wizards`, `joltik phantom forces`), y queda aplicada en el filtro de expansión. Los resultados se pueden filtrar por expansión y rareza, y ordenar por fecha, número, nombre o rareza; todo en el navegador y guardado en la URL, así un enlace compartido abre con los mismos filtros. La pestaña **Mi colección** lista todas tus cartas y se puede filtrar por Pokémon y por expansión, y ordenar.
 - **Navegación:** cuatro pantallas (Inicio, Buscar, Colección y Progreso) con rutas en el hash (`#/buscar?q=joltik`), así el botón Atrás, recargar y compartir un enlace funcionan sin servidor. En móvil la navegación es una barra inferior.
 - **Progreso:** puedes seguir un Pokémon (todas sus cartas, por número de Pokédex) o una expansión, y ver cuántas tienes con una barra de progreso. La lista de cartas de cada objetivo viene de TCGdex y se guarda un día en el navegador. Inicio muestra tus 3 objetivos más recientes. Si todavía no sigues nada, la app te sugiere las expansiones y los Pokémon de los que más cartas tienes (hasta 5), y los puedes seguir con un toque.
-- **Cartas sin imagen:** cerca del 7 % de las cartas no tienen imagen en TCGdex. Para esas, la app usa la misma carta en [pokemontcg.io](https://pokemontcg.io) o, si no está, la versión en otro idioma de TCGdex (con la etiqueta "Imagen en español"). Si no hay en ninguna, muestra un recuadro con el nombre, el número y la expansión.
+- **Cartas sin imagen:** cerca del 7 % de las cartas no tienen imagen en TCGdex. Para esas, la app usa la misma carta en [pokemontcg.io](https://pokemontcg.io) o, si no está, la versión de TCGdex en otro idioma con los mismos ids de carta (español, francés, italiano, alemán, portugués…), con una etiqueta como "Imagen en español". Si no hay en ninguna, muestra un recuadro con el nombre, el número y la expansión.
 - **Usuarios:** login con Google (Supabase Auth). Es la única forma de entrar: la app no maneja contraseñas.
 - **Tema claro y oscuro:** sigue la preferencia del sistema y se puede cambiar con el botón ☀️/🌙 de la cabecera; la elección se guarda en el navegador.
 - **Seguridad:** reglas RLS en la base de datos garantizan que cada usuario solo pueda ver y modificar sus propias cartas (ver `sql/schema.sql`).
@@ -42,9 +42,9 @@ js/
   filtros.js    filtros por expansión y rareza, y orden (Buscar y Colección)
   imagenes.js   imágenes de respaldo para cartas sin imagen en TCGdex
 datos/
-  imagenes-alternativas.json  lista de imágenes de respaldo (generada)
+  imagenes-alternativas.json  imágenes de respaldo en pokemontcg.io (generada, fija)
 herramientas/
-  generar-imagenes.mjs  regenera la lista de imágenes de respaldo
+  generar-imagenes.mjs  generó la lista de pokemontcg.io (no hace falta volver a correrlo)
   ui.js         todo lo que se dibuja en pantalla
   main.js       punto de entrada
 sql/
@@ -63,17 +63,15 @@ Para usar tu propio proyecto de Supabase: ejecuta `sql/schema.sql` en el SQL Edi
 
 ## Imágenes de respaldo
 
-`datos/imagenes-alternativas.json` dice qué cartas sin imagen en TCGdex tienen una en pokemontcg.io o en otro idioma de TCGdex. La app lo descarga solo cuando aparece una carta sin imagen. Se genera con un script, porque pokemontcg.io responde con un reverso de carta (y no con un error) cuando una imagen no existe, así que no se puede probar a ciegas desde la app.
+Cerca del 7 % de las cartas no tienen imagen en TCGdex (en inglés). Para esas, la app prueba en este orden:
 
-**Cuándo regenerarlo:** cuando salga una expansión nueva, o si ves cartas nuevas con el recuadro "Sin imagen". Una vez al mes basta.
+1. **pokemontcg.io:** `datos/imagenes-alternativas.json` dice qué cartas tienen imagen allí. Se genera con un script porque pokemontcg.io responde con un reverso de carta (y no con un error) cuando una imagen no existe, así que no se puede probar a ciegas desde la app. La lista es fija: el servicio cierra y no agrega expansiones nuevas.
+2. **TCGdex en otro idioma:** la app pregunta a la API de TCGdex en el momento, por expansión completa (un pedido sirve para todas sus cartas sin imagen), y guarda la respuesta 30 días en el navegador. Usa los idiomas con los mismos ids de carta que el inglés, en este orden: español, francés, italiano, alemán, portugués, español de México y portugués de Brasil, y se queda con el primero que tenga la imagen. Japonés, coreano y chino tienen otras expansiones y otros ids, así que no se usan.
+3. **Recuadro** con el nombre, el número y la expansión.
 
-**Cómo:** desde la raíz del proyecto, con Node 18 o más nuevo:
+No hay nada que mantener: las cartas nuevas con imagen en otro idioma aparecen solas.
 
-```
-node herramientas/generar-imagenes.mjs
-```
-
-Tarda alrededor de un minuto. Al terminar muestra cuántas cartas tienen respaldo y el tamaño del archivo. Revisa el cambio en `datos/imagenes-alternativas.json` y súbelo junto con el resto. Si la API de pokemontcg.io no responde, el script reintenta 3 veces y se detiene sin tocar el archivo.
+`herramientas/generar-imagenes.mjs` solo sirve para rehacer la lista de pokemontcg.io, algo que ya no hace falta. Se conserva como registro de cómo se armó la lista; cuando pokemontcg.io cierre (anunciado para el 2027-03-01) se pueden borrar el script, la lista y esa opción de `js/imagenes.js`.
 
 ## Créditos
 

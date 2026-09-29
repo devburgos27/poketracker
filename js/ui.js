@@ -410,8 +410,8 @@ function crearTarjeta(carta, marcado) {
 
 // --- Imagen de la carta y respaldo ----------------------------
 // Orden: imagen de TCGdex en inglés → pokemontcg.io → TCGdex en otro
-// idioma (con la etiqueta "Imagen en español") → recuadro con forma de
-// carta. Las alternativas las decide imagenes.js.
+// idioma (con la etiqueta "Imagen en italiano", etc.) → recuadro con
+// forma de carta. Las alternativas las decide imagenes.js.
 
 function crearImg(src, carta) {
   const img = document.createElement('img');
@@ -499,29 +499,34 @@ function ponerImagenTarjeta(boton, tarjeta, carta) {
  * pokemontcg.io, se quita y se prueba la siguiente.
  */
 async function probarAlternativas(boton, tarjeta, carta, respaldo) {
-  const opciones = await imagenes.alternativas(carta);
-  if (!opciones) return; // sin la lista (sin conexión): queda el recuadro
   let falloDeRed = false;
-  for (const alternativa of opciones) {
-    if (!tarjeta.isConnected) return; // la grilla se redibujó
-    const img = crearImg(alternativa.chica, carta);
-    img.classList.add('carta__img-probando');
-    boton.append(img);
-    const resultado = await esperarImagen(img);
-    if (resultado === 'error') falloDeRed = true;
-    if (resultado === 'ok') {
-      img.classList.remove('carta__img-probando');
-      respaldo.remove();
-      if (alternativa.idioma) {
-        const etiqueta = document.createElement('p');
-        etiqueta.className = 'carta__idioma';
-        etiqueta.textContent = textoIdioma(alternativa.idioma);
-        tarjeta.querySelector('.carta__info')?.prepend(etiqueta);
+  try {
+    // La siguiente alternativa se busca solo si la anterior no sirvió
+    for await (const alternativa of imagenes.alternativas(carta)) {
+      if (!tarjeta.isConnected) return; // la grilla se redibujó
+      const img = crearImg(alternativa.chica, carta);
+      img.classList.add('carta__img-probando');
+      boton.append(img);
+      const resultado = await esperarImagen(img);
+      if (resultado === 'error') falloDeRed = true;
+      if (resultado === 'ok') {
+        img.classList.remove('carta__img-probando');
+        respaldo.remove();
+        if (alternativa.idioma) {
+          const etiqueta = document.createElement('p');
+          etiqueta.className = 'carta__idioma';
+          etiqueta.textContent = textoIdioma(alternativa.idioma);
+          tarjeta.querySelector('.carta__info')?.prepend(etiqueta);
+        }
+        imagenes.recordar(carta.id, alternativa);
+        return;
       }
-      imagenes.recordar(carta.id, alternativa);
-      return;
+      img.remove();
     }
-    img.remove();
+  } catch (error) {
+    // No se pudo consultar alguna alternativa (sin conexión): queda el recuadro
+    console.error(error);
+    falloDeRed = true;
   }
   // Si alguna falló por la red, no se anota como "sin imagen": al
   // redibujar (o en el detalle) se vuelve a probar
@@ -683,22 +688,27 @@ async function cargarImagenDetalle(carta) {
     return;
   }
   mostrarSinImagen();
-  const opciones = await imagenes.alternativas(carta);
   let falloDeRed = false;
-  for (const alternativa of opciones ?? []) {
-    const chica = new Image();
-    chica.src = alternativa.chica;
-    const resultado = await esperarImagen(chica);
-    if (pedido !== imagenPedida) return; // se abrió otra carta
-    if (resultado === 'error') falloDeRed = true;
-    if (resultado !== 'ok') continue; // falló (con reintento) o es el reverso: la siguiente
-    imagenes.recordar(carta.id, alternativa);
-    mostrarImagen(chica.src); // ya está en caché (con ?reintento=1 si hizo falta)
-    mostrarNotaImagen(alternativa.idioma);
-    cargarGrande(alternativa.grande, pedido);
-    return;
+  try {
+    for await (const alternativa of imagenes.alternativas(carta)) {
+      if (pedido !== imagenPedida) return; // se abrió otra carta
+      const chica = new Image();
+      chica.src = alternativa.chica;
+      const resultado = await esperarImagen(chica);
+      if (pedido !== imagenPedida) return;
+      if (resultado === 'error') falloDeRed = true;
+      if (resultado !== 'ok') continue; // falló (con reintento) o es el reverso: la siguiente
+      imagenes.recordar(carta.id, alternativa);
+      mostrarImagen(chica.src); // ya está en caché (con ?reintento=1 si hizo falta)
+      mostrarNotaImagen(alternativa.idioma);
+      cargarGrande(alternativa.grande, pedido);
+      return;
+    }
+  } catch (error) {
+    console.error(error); // sin conexión: queda el recuadro
+    falloDeRed = true;
   }
-  if (opciones && !falloDeRed) imagenes.recordar(carta.id, null);
+  if (pedido === imagenPedida && !falloDeRed) imagenes.recordar(carta.id, null);
 }
 
 /**
