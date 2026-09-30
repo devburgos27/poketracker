@@ -58,7 +58,7 @@ export function sacarDeGrilla(selector, idCarta) {
  */
 function crearTarjeta(carta, marcado, lista, opciones = {}) {
   const tarjeta = document.createElement('article');
-  tarjeta.className = 'carta';
+  tarjeta.className = 'card carta';
   tarjeta.dataset.id = carta.id;
   const guardada = marcado?.misCartas.get(carta.id);
   const copias = guardada?.copias ?? 0;
@@ -97,7 +97,7 @@ function crearTarjeta(carta, marcado, lista, opciones = {}) {
 
   // Datos de la carta
   const info = document.createElement('div');
-  info.className = 'carta__info';
+  info.className = 'card-body carta__info';
 
   const set = document.createElement('p');
   set.className = 'carta__set';
@@ -154,7 +154,7 @@ async function probarAlternativas(boton, tarjeta, carta, respaldo) {
         respaldo.remove();
         if (alternativa.idioma) {
           const etiqueta = document.createElement('p');
-          etiqueta.className = 'carta__idioma';
+          etiqueta.className = 'carta__idioma badge badge--idioma';
           etiqueta.textContent = textoIdioma(alternativa.idioma);
           tarjeta.querySelector('.carta__info')?.prepend(etiqueta);
         }

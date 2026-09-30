@@ -25,6 +25,7 @@ estado.cargandoSesion = hayTokenEnUrl() || haySesionGuardada();
 
 busqueda.preparar();
 ui.prepararSelectorTema();
+ui.prepararMenuCuenta();
 listas.preparar();
 
 objetivos.preparar({

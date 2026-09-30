@@ -24,6 +24,7 @@ export {
   activarBotonesGoogle,
   mensajeLogin,
   prepararSelectorTema,
+  prepararMenuCuenta,
   mostrarVista,
   enfocarTitulo,
   actualizarEnlaces,

@@ -94,16 +94,25 @@
 
       <!-- Sesión: botón de Google o usuario conectado -->
       <div class="sesion">
+        <!-- En móvil queda solo el logo "G" (la etiqueta sigue siendo "Entrar con Google") -->
         <div id="login" data-solo="visitante">
-          <button type="button" class="btn btn-google" data-accion="google">
+          <button type="button" class="btn btn-google sesion__google" data-accion="google" aria-label="Entrar con Google">
             <svg width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
-            Entrar con Google
+            <span class="sesion__google-texto">Entrar con Google</span>
           </button>
         </div>
 
+        <!-- Cuenta: la inicial del correo; el menú tiene el correo y "Salir" -->
         <div id="sesion-activa" class="sesion-activa" data-solo="usuario" hidden>
-          <span id="usuario-email" class="sesion-activa__email"></span>
-          <button id="btn-salir" type="button" class="btn btn-link">Salir</button>
+          <button id="btn-cuenta" type="button" class="btn btn-icono cuenta" popovertarget="menu-cuenta"
+                  aria-label="Cuenta" title="Cuenta">
+            <span id="cuenta-inicial" class="cuenta__inicial" aria-hidden="true"></span>
+          </button>
+          <div id="menu-cuenta" class="menu-flotante menu-cuenta" popover>
+            <p class="menu-cuenta__titulo">Conectado como</p>
+            <p id="usuario-email" class="menu-cuenta__email"></p>
+            <button id="btn-salir" type="button" class="btn btn-outline-secondary menu-cuenta__salir">Salir</button>
+          </div>
         </div>
       </div>
 
@@ -114,7 +123,7 @@
         <svg class="selector-tema__sol icono" aria-hidden="true"><use href="#icono-sol"/></svg>
         <svg class="selector-tema__luna icono" aria-hidden="true"><use href="#icono-luna"/></svg>
       </button>
-      <div id="menu-tema" class="menu-tema" popover>
+      <div id="menu-tema" class="menu-flotante menu-tema" popover>
         <fieldset class="menu-tema__grupo">
           <legend class="menu-tema__titulo">Tema</legend>
           <label class="menu-tema__opcion">
@@ -351,7 +360,7 @@
             </div>
             <!-- "Simulación: Reverse holo" bajo la imagen: no tapa su pie -->
             <p id="detalle-efecto-etiqueta" class="efecto__etiqueta badge badge--neutra" hidden></p>
-            <p id="detalle-imagen-nota" class="carta__idioma" hidden></p>
+            <p id="detalle-imagen-nota" class="badge badge--idioma" hidden></p>
             <!-- Acabados registrados en tus copias (lo llena ui.js) -->
             <fieldset id="detalle-acabados" class="acabados" hidden>
               <legend class="visualmente-oculto">Ver la carta con el acabado</legend>
@@ -374,9 +383,9 @@
           <section class="detalle__copias" data-solo="usuario" hidden aria-labelledby="detalle-copias-titulo">
             <h3 id="detalle-copias-titulo">Tus copias</h3>
             <div class="contador" role="group" aria-label="Cantidad de copias">
-              <button id="copias-restar" type="button" class="btn btn-icono" aria-label="Quitar una copia" data-foco="restar">−</button>
+              <button id="copias-restar" type="button" class="btn btn-icono contador__boton" aria-label="Quitar una copia" data-foco="restar">−</button>
               <output id="copias-cantidad" class="contador__numero" aria-live="polite">0</output>
-              <button id="copias-sumar" type="button" class="btn btn-icono" aria-label="Agregar una copia" data-foco="sumar">+</button>
+              <button id="copias-sumar" type="button" class="btn btn-primary contador__boton" aria-label="Agregar una copia" data-foco="sumar">+</button>
             </div>
             <p id="copias-resumen" class="copias__resumen" hidden></p>
             <p id="estado-detalle" class="mensaje" role="status" hidden></p>

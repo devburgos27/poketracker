@@ -17,7 +17,17 @@ export function mostrarSesion(usuario) {
   const conectado = Boolean(usuario);
   document.querySelectorAll('[data-solo="visitante"]').forEach((el) => { el.hidden = conectado; });
   document.querySelectorAll('[data-solo="usuario"]').forEach((el) => { el.hidden = !conectado; });
-  $('#usuario-email').textContent = usuario?.email ?? '';
+  pintarCuenta(usuario?.email ?? '');
+  if (!conectado) cerrarMenuCuenta();
+}
+
+/** Botón de cuenta: la inicial del correo, y el correo en su etiqueta y en el menú. */
+function pintarCuenta(email) {
+  $('#usuario-email').textContent = email;
+  $('#cuenta-inicial').textContent = email.charAt(0);
+  const etiqueta = email ? `Cuenta (${email})` : 'Cuenta';
+  $('#btn-cuenta').setAttribute('aria-label', etiqueta);
+  $('#btn-cuenta').title = etiqueta;
 }
 
 /**
@@ -30,7 +40,7 @@ export function mostrarSesion(usuario) {
 export function mostrarSesionPendiente() {
   document.querySelectorAll('[data-solo="visitante"]').forEach((el) => { el.hidden = true; });
   document.querySelectorAll('[data-solo="usuario"]').forEach((el) => { el.hidden = !el.closest('main'); });
-  $('#usuario-email').textContent = '';
+  pintarCuenta('');
 }
 
 /** Activa o desactiva todos los botones "Entrar con Google". */
@@ -118,7 +128,7 @@ export function prepararSelectorTema() {
   // sin almacenamiento, donde la elección solo vive en esta variable.)
   temaOscuroSistema.addEventListener('change', aplicarTema);
 
-  if ('popover' in HTMLElement.prototype) prepararMenuTema(boton, menu);
+  if (HAY_POPOVER) prepararMenuTema(boton, menu);
   else prepararCicloTema(boton, menu);
   aplicarTema();
 }
@@ -146,13 +156,8 @@ function prepararCicloTema(boton, menu) {
 function prepararMenuTema(boton, menu) {
   let conPuntero = false;
 
-  // Bajo el botón y alineado a su borde derecho (el menú es absoluto
-  // respecto a la página, así se desplaza con ella)
   menu.addEventListener('beforetoggle', (e) => {
-    if (e.newState !== 'open') return;
-    const r = boton.getBoundingClientRect();
-    menu.style.setProperty('--menu-arriba', `${r.bottom + window.scrollY + 6}px`);
-    menu.style.setProperty('--menu-derecha', `${document.documentElement.clientWidth - r.right - window.scrollX}px`);
+    if (e.newState === 'open') ubicarBajo(boton, menu);
   });
   menu.addEventListener('toggle', (e) => {
     if (e.newState === 'open') menu.querySelector('input:checked')?.focus();
@@ -176,6 +181,71 @@ function prepararMenuTema(boton, menu) {
     aplicarTema();
     if (conPuntero) cerrar();
   });
+}
+
+// --- Menús de la cabecera y cuenta ----------------------------
+// Tema y cuenta abren un menú con el atributo popover (Esc y tocar
+// fuera lo cierran; el foco vuelve al botón). Safari de iOS 16 y
+// anteriores y Firefox < 125 no lo tienen: el tema alterna estados
+// (ver arriba) y la cuenta abre y cierra el menú con hidden.
+
+const HAY_POPOVER = 'popover' in HTMLElement.prototype;
+
+/** Ubica un menú bajo su botón, alineado a su borde derecho (absoluto en la página: se desplaza con ella). */
+function ubicarBajo(boton, menu) {
+  const r = boton.getBoundingClientRect();
+  menu.style.setProperty('--menu-arriba', `${r.bottom + window.scrollY + 6}px`);
+  menu.style.setProperty('--menu-derecha', `${document.documentElement.clientWidth - r.right - window.scrollX}px`);
+}
+
+/**
+ * Botón de cuenta (la inicial del correo) y su menú: "Conectado como
+ * …" y "Salir". Al abrirse, el foco va a "Salir".
+ */
+export function prepararMenuCuenta() {
+  const boton = $('#btn-cuenta');
+  const menu = $('#menu-cuenta');
+  if (HAY_POPOVER) {
+    menu.addEventListener('beforetoggle', (e) => {
+      if (e.newState === 'open') ubicarBajo(boton, menu);
+    });
+    menu.addEventListener('toggle', (e) => {
+      if (e.newState === 'open') $('#btn-salir').focus();
+    });
+    return;
+  }
+  // Respaldo sin popover: botón que muestra y oculta el menú con hidden
+  menu.removeAttribute('popover');
+  menu.hidden = true;
+  boton.removeAttribute('popovertarget');
+  boton.setAttribute('aria-expanded', 'false');
+  boton.setAttribute('aria-controls', 'menu-cuenta');
+  boton.addEventListener('click', () => {
+    const abrir = menu.hidden;
+    if (abrir) ubicarBajo(boton, menu);
+    menu.hidden = !abrir;
+    boton.setAttribute('aria-expanded', String(abrir));
+    if (abrir) $('#btn-salir').focus();
+  });
+  menu.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    cerrarMenuCuenta();
+    boton.focus();
+  });
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target) && !boton.contains(e.target)) cerrarMenuCuenta();
+  });
+}
+
+/** Cierra el menú de cuenta (por ejemplo, al salir). */
+function cerrarMenuCuenta() {
+  const menu = $('#menu-cuenta');
+  if (HAY_POPOVER) {
+    menu.hidePopover();
+    return;
+  }
+  menu.hidden = true;
+  $('#btn-cuenta').setAttribute('aria-expanded', 'false');
 }
 
 // --- Navegación -----------------------------------------------

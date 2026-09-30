@@ -34,6 +34,13 @@
   --capa: rgb(233 237 245 / 0.88);  /* fondo de los avisos a pantalla completa */
   --exito-fondo: #ebf6ee;       /* insignia "En tu colección ✓" (texto --exito: 4,87:1) */
   --sombra-menu: 0 12px 32px -12px rgb(18 24 41 / 0.35);
+  --info-fondo: #e3eefa;        /* insignia "Imagen en francés" (texto --info: 5,2:1) */
+  --acento-fondo: #fff4c2;      /* acabado elegido en el detalle */
+  /* Brillo eléctrico: solo en tema oscuro (en claro, sombras neutras) */
+  --brillo-tarjeta: 0 0 0 transparent;
+  --anillo-acabado: 0 0 0 2px var(--marca-texto);
+  --sombra-imagen: 0 18px 36px -20px rgb(18 24 41 / 0.45);
+  --sombra-elevada: 0 14px 30px -14px rgb(18 24 41 / 0.35);
   --brillo-icono: none;
 
   --sombra: 0 1px 2px rgb(18 24 41 / 0.06), 0 4px 12px rgb(18 24 41 / 0.06);
@@ -101,6 +108,12 @@
   --capa: rgb(7 11 24 / 0.82);
   --exito-fondo: #173326;
   --sombra-menu: 0 12px 32px -8px rgb(0 0 0 / 0.6);
+  --info-fondo: #10283f;
+  --acento-fondo: #2e2a14;
+  --brillo-tarjeta: 0 0 0 1px rgb(255 214 10 / 0.55), 0 0 28px rgb(255 214 10 / 0.35);
+  --anillo-acabado: 0 0 0 2px rgb(255 214 10 / 0.7), 0 0 32px rgb(255 214 10 / 0.45);
+  --sombra-imagen: 0 24px 44px -22px rgb(0 0 0 / 0.7);
+  --sombra-elevada: 0 14px 30px -14px rgb(0 0 0 / 0.6);
   --brillo-icono: drop-shadow(0 0 14px rgb(255 214 10 / 0.45));
 
   --sombra: 0 1px 3px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.3);
@@ -455,9 +468,12 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 
 /* --- Cabecera ---------------------------------------------- */
+/* Una sola fila en todos los anchos: logo, (navegación en escritorio),
+   cuenta y tema. Debajo, la línea eléctrica (degradado en el borde) */
 .cabecera {
   background: var(--superficie);
-  border-bottom: 1px solid var(--borde);
+  border-bottom: 2px solid;
+  border-image: linear-gradient(90deg, var(--borde), var(--primario) 30%, #ffb300 50%, var(--primario) 70%, var(--borde)) 1;
   padding-block: var(--esp-3);
 }
 .cabecera__fila {
@@ -489,19 +505,62 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   flex-shrink: 0;
 }
 
-.sesion-activa {
-  display: flex;
-  align-items: center;
-  gap: var(--esp-2);
-  min-width: 0;
-  font-size: var(--texto-s);
+/* Sesión en la cabecera: "Entrar con Google" (en móvil, solo el logo
+   "G", con la etiqueta accesible completa) o el botón de cuenta */
+.sesion { display: flex; align-items: center; }
+.sesion__google { gap: var(--esp-2); }
+.sesion-activa { display: flex; }
+
+/* Botón de cuenta: la inicial del correo en un círculo; abre el menú
+   con el correo y "Salir" */
+.cuenta {
+  --bs-btn-color: var(--texto);
+  --bs-btn-hover-color: var(--texto);
+  --bs-btn-active-color: var(--texto);
+  --bs-btn-bg: var(--superficie-2);
+  --bs-btn-border-color: var(--borde-control);
+  --bs-btn-hover-border-color: var(--borde-control);
+  --bs-btn-active-border-color: var(--borde-control);
+  --bs-btn-font-weight: 800;
 }
-.sesion-activa__email {
+.cuenta__inicial { text-transform: uppercase; }
+
+/* Menús que salen de un botón de la cabecera (tema y cuenta): atributo
+   popover (Esc o tocar fuera los cierran). pagina.js los ubica bajo el
+   botón, alineados a su borde derecho */
+.menu-flotante {
+  position: absolute;
+  inset: auto;
+  top: var(--menu-arriba, 0);
+  right: var(--menu-derecha, 0);
+  z-index: 20;                /* respaldo sin popover: sobre la página */
+  margin: 0;
+  padding: var(--esp-1);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-m);
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: var(--sombra-menu);
+}
+.menu-cuenta {
+  width: max-content;
+  max-width: min(20rem, calc(100vw - 2 * var(--esp-4)));
+  padding: var(--esp-3);
+}
+.menu-cuenta__titulo {
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--texto-suave);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
+.menu-cuenta__email {
+  margin: var(--esp-1) 0 var(--esp-3);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.menu-cuenta__salir { width: 100%; }
 
 /* Tema: el botón muestra el sol o la luna del tema que se ve (también
    en Automático) y abre un menú con Automático / Claro / Oscuro */
@@ -511,20 +570,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 /* Menú (atributo popover: se cierra con Esc o tocando fuera). Lo ubica
    pagina.js bajo el botón, alineado a su borde derecho */
-.menu-tema {
-  position: absolute;
-  inset: auto;
-  top: var(--menu-arriba, 0);
-  right: var(--menu-derecha, 0);
-  margin: 0;
-  min-width: 13rem;
-  padding: var(--esp-1);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-m);
-  background: var(--superficie);
-  color: var(--texto);
-  box-shadow: var(--sombra-menu);
-}
+.menu-tema { min-width: 13rem; }
 .menu-tema__grupo { margin: 0; padding: 0; border: none; min-width: 0; }
 .menu-tema__titulo {
   float: none;
@@ -565,6 +611,9 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
    La "A" marca Automático (texto, no solo el ícono) */
 @supports not selector(:popover-open) {
   .menu-tema { display: none; }
+  /* El de cuenta, hasta que pagina.js le quita el atributo popover y
+     lo abre y cierra con hidden */
+  .menu-cuenta[popover] { display: none; }
 }
 .selector-tema--ciclo { position: relative; }
 .selector-tema--ciclo[data-preferencia="auto"]::after {
@@ -839,15 +888,28 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 .aviso-conexion { padding-top: var(--esp-4); }
 .aviso-conexion .vacio { margin: 0; }
 
+/* Tarjeta de carta: .card de Bootstrap con nuestros tokens. Al pasar el
+   mouse se eleva (con brillo eléctrico solo en tema oscuro) */
 .carta {
-  position: relative;       /* para la insignia ×N */
-  background: var(--superficie);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-l);
+  --bs-card-bg: var(--superficie);
+  --bs-card-border-color: var(--borde);
+  --bs-card-border-radius: var(--radio-l);
+  --bs-card-inner-border-radius: calc(var(--radio-l) - 1px);
+  --bs-card-spacer-y: 0.6rem;
+  --bs-card-spacer-x: 0.75rem;
+  --bs-card-color: var(--texto);
   box-shadow: var(--sombra);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  transition: transform var(--duracion), box-shadow var(--duracion);
+}
+@media (hover: hover) {
+  .carta:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--sombra-elevada), var(--brillo-tarjeta);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .carta:hover { transform: none; }
 }
 
 .carta__imagen {
@@ -884,16 +946,40 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 /* Recuadro de respaldo (sin imagen en ninguna fuente): nombre, número y
    expansión, centrados en el mismo espacio que ocuparía la imagen */
+/* Con identidad (C9): borde fino, un resplandor amarillo arriba y la
+   telaraña con el rayo sobre el nombre */
 .respaldo {
   align-content: center;
   gap: var(--esp-1);
-  background: var(--superficie-2);
+  border: 1px solid var(--borde-control);
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgb(255 214 10 / 0.12), transparent 70%),
+    var(--superficie-2);
   overflow: hidden;
+}
+.respaldo::before {
+  content: "";
+  width: 40%;
+  max-width: 64px;
+  aspect-ratio: 1;
+  margin-bottom: var(--esp-2);
+  background: var(--marca-texto);
+  -webkit-mask: var(--motivo-telarana) center / contain no-repeat;
+  mask: var(--motivo-telarana) center / contain no-repeat;
 }
 .respaldo p { margin: 0; overflow-wrap: anywhere; }
 .respaldo__nombre { color: var(--texto); font-size: var(--texto-s); font-weight: 700; }
 .respaldo__numero { font-variant-numeric: tabular-nums; }
-.respaldo__nota { margin-top: var(--esp-2) !important; font-style: italic; }
+.respaldo__nota {
+  margin-top: var(--esp-2) !important;
+  justify-self: center;
+  padding: 0.15em 0.6em;
+  border-radius: var(--radio-pill);
+  background: var(--superficie);
+  box-shadow: 0 0 0 1px var(--borde);
+  color: var(--texto-suave);
+  font-weight: 700;
+}
 
 /* Imagen de respaldo mientras se prueba: encima del recuadro e invisible
    (así se descarga con la carga diferida, como las demás) */
@@ -906,14 +992,24 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   opacity: 0;
 }
 
-/* "Imagen en español": la imagen es de la carta en otro idioma */
-.carta__idioma {
-  margin: 0;
-  font-size: var(--texto-xs);
-  font-weight: 700;
-  color: var(--texto-suave);
+/* "Imagen en francés": insignia azul (la imagen es de la carta en otro
+   idioma). En la tarjeta va sobre el nombre de la expansión */
+.badge--idioma {
+  --bs-badge-color: var(--info);
+  background: var(--info-fondo);
 }
-#detalle-imagen-nota { margin-top: var(--esp-2); text-align: center; }
+.carta__idioma {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0 0 var(--esp-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#detalle-imagen-nota {
+  display: block;
+  width: fit-content;
+  margin: var(--esp-2) auto 0;
+}
 
 /* "×2": más de una copia. Amarillo con texto oscuro en ambos temas */
 .carta__copias {
@@ -940,7 +1036,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   pointer-events: none;     /* el clic llega a la imagen de abajo */
 }
 
-.carta__info { padding: 0.6rem 0.75rem 0.75rem; }
+/* card-body: el control de colección queda al pie, alineado en toda la fila */
+.carta__info { display: flex; flex-direction: column; }
 .carta__set {
   margin: 0;
   font-size: var(--texto-s);
@@ -966,7 +1063,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   align-items: center;
   justify-content: center;
   min-height: var(--alto-toque);
-  margin-top: 0.6rem;
+  margin-top: auto;
+  padding-top: 0.6rem;
 }
 .marcado__agregar {
   --bs-btn-padding-x: var(--esp-2);
@@ -985,7 +1083,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 /* --- Detalle de carta ------------------------------------- */
 .dialogo {
-  border: none;
+  border: 1px solid var(--borde);
   border-radius: var(--radio-l);
   padding: 0;
   background: var(--superficie);
@@ -1005,7 +1103,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   gap: var(--esp-3);
   margin-bottom: var(--esp-4);
 }
-.detalle__titulo { margin: 0; font-size: var(--texto-l); }
+.detalle__titulo { margin: 0; font-size: 1.5rem; }
 
 /* Imagen a la izquierda y datos a la derecha; en móvil, uno bajo el otro */
 .detalle__cuerpo {
@@ -1023,6 +1121,12 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   object-fit: contain;
   border-radius: var(--radio-m);
   background: var(--superficie-2);
+  box-shadow: var(--sombra-imagen), 0 0 0 1px var(--borde);
+  transition: box-shadow var(--duracion);
+}
+/* Con un acabado simulado: anillo (y en oscuro, brillo) alrededor */
+.detalle__marco:has(.efecto:not([hidden])) img {
+  box-shadow: var(--sombra-imagen), var(--anillo-acabado);
 }
 
 /* Anterior / siguiente: bajo la imagen, a los lados de "3 de 20".
@@ -1066,10 +1170,14 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
     border-radius: 0;
     overflow: visible;
   }
+  .detalle {
+    border: none;
+  }
   .detalle__contenido {
     max-height: 92vh;
     overflow: auto;
     background: var(--superficie);
+    border: 1px solid var(--borde);
     border-radius: var(--radio-l);
   }
   .detalle__visor {
@@ -1228,6 +1336,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 .acabados__opcion:hover { background: var(--superficie-2); color: var(--texto); }
 .acabados__opcion:has(:checked) {
   box-shadow: inset 0 0 0 2px var(--marca-texto);
+  background: var(--acento-fondo);
   color: var(--texto);
 }
 .acabados__opcion:has(:checked) span::before { content: "✓ "; }
@@ -1248,11 +1357,15 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   grid-template-columns: auto 1fr;
   gap: var(--esp-1) var(--esp-4);
   margin: 0 0 var(--esp-5);
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-m);
+  background: var(--superficie-2);
 }
 .detalle__datos dt { color: var(--texto-suave); font-weight: 400; } /* Reboot: dt en negrita */
 .detalle__datos dd { margin: 0; font-weight: 600; }
 
-.detalle__copias h3 { margin: 0 0 var(--esp-3); font-size: var(--texto-m); }
+.detalle__copias h3 { margin: 0 0 var(--esp-3); font-size: 1.1rem; }
 .detalle__aviso { margin: 0; color: var(--texto-suave); }
 
 /* − N + */
@@ -1261,7 +1374,13 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   align-items: center;
   gap: var(--esp-3);
 }
-.contador .btn-icono { --bs-btn-font-size: var(--texto-l); }
+/* − y + cuadrados de 44 px; "+" en amarillo (la acción de la sección) */
+.contador__boton {
+  --bs-btn-padding-x: 0;
+  --bs-btn-padding-y: 0;
+  --bs-btn-font-size: var(--texto-l);
+  width: var(--alto-toque);
+}
 .contador__numero {
   min-width: 2ch;
   font-size: var(--texto-l);
@@ -1276,14 +1395,18 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   margin: var(--esp-4) 0 0;
   padding: 0;
 }
+/* Cada copia es una tarjeta dentro del detalle */
 .copia {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   align-items: end;
   gap: var(--esp-2) var(--esp-3);
-  padding: var(--esp-3) 0;
-  border-top: 1px solid var(--borde);
+  padding: var(--esp-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-m);
+  background: var(--superficie-2);
 }
+.copia + .copia { margin-top: var(--esp-3); }
 .copia__titulo {
   grid-column: 1 / -1;
   font-size: var(--texto-s);
@@ -1693,14 +1816,11 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 
 @media (max-width: 600px) {
-  /* Fila 1: logo + tema. Fila 2: sesión a todo el ancho */
-  .sesion {
-    order: 1;
-    flex-basis: 100%;
-  }
   .btn-google { width: 100%; }
+  /* Cabecera: "Entrar con Google" queda en el logo "G" (44 px) */
+  .sesion__google.btn-google { width: var(--alto-toque); --bs-btn-padding-x: 0; }
+  .sesion__google-texto { display: none; }
   .acciones { flex-direction: column; }
-  .sesion-activa { justify-content: space-between; }
   .grilla {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: var(--esp-3);
