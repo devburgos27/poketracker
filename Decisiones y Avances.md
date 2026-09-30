@@ -3,9 +3,9 @@
 Actualizado: 2026-09-29
 
 ## Decisiones tomadas
-- **Modelo de datos:** en Supabase se guardan SOLO las cartas que el usuario tiene. "Me falta" = cartas de la API − cartas guardadas. Marcar = INSERT, desmarcar = DELETE. Sin columna `estado`.
+- **Modelo de datos:** en Supabase se guardan SOLO las cartas que el usuario tiene. "Me falta" = cartas de la API − cartas guardadas (desde el Bloque 10f es solo una vista, nunca una acción). "Agregar a mi colección" = INSERT, "Quitar de mi colección" = DELETE. Sin columna `estado`.
 - **Copias** (Bloque 6, migración `sql/002_copias.sql`): tabla `copias` con FK a `coleccion` (on delete cascade). Cantidad = número de copias; idioma y condición van **por copia** (opcionales, códigos `en/ja/…/otro` y `NM/LP/MP/HP/DMG`; la app los muestra en español). `coleccion` sigue siendo una fila por carta y suma `set_id` (para progreso por expansión).
-  - "Tengo" = fila en `coleccion` + 1 copia. Quitar la última copia = "Me falta" (borra la fila y, en cascada, sus copias).
+  - "Agregar a mi colección" = fila en `coleccion` + 1 copia. "Quitar de mi colección" (solo en el detalle, con confirmación) borra la fila y, en cascada, sus copias. Desde el 10f, "−" y el "Quitar" de cada copia no quitan la última.
   - Las copias se cuentan con el embed `copias(count)` en la misma consulta.
   - Transición: una fila sin copias cuenta como 1; la copia se crea en el primer cambio.
   - RLS de `copias`: solo el dueño; insert/update verifican que `coleccion_id` sea del mismo usuario. `UPDATE` solo sobre `idioma` y `condicion` (permiso por columna).
@@ -37,7 +37,7 @@ Actualizado: 2026-09-29
   - El pedido a TCGdex sale solo al entrar a Inicio o Progreso (no al redibujar): sin conexión es un pedido por visita, sin reintentos automáticos. Si falla, se sugieren igual las expansiones.
 - **Filtros y orden** (Bloque 8, `js/filtros.js`): expansión, rareza (solo Buscar: Colección no la guarda) y orden, todo en el navegador sobre las cartas ya cargadas.
   - En la URL: `#/buscar?q=joltik&set=sv04&rareza=Rare&orden=numero`, `#/coleccion?set=sv04&orden=numero`. Al cambiar un select se usa `history.replaceState` (sin entrada nueva en el historial ni hashchange); los enlaces de la barra a Buscar y Colección llevan los filtros. Una búsqueda nueva parte sin filtros.
-  - "Limpiar filtros" quita expansión y rareza; el orden se mantiene (no es un filtro). La pestaña Todas / Tengo / Me falta no va en la URL, como antes.
+  - "Limpiar filtros" quita expansión y rareza; el orden se mantiene (no es un filtro). La vista Todas / Tengo / Me falta va en la URL desde el Bloque 10f (`&ver=`).
   - Las cantidades de cada select cuentan con el otro filtro aplicado; las pestañas cuentan solo las cartas que pasan los filtros. Un valor de la URL que no está en los resultados se muestra con "(0)" y "Limpiar filtros"; un orden desconocido vuelve al de base.
   - Orden de base (no reordena): Buscar = fecha de la expansión; Colección = nombre (como llega de Supabase). Todos desempatan por fecha, set y número.
   - Rareza: de la más común a la más rara, con una lista fija armada desde `/v2/en/rarities` (2026-09-28). Desconocidas después; Promo y sin rareza al final.
@@ -80,6 +80,9 @@ Actualizado: 2026-09-29
   - La colección se lee con `copias(acabado, sello)` en vez de `copias(count)`: la cantidad sale del largo y el resumen (`acabados`, `sello`) queda en misCartas. **La migración va antes del deploy**: sin las columnas, la colección no carga.
   - Detalle: resumen ("Acabados: 1 Normal, 2 Reverse holo · Con sello: 1") y, si hay copias con acabado, botones (radios) con los acabados registrados. Elegir uno distinto de normal superpone un efecto CSS propio sobre la misma imagen (brillo irisado en holo, textura metálica en reverse, anillos y destellos en Poké Ball / Master Ball) con la etiqueta "Simulación: …"; no hay imágenes de esas versiones ni logos. `pointer-events: none` y `mix-blend-mode: overlay`: no tapa la carta ni afecta flechas, teclado ni deslizar; sin animación con prefers-reduced-motion. Cada carta parte en su primer acabado registrado.
   - Colección: insignia de texto en la miniatura ("Reverse +1 · Sello"; "Normal" no se muestra) y lo mismo en la etiqueta accesible de la carta. Solo en Colección, no en Buscar.
+- **"Me falta" como vista** (Bloque 10f, sin cambios en la base): en la tarjeta hay un solo control, "Agregar a mi colección" o el estado "En tu colección ✓" (texto verde, no un botón); se quitó el par Tengo / Me falta, que en realidad borraba la carta. Quitar es "Quitar de mi colección" en el detalle, con el modal propio que dice cuántas copias se borran; "−" y el "Quitar" de cada copia no quitan la última.
+  - Vista Todas / Tengo / Me falta en Buscar y en el detalle de un objetivo: grupo de botones con `aria-pressed` (la activa con fondo, negrita y ✓), conteo "Te faltan 12" / "Tienes 3" en una región `role="status"`, y `&ver=` en la URL con `replaceState` (se mantiene al recargar y con Atrás). Vista de base: Buscar "todas", objetivo "falta" (no se escribe en la URL). Sin sesión, `&ver` se conserva pero se ven todas.
+  - Agregar estando en "Me falta" saca solo esa tarjeta (`ui.sacarDeGrilla`), sin redibujar la grilla: el foco pasa al "Agregar" de la siguiente, y la lista que recorre el detalle (anterior / siguiente) se actualiza. Si no queda ninguna, el estado vacío ("¡La tienes completa! ⚡" en objetivos, "¡Ya las tienes todas!" en Buscar).
 - **Variantes reverse holo:** ignoradas en v1 (TCGdex expone `variants` en el detalle de carta, posible mejora).
 - **Hosting:** Vercel (estático): https://poketracker-ten.vercel.app
 
@@ -98,6 +101,7 @@ index.html · privacidad.html · css/estilos.css · sql/ (schema.sql y migracion
 - js/ui/: base, pagina, pantallas, filtros, cartas, imagen, detalle, detalle-navegacion, copias, acabados, progreso. js/ui.js solo reúne y reexporta la misma API pública de antes (import * as ui from './ui.js'): los demás módulos no cambiaron su forma de usarla. Las variables que otro módulo necesita cambiar se cambian con funciones (prepararCartas, prepararCopias, reiniciarCopias, reiniciarVistaAcabado): un import no se puede reasignar.
 
 ## Avance
+- [ ] Bloque 10f: "Me falta" como vista (URL `&ver=`), control único "Agregar a mi colección" / "En tu colección ✓" y "Quitar de mi colección" con confirmación en el detalle. Probado en Edge headless con colección falsa (prueba nueva de la vista, navegación, acabado/sello e instantáneas del 10c: solo cambian las partes previstas); 0 errores de consola.
 - [ ] Bloque 10c: ui.js y main.js divididos por área, sin cambios de comportamiento. Verificado con instantáneas del HTML en 27 pasos (visitante y usuario, todas las pantallas, filtros, detalle con copias, acabados y navegación, móvil y tema claro): idénticas antes y después; ESLint sin variables sin definir ni imports rotos; todas las pruebas anteriores repetidas.
 - [ ] Bloque 10e: acabado y sello por copia. Migración `006_acabado_copias.sql` probada en PGlite por el camino original → 002 → … → 006 (**la ejecuta el usuario antes del deploy**); interfaz probada en Edge headless con colección falsa.
 - [ ] Anterior / siguiente en el detalle de carta (antes del 10c). Probado en Edge headless con sesión y colección falsas: bordes, teclado, deslizar (móvil emulado), foto de la lista en "Tengo", guardados lentos al cambiar de carta, precarga, las 4 pantallas y prefers-reduced-motion; 0 errores de consola.

@@ -415,7 +415,8 @@ select:disabled { opacity: 0.6; }
 }
 
 /* --- Pestañas: filtros ------------------------------------- */
-/* La pestaña activa se marca con aria-pressed. */
+/* La pestaña activa se marca con aria-pressed: fondo amarillo, negrita y
+   ✓ (no depende solo del color). */
 .pestanas {
   display: flex;
   justify-content: center;
@@ -440,6 +441,15 @@ select:disabled { opacity: 0.6; }
   background: var(--primario);
   border-color: var(--primario);
   color: var(--sobre-primario);
+  font-weight: 700;
+}
+.pestanas__item[aria-pressed="true"]::before { content: "✓ "; }
+/* "Te faltan 12" bajo las pestañas */
+.pestanas__conteo {
+  margin: calc(-1 * var(--esp-3)) 0 var(--esp-4);
+  text-align: center;
+  font-weight: 700;
+  color: var(--texto-suave);
 }
 
 .filtros { margin-bottom: var(--esp-5); }
@@ -704,47 +714,40 @@ select:disabled { opacity: 0.6; }
   color: var(--texto-suave);
 }
 
-/* --- Tengo / Me falta -------------------------------------- */
+/* --- Control de colección de la tarjeta -------------------- */
+/* "Agregar a mi colección" o "En tu colección ✓". La tarjeta que tengo
+   lleva además un borde verde (el texto ya lo dice: no depende del color) */
 .carta--tengo { box-shadow: 0 0 0 2px var(--exito), var(--sombra); }
 
-.marcado {
-  display: flex;
-  margin-top: 0.6rem;
-  border: 1px solid var(--borde-control);
-  border-radius: var(--radio-pill);
-  overflow: hidden;
-}
+.marcado { margin-top: 0.6rem; }
 
-.marcado__boton {
-  flex: 1;
+.marcado__agregar,
+.marcado__estado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--alto-toque);
+  padding: 0.3rem var(--esp-2);
+  border-radius: var(--radio-pill);
   font: inherit;
   font-size: var(--texto-xs);
-  font-weight: 600;
-  min-height: 36px;
-  padding: 0.35rem var(--esp-1);
-  border: none;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+.marcado__agregar {
+  border: 1px solid var(--borde-control);
   background: none;
-  color: var(--texto-suave);
+  color: var(--texto);
   cursor: pointer;
-  white-space: nowrap;
   transition: background var(--duracion), color var(--duracion);
 }
-.marcado__boton + .marcado__boton { border-left: 1px solid var(--borde-control); }
-.marcado__boton:hover:not(:disabled) { color: var(--texto); background: var(--superficie-2); }
-.marcado__boton:disabled { cursor: wait; }
-.marcado__boton:focus-visible { outline-offset: -3px; }
-
-/* ✓ además del color, para no depender solo de él */
-.marcado__tengo[aria-pressed="true"]::before { content: "✓ "; }
-.marcado__tengo[aria-pressed="true"],
-.marcado__tengo[aria-pressed="true"]:hover:not(:disabled) {
-  background: var(--exito);
-  color: var(--sobre-exito);
-}
-.marcado__falta[aria-pressed="true"],
-.marcado__falta[aria-pressed="true"]:hover:not(:disabled) {
-  background: var(--superficie-2);
-  color: var(--texto);
+.marcado__agregar:hover { background: var(--superficie-2); }
+/* Estado, no botón: texto verde sin relleno (5,4:1 en tema claro) */
+.marcado__estado {
+  margin: 0;
+  color: var(--exito);
 }
 
 /* --- Detalle de carta ------------------------------------- */
@@ -1082,6 +1085,8 @@ select:disabled { opacity: 0.6; }
   margin: 0;
   accent-color: var(--marca-texto);
 }
+/* "Quitar de mi colección": al final de "Tus copias", separado de lo demás */
+.copias__quitar-todo { margin-top: var(--esp-4); }
 .copias__resumen {
   margin: var(--esp-3) 0 0;
   font-size: var(--texto-s);

@@ -1,24 +1,28 @@
 // =============================================================
 // Interfaz: filtros de cartas
 // =============================================================
-// Pestañas Todas / Tengo / Me falta (Buscar y detalle de un
-// objetivo) y los selects de expansión, rareza y orden (Buscar y
+// Vista Todas / Tengo / Me falta (Buscar y detalle de un objetivo:
+// botones con aria-pressed en un grupo) y los selects de expansión, rareza y orden (Buscar y
 // Colección). Qué filtra cada uno lo decide filtros.js (sin "ui/").
 // =============================================================
 
 import { $ } from './base.js';
 
 /**
- * Pestañas "Todas (N)" / "Tengo (N)" / "Me falta (N)".
+ * Pestañas "Todas (N)" / "Tengo (N)" / "Me falta (N)" y, debajo, el
+ * conteo de la vista elegida ("Te faltan 12", "Tienes 3").
  * Con conteos = null se ocultan (sin sesión o sin resultados).
  *
  * @param {null | {todas: number, tengo: number, falta: number}} conteos
  * @param {'todas'|'tengo'|'falta'} activo
- * @param {string} [selector]  grupo de pestañas (Buscar o detalle de un objetivo)
+ * @param {string} [selector]  grupo de pestañas (Buscar o detalle de un
+ *   objetivo); el conteo va en el elemento `${selector}-conteo`
  */
 export function mostrarFiltros(conteos, activo = 'todas', selector = '#filtros') {
   const filtros = $(selector);
+  const conteo = $(`${selector}-conteo`);
   filtros.hidden = !conteos;
+  conteo.hidden = !conteos || activo === 'todas' || conteos[activo] === 0;
   if (!conteos) return;
 
   const nombres = { todas: 'Todas', tengo: 'Tengo', falta: 'Me falta' };
@@ -27,6 +31,13 @@ export function mostrarFiltros(conteos, activo = 'todas', selector = '#filtros')
     btn.textContent = `${nombres[clave]} (${conteos[clave]})`;
     btn.setAttribute('aria-pressed', String(clave === activo));
   });
+  // Con 0 no se muestra: lo dice el estado vacío de la grilla
+  const n = conteos[activo];
+  const textos = {
+    falta: n === 1 ? 'Te falta 1' : `Te faltan ${n}`,
+    tengo: n === 1 ? 'Tienes 1' : `Tienes ${n}`,
+  };
+  conteo.textContent = conteo.hidden ? '' : textos[activo];
 }
 
 // --- Filtros de cartas (Buscar y Colección) -------------------

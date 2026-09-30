@@ -25,6 +25,7 @@ import { reiniciarVistaAcabado } from './acabados.js';
  *   alRestar: () => void,
  *   alCambiar: (copia: object, campo: 'idioma'|'condicion', valor: string|null) => void,
  *   alQuitar: (copia: object) => void,
+ *   alQuitarTodo: () => void,
  * }} acciones
  */
 export function prepararDetalle(acciones) {

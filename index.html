@@ -5,7 +5,7 @@
   <!-- viewport-fit=cover: permite respetar la zona segura del iPhone (barra inferior) -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>PokéTracker · Tu colección de cartas Pokémon</title>
-  <meta name="description" content="Lleva el registro de tu colección de cartas Pokémon TCG: busca un Pokémon, mira todas sus cartas y marca las que tienes.">
+  <meta name="description" content="Lleva el registro de tu colección de cartas Pokémon TCG: busca un Pokémon, mira todas sus cartas y agrega a tu colección las que tienes.">
   <meta name="theme-color" content="#ffffff">
   <!-- Aplica el tema guardado antes de pintar, para que no parpadee -->
   <script>try{var t=localStorage.getItem('pt-tema');if(t==='claro'||t==='oscuro')document.documentElement.dataset.tema=t}catch(e){}</script>
@@ -119,7 +119,7 @@
       <section class="intro" data-solo="visitante">
         <h2 data-titulo tabindex="-1">Tu colección Pokémon TCG, organizada en un solo lugar</h2>
         <p class="intro__aviso">
-          Busca cualquier Pokémon, mira todas sus cartas y marca las que ya tienes para saber cuáles te faltan.
+          Busca cualquier Pokémon, mira todas sus cartas y agrega a tu colección las que ya tienes para saber cuáles te faltan.
         </p>
         <div class="acciones">
           <button type="button" class="boton boton--google" data-accion="google">
@@ -164,7 +164,7 @@
       <section class="intro">
         <h2 data-titulo tabindex="-1">Busca un Pokémon y mira todas sus cartas</h2>
         <p class="intro__aviso" data-solo="visitante">
-          Entra para ir marcando las cartas que ya tienes.
+          Entra para ir agregando a tu colección las cartas que ya tienes.
         </p>
 
         <form id="form-busqueda" class="form-busqueda" role="search">
@@ -184,11 +184,13 @@
       <div id="filtros-busqueda" class="filtros-cartas" role="group" aria-label="Filtrar y ordenar resultados" hidden></div>
 
       <!-- Filtro por estado: solo con sesión y con resultados -->
-      <div id="filtros" class="filtros pestanas" role="group" aria-label="Filtrar resultados" hidden>
+      <div id="filtros" class="filtros pestanas" role="group" aria-label="Ver resultados" hidden>
         <button type="button" class="pestanas__item" data-filtro="todas" aria-pressed="true">Todas</button>
         <button type="button" class="pestanas__item" data-filtro="tengo" aria-pressed="false">Tengo</button>
         <button type="button" class="pestanas__item" data-filtro="falta" aria-pressed="false">Me falta</button>
       </div>
+      <!-- "Te faltan 12" con la vista Me falta (lo llena ui.js) -->
+      <p id="filtros-conteo" class="pestanas__conteo" role="status" hidden></p>
 
       <section id="grilla" class="grilla" aria-label="Resultados"></section>
     </div>
@@ -238,11 +240,12 @@
 
           <p id="estado-objetivo" class="estado" role="status" aria-live="polite"></p>
 
-          <div id="filtros-objetivo" class="filtros pestanas" role="group" aria-label="Filtrar cartas del objetivo" hidden>
+          <div id="filtros-objetivo" class="filtros pestanas" role="group" aria-label="Ver cartas del objetivo" hidden>
             <button type="button" class="pestanas__item" data-filtro="todas" aria-pressed="false">Todas</button>
             <button type="button" class="pestanas__item" data-filtro="tengo" aria-pressed="false">Tengo</button>
             <button type="button" class="pestanas__item" data-filtro="falta" aria-pressed="true">Me falta</button>
           </div>
+          <p id="filtros-objetivo-conteo" class="pestanas__conteo" role="status" hidden></p>
 
           <section id="grilla-objetivo" class="grilla" aria-label="Cartas del objetivo"></section>
         </div>
@@ -261,7 +264,7 @@
 
       <!-- Sin sesión: invitación a entrar (no se redirige) -->
       <div class="vacio" data-solo="visitante">
-        <p>Entra con Google para ver tu colección y marcar las cartas que tienes.</p>
+        <p>Entra con Google para ver tu colección y agregar las cartas que tienes.</p>
         <button type="button" class="boton boton--google" data-accion="google">
           <svg class="boton--google__logo" width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
           Entrar con Google
@@ -337,6 +340,8 @@
             <p id="copias-resumen" class="copias__resumen" hidden></p>
             <p id="estado-detalle" class="mensaje" role="status" hidden></p>
             <ol id="lista-copias" class="copias"></ol>
+            <!-- Solo si la tienes: borra la carta con todas sus copias (pide confirmación) -->
+            <button id="copias-quitar-todo" type="button" class="boton boton--peligro copias__quitar-todo" data-foco="quitar-todo" hidden>Quitar de mi colección</button>
           </section>
 
           <p class="detalle__aviso" data-solo="visitante">Entra con Google para registrar tus copias de esta carta.</p>

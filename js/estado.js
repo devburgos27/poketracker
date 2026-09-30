@@ -18,7 +18,7 @@ export const estado = {
   rutaActual: null,     // vista visible: 'inicio' | 'buscar' | 'coleccion' | 'progreso'
 };
 
-/** Guarda "Tengo" / "Me falta" en Supabase y en misCartas. */
+/** Agrega (tengo = true) o quita una carta de la colección, en Supabase y en misCartas. */
 export async function guardarCambio(carta, tengo) {
   if (tengo) {
     const guardada = await estado.coleccion.marcarTengo(carta);

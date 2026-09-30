@@ -15,6 +15,7 @@
 
 import { cargarListasObjetivos, obtenerCartasObjetivo, olvidarLista, datosCartasGuardados, pedirDatosCartas } from './api.js';
 import * as ui from './ui.js';
+import * as filtrado from './filtros.js';
 
 /**
  * @type {null | {
@@ -56,9 +57,11 @@ const FILTROS = {
   falta: (c) => !dep.misCartas().has(c.id),
 };
 const VACIO_POR_FILTRO = {
-  tengo: 'Todavía no tienes ninguna de estas cartas.',
-  falta: '¡Tienes todas las cartas de este objetivo! ⚡',
+  tengo: 'Todavía no tienes ninguna carta de este objetivo. Usa «Agregar a mi colección» en las que tengas.',
+  falta: '¡La tienes completa! ⚡',
 };
+// Vista del detalle de un objetivo si la URL no dice otra (&ver=)
+const VISTA_OBJETIVO = 'falta';
 
 /** Conecta el módulo con main.js. */
 export function preparar(dependencias) {
@@ -67,6 +70,10 @@ export function preparar(dependencias) {
     const boton = e.target.closest('[data-filtro]');
     if (!boton || !detalle?.cartas || boton.dataset.filtro === detalle.filtro) return;
     detalle.filtro = boton.dataset.filtro;
+    // La vista va en la URL (&ver=todas, &ver=tengo; "Me falta" es la de
+    // base): se mantiene al recargar y al volver. replaceState, como los filtros
+    const ver = String(filtrado.escribirVista(new URLSearchParams(), detalle.filtro, VISTA_OBJETIVO));
+    history.replaceState(null, '', ui.enlaceObjetivo(detalle) + (ver ? `&${ver}` : ''));
     dibujarCartasDetalle();
   });
 }
@@ -138,7 +145,7 @@ export function mostrar(params) {
     }
     enDetalle = true;
     ui.mostrarVistaProgreso(true);
-    mostrarDetalle(tipo, clave);
+    mostrarDetalle(tipo, clave, { ver: filtrado.leerVista(params, VISTA_OBJETIVO) });
     return;
   }
   enDetalle = false;
@@ -154,7 +161,7 @@ export function redibujar() {
     if (detalle.cartas) dibujarCartasDetalle();
   } else {
     if (objetivos?.length) dibujarLista();
-    dibujarSugerenciasProgreso(); // las cantidades cambian al marcar cartas
+    dibujarSugerenciasProgreso(); // las cantidades cambian al agregar o quitar cartas
   }
 }
 
@@ -246,7 +253,7 @@ export function mostrarInicio() {
   });
 }
 
-/** Vuelve a dibujar "Tu progreso" con misCartas (al marcar desde Inicio). */
+/** Vuelve a dibujar "Tu progreso" con misCartas (tras cambios en la colección). */
 export function redibujarInicio() {
   dibujarInicio();
 }
@@ -403,15 +410,17 @@ async function seguirSugerencia(s, pantalla) {
 
 // --- Detalle de un objetivo ------------------------------------
 
-async function mostrarDetalle(tipo, clave, { reintento = false } = {}) {
+/** @param {{reintento?: boolean, ver?: 'todas'|'tengo'|'falta'}} [opciones]  ver: la vista de la URL */
+async function mostrarDetalle(tipo, clave, { reintento = false, ver = null } = {}) {
   if (!dep.misCartas()) {
     ui.mensajeObjetivo('Cargando tu colección…');
     return;
   }
   const mismo = detalle?.tipo === tipo && detalle?.clave === clave;
   if (!mismo) {
-    detalle = { tipo, clave, nombre: buscarObjetivo(tipo, clave)?.nombre ?? '', cartas: null, filtro: 'falta', noDisponible: false };
+    detalle = { tipo, clave, nombre: buscarObjetivo(tipo, clave)?.nombre ?? '', cartas: null, filtro: VISTA_OBJETIVO, noDisponible: false };
   }
+  if (ver) detalle.filtro = ver; // la URL manda (al recargar o volver)
   dibujarCabecera();
   if (detalle.cartas) {
     dibujarCartasDetalle(); // ya estaban: no se vuelven a pedir
@@ -479,7 +488,7 @@ function dibujarCartasDetalle() {
   );
 }
 
-/** Tengo / Me falta desde el detalle: la barra se actualiza al instante. */
+/** "Agregar a mi colección" desde el detalle: la barra se actualiza al instante. */
 async function cambiarDesdeObjetivo(carta, tengo) {
   try {
     await dep.guardarCambio(carta, tengo);
@@ -489,9 +498,10 @@ async function cambiarDesdeObjetivo(carta, tengo) {
     throw error; // la tarjeta vuelve a su estado anterior
   }
   dibujarCabecera();
-  // En "Todas" la carta se queda donde está; en "Tengo" o "Me falta" sale de la vista
-  if (detalle.filtro === 'todas') dibujarConteos();
-  else dibujarCartasDetalle();
+  dibujarConteos();
+  // En "Me falta", la carta que agregué sale de la lista: solo esa
+  // tarjeta, sin redibujar la grilla (el foco pasa a la siguiente)
+  if (!FILTROS[detalle.filtro](carta) && ui.sacarDeGrilla('#grilla-objetivo', carta.id) === 0) dibujarCartasDetalle();
 }
 
 // --- Seguir ----------------------------------------------------

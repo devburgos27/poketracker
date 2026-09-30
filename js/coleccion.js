@@ -2,8 +2,9 @@
 // Colección del usuario (tablas "coleccion" y "copias" en Supabase)
 // =============================================================
 // Solo se guardan las cartas que el usuario TIENE:
-//   marcar "Tengo"    → INSERT en coleccion + 1 copia
-//   marcar "Me falta" → DELETE en coleccion (sus copias se borran solas)
+//   "Agregar a mi colección" → INSERT en coleccion + 1 copia
+//   "Quitar de mi colección" → DELETE en coleccion (sus copias se borran solas)
+// "Me falta" no se guarda: es una vista (cartas de TCGdex − las guardadas).
 // Cada copia puede llevar idioma y condición. Cantidad = nº de copias.
 // No se envía user_id: las tablas lo completan con auth.uid() y las
 // reglas RLS impiden tocar filas de otros usuarios.
@@ -182,7 +183,7 @@ function adaptarFila(fila) {
 }
 
 /**
- * Guarda una carta como "Tengo", con 1 copia sin detalles.
+ * Agrega una carta a la colección, con 1 copia sin detalles.
  * Se copian nombre, set, número e imagen para poder mostrar la
  * colección sin volver a la API.
  *
@@ -207,7 +208,7 @@ export async function marcarTengo(carta) {
   if (error) throw error;
 
   // Si la copia no se guarda, la carta queda sin copias y la app la
-  // cuenta como 1: el "Tengo" no se pierde, así que no se avisa error.
+  // cuenta como 1: la carta queda en la colección, así que no se avisa error.
   try {
     await agregarCopias(data.id, 1);
   } catch (errorCopia) {
@@ -227,7 +228,7 @@ async function buscarMiCarta(idCarta) {
   return guardadaDe(data);
 }
 
-/** Quita una carta de la colección ("Me falta"), con todas sus copias. */
+/** Quita una carta de la colección ("Quitar de mi colección"), con todas sus copias. */
 export async function marcarMeFalta(idCarta) {
   const { error } = await supabase.from('coleccion').delete().eq('id_carta', idCarta);
   if (error) throw error;

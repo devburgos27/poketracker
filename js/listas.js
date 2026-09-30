@@ -2,14 +2,13 @@
 // Colección y "Agregadas recientemente" (Inicio)
 // =============================================================
 // Las dos listas de tus cartas que vienen de Supabase. Comparten el
-// descarte de respuestas viejas (ultimoPedido) y "Me falta" desde la
-// lista, que quita la carta de ambas. "Tu progreso" de Inicio es de
-// objetivos.js.
+// descarte de respuestas viejas (ultimoPedido) y redibujar(), que saca
+// de ambas las cartas que ya no tengo (quitar una carta se hace en el
+// detalle). "Tu progreso" de Inicio es de objetivos.js.
 // =============================================================
 
 import { fechasDeSets } from './api.js';
 import * as ui from './ui.js';
-import * as objetivos from './objetivos.js';
 import * as filtrado from './filtros.js';
 import { estado, guardarCambio } from './estado.js';
 
@@ -55,7 +54,7 @@ function dibujarRecientes() {
   ui.mostrarRecientes(
     cartasRecientes,
     { misCartas: estado.misCartas, alCambiar: cambiarDesdeLista },
-    'Todavía no tienes cartas. Busca un Pokémon y marca las que tengas.',
+    'Todavía no tienes cartas. Busca un Pokémon y agrega a tu colección las que tengas.',
   );
 }
 
@@ -102,7 +101,7 @@ function dibujarColeccion() {
     filtrosColeccion.orden,
     filtrado.COLECCION,
   );
-  let vacio = 'Aún no tienes cartas. Busca un Pokémon y marca las que tengas.';
+  let vacio = 'Aún no tienes cartas. Busca un Pokémon y agrega a tu colección las que tengas.';
   if (total && conFiltros) vacio = filtrado.VACIO_CON_FILTROS;
   else if (textoColeccion) vacio = `No tienes cartas de "${textoColeccion}".`;
 
@@ -152,25 +151,20 @@ async function completarFechasColeccion() {
   }
 }
 
-/** Marcar desde Colección o Inicio: "Me falta" quita la carta de esas listas. */
+/**
+ * "Agregar a mi colección" desde Colección o Inicio. Sus cartas ya están
+ * en tu colección (la tarjeta dice "En tu colección ✓"), así que casi
+ * nunca se usa. Quitar se hace en el detalle: al cerrarlo, la carta
+ * sale de estas listas (redibujar).
+ */
 async function cambiarDesdeLista(carta, tengo) {
   const mensaje = estado.rutaActual === 'inicio' ? ui.mensajeInicio : ui.mensajeColeccion;
   try {
     await guardarCambio(carta, tengo);
   } catch (error) {
     console.error(error);
-    mensaje('No se pudo quitar la carta. Inténtalo de nuevo.', 'error');
-    throw error;
-  }
-  if (!tengo) {
-    cartasColeccion = cartasColeccion.filter((c) => c.id !== carta.id);
-    cartasRecientes = cartasRecientes.filter((c) => c.id !== carta.id);
-    if (estado.rutaActual === 'inicio') {
-      dibujarRecientes();
-      objetivos.redibujarInicio(); // la carta ya no cuenta en "Tu progreso"
-    } else {
-      dibujarColeccion();
-    }
+    mensaje('No se pudo guardar el cambio. Inténtalo de nuevo.', 'error');
+    throw error; // la tarjeta vuelve a su estado anterior
   }
 }
 

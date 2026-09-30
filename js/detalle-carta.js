@@ -15,7 +15,7 @@ import { redibujarPantalla } from './router.js';
 
 // --- Detalle de carta: "Tus copias" ----------------------------
 // Cada cambio se ve al instante y se revierte si Supabase falla,
-// igual que Tengo / Me falta en las tarjetas.
+// igual que "Agregar a mi colección" en las tarjetas.
 
 /** Copia que se muestra pero aún no existe en la base. */
 const copiaSinGuardar = () => ({ id: null, idioma: null, condicion: null, acabado: null, sello: false });
@@ -24,7 +24,7 @@ let detalle = null; // { carta, indice, copias, cambio, cerrado } de la carta ab
 
 // "Foto" de la lista de la pantalla al abrir el detalle (con sus
 // filtros, pestaña y orden). Anterior / siguiente la recorren aunque la
-// grilla cambie detrás (por ejemplo, al marcar Me falta en "Tengo").
+// grilla cambie detrás (por ejemplo, al quitar una carta estando en "Tengo").
 let listaDetalle = [];
 
 // Guardados de copias en curso, por id de carta. Si se vuelve a una
@@ -166,7 +166,7 @@ async function guardarCopias(d, antes, nuevas, guardar) {
   }
 }
 
-/** "+": agrega una copia sin detalles (con 0 copias, es "Tengo"). */
+/** "+": agrega una copia sin detalles (con 0 copias, agrega la carta a la colección). */
 function sumarCopia() {
   const d = detalle;
   const guardada = estado.misCartas.get(d.carta.id);
@@ -190,7 +190,10 @@ function sumarCopia() {
   });
 }
 
-/** Quita una copia. Quitar la última es "Me falta". */
+/**
+ * Quita una copia. La interfaz no ofrece quitar la última (eso es
+ * "Quitar de mi colección", con confirmación); si pasara, equivale a eso.
+ */
 function quitarCopia(copia) {
   const d = detalle;
   const nuevas = d.copias.filter((c) => c !== copia);
@@ -222,7 +225,31 @@ function cambiarDatoCopia(copia, campo, valor) {
   });
 }
 
-/** Al cerrar: si algo cambió, se redibuja la pantalla (×N, Tengo / Me falta). */
+/**
+ * "Quitar de mi colección": borra la carta con todas sus copias, después
+ * de confirmar en el modal propio (dice cuántas copias se borran).
+ */
+async function quitarDeColeccion() {
+  const d = detalle;
+  if (!d?.copias?.length) return;
+  const cantidad = d.copias.length;
+  const confirmado = await ui.confirmar({
+    titulo: `¿Quitar ${d.carta.nombre} (${d.carta.nombreSet} ${d.carta.numero}) de tu colección?`,
+    mensaje: cantidad === 1
+      ? 'Se borrará tu copia, con su idioma, condición, acabado y sello.'
+      : `Se borrarán tus ${cantidad} copias, con su idioma, condición, acabado y sello.`,
+    textoConfirmar: 'Quitar de mi colección',
+    peligro: true,
+  });
+  // Mientras se confirmaba pudo cerrarse el detalle o cambiar de carta
+  if (!confirmado || d !== detalle || d.cerrado) return;
+  cambiarCopias([], async () => {
+    await guardarCambio(d.carta, false);
+    return [];
+  });
+}
+
+/** Al cerrar: si algo cambió, se redibuja la pantalla (×N, colección, progreso). */
 function alCerrarDetalle() {
   const d = detalle;
   if (!d) return;
@@ -240,6 +267,7 @@ export function preparar() {
     alRestar: () => quitarCopia(detalle.copias.at(-1)),
     alCambiar: cambiarDatoCopia,
     alQuitar: quitarCopia,
+    alQuitarTodo: quitarDeColeccion,
   });
 }
 

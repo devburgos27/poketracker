@@ -51,8 +51,13 @@ export function mostrarCopias(copias, ocupado = false) {
   const cargando = copias === null;
   const cantidad = copias?.length ?? 0;
   $('#copias-cantidad').textContent = cargando ? '…' : String(cantidad);
-  $('#copias-restar').disabled = ocupado || cargando || cantidad === 0;
+  // "−" no quita la última copia: sacar la carta de la colección es
+  // "Quitar de mi colección", con confirmación
+  $('#copias-restar').disabled = ocupado || cargando || cantidad <= 1;
   $('#copias-sumar').disabled = ocupado || cargando;
+  const quitarTodo = $('#copias-quitar-todo');
+  quitarTodo.hidden = cargando || cantidad === 0;
+  quitarTodo.disabled = ocupado;
 
   if (cargando) mostrarResumenCopias([]);
   else mostrarResumenCopias(copias);
@@ -64,20 +69,22 @@ export function mostrarCopias(copias, ocupado = false) {
   } else if (cantidad === 0) {
     const vacia = document.createElement('li');
     vacia.className = 'copias__vacia';
-    vacia.textContent = 'Todavía no la tienes. Usa + para agregarla.';
+    vacia.textContent = 'Todavía no está en tu colección. Usa + para agregarla.';
     lista.replaceChildren(vacia);
   } else {
-    lista.replaceChildren(...copias.map((copia, i) => crearFilaCopia(copia, i, ocupado)));
+    lista.replaceChildren(...copias.map((copia, i) => crearFilaCopia(copia, i, ocupado, cantidad > 1)));
   }
 
   if (!ocupado && !cargando && focoPendiente) {
     const destino = $(`#dialogo-carta [data-foco="${focoPendiente}"]`);
-    (destino && !destino.disabled ? destino : $('#copias-sumar')).focus();
+    // Si ya no está (por ejemplo, "Quitar de mi colección"), el foco va a "+"
+    (destino && !destino.disabled && !destino.hidden ? destino : $('#copias-sumar')).focus();
     focoPendiente = null;
   }
 }
 
-function crearFilaCopia(copia, indice, ocupado) {
+/** @param {boolean} conQuitar  con una sola copia no hay "Quitar" (ver "Quitar de mi colección") */
+function crearFilaCopia(copia, indice, ocupado, conQuitar) {
   const fila = document.createElement('li');
   fila.className = 'copia';
 
@@ -93,6 +100,7 @@ function crearFilaCopia(copia, indice, ocupado) {
   quitar.dataset.foco = `quitar-${indice}`;
   quitar.disabled = ocupado;
   quitar.addEventListener('click', () => accionesCopias.alQuitar(copia));
+  quitar.hidden = !conQuitar;
 
   fila.append(
     titulo,
@@ -174,6 +182,7 @@ function crearSelector(etiqueta, campo, opciones, copia, indice, ocupado) {
 /** Conecta "Tus copias" con detalle-carta.js (sumar, restar, cambiar, quitar). */
 export function prepararCopias(acciones) {
   accionesCopias = acciones;
+  $('#copias-quitar-todo').addEventListener('click', () => accionesCopias.alQuitarTodo());
 }
 
 /** Al mostrar otra carta: sin mensaje, sin foco pendiente y "…" hasta que lleguen sus copias. */

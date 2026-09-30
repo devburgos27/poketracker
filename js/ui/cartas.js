@@ -2,13 +2,17 @@
 // Interfaz: grilla y tarjeta de carta
 // =============================================================
 // Tarjeta de cada carta (imagen, datos, ×N, insignia de acabados) y
-// los botones Tengo / Me falta. Tocar la imagen abre el detalle.
+// su control de colección: "Agregar a mi colección" o "En tu colección ✓".
+// Quitar una carta se hace en el detalle. Tocar la imagen abre el detalle.
 // =============================================================
 
 import * as imagenes from '../imagenes.js';
-import { confirmar } from './base.js';
 import { crearImg, crearRespaldo, esperarImagen, textoIdioma } from './imagen.js';
 import { textoAcabados } from './acabados.js';
+
+// Grilla → lista de sus cartas, tal como se ven. Es la que recorre el
+// detalle (anterior / siguiente); sacarDeGrilla() la mantiene al día.
+const listas = new WeakMap();
 
 export function dibujarGrilla(grilla, cartas, marcado, textoVacio, opciones = {}) {
   if (cartas.length === 0 && textoVacio) {
@@ -16,9 +20,33 @@ export function dibujarGrilla(grilla, cartas, marcado, textoVacio, opciones = {}
     vacio.className = 'vacio grilla__vacio';
     vacio.textContent = textoVacio;
     grilla.replaceChildren(vacio);
+    listas.delete(grilla);
     return;
   }
-  grilla.replaceChildren(...cartas.map((carta) => crearTarjeta(carta, marcado, cartas, opciones)));
+  const lista = [...cartas];
+  listas.set(grilla, lista);
+  grilla.replaceChildren(...lista.map((carta) => crearTarjeta(carta, marcado, lista, opciones)));
+}
+
+/**
+ * Saca una carta de la grilla sin redibujar las demás (por ejemplo, la
+ * que se agregó estando en "Me falta"). Si el foco quedaba en esa
+ * tarjeta, pasa a la siguiente (o a la anterior).
+ * @returns {number} cuántas cartas quedan en la grilla
+ */
+export function sacarDeGrilla(selector, idCarta) {
+  const grilla = document.querySelector(selector);
+  const lista = listas.get(grilla) ?? [];
+  const i = lista.findIndex((c) => c.id === idCarta);
+  if (i >= 0) lista.splice(i, 1);
+  const tarjeta = grilla.querySelector(`.carta[data-id="${CSS.escape(idCarta)}"]`);
+  if (tarjeta) {
+    const teniaFoco = tarjeta.contains(document.activeElement) || document.activeElement === document.body;
+    const vecina = tarjeta.nextElementSibling ?? tarjeta.previousElementSibling;
+    tarjeta.remove();
+    if (teniaFoco && vecina) (vecina.querySelector('.marcado__agregar') ?? vecina.querySelector('.carta__imagen'))?.focus();
+  }
+  return lista.length;
 }
 
 /**
@@ -83,7 +111,7 @@ function crearTarjeta(carta, marcado, lista, opciones = {}) {
   detalle.textContent = [numero, anio].filter(Boolean).join(' · ');
 
   info.append(set, detalle);
-  if (marcado) info.append(crearMarcado(carta, tarjeta, marcado));
+  if (marcado) info.append(crearControlColeccion(carta, tarjeta, marcado));
   tarjeta.append(boton, info);
   return tarjeta;
 }
@@ -146,65 +174,50 @@ async function probarAlternativas(boton, tarjeta, carta, respaldo) {
 }
 
 /**
- * Par de botones "Tengo" / "Me falta". El que está presionado
- * (aria-pressed) indica el estado actual de la carta.
- * El cambio se muestra al instante y se revierte si alCambiar falla
- * (el mensaje de error lo muestra quien llama).
+ * Control de colección de la tarjeta: "Agregar a mi colección" si no la
+ * tengo, o el estado "En tu colección ✓" si la tengo (texto, no solo el
+ * color del borde). Agregar se muestra al instante y se revierte si
+ * alCambiar falla (el mensaje de error lo muestra quien llama). Quitar
+ * no está aquí: va en el detalle, con confirmación.
  */
-function crearMarcado(carta, tarjeta, { misCartas, alCambiar }) {
-  const grupo = document.createElement('div');
-  grupo.className = 'marcado';
-  grupo.setAttribute('role', 'group');
-  grupo.setAttribute('aria-label', `¿Tienes ${carta.nombre} ${carta.numero}?`);
+function crearControlColeccion(carta, tarjeta, { misCartas, alCambiar }) {
+  const control = document.createElement('div');
+  control.className = 'marcado';
 
-  const btnTengo = crearBotonMarcado('Tengo', 'marcado__tengo');
-  const btnFalta = crearBotonMarcado('Me falta', 'marcado__falta');
+  const estadoTengo = document.createElement('p');
+  estadoTengo.className = 'marcado__estado';
+  estadoTengo.textContent = 'En tu colección ✓';
+
+  const agregar = document.createElement('button');
+  agregar.type = 'button';
+  agregar.className = 'marcado__agregar';
+  agregar.textContent = 'Agregar a mi colección';
+  agregar.setAttribute('aria-label', `Agregar ${carta.nombre} ${carta.numero} (${carta.nombreSet}) a mi colección`);
 
   const pintar = (tengo) => {
-    btnTengo.setAttribute('aria-pressed', String(tengo));
-    btnFalta.setAttribute('aria-pressed', String(!tengo));
     tarjeta.classList.toggle('carta--tengo', tengo);
-    if (!tengo) tarjeta.querySelector('.carta__copias')?.remove(); // ya no hay copias
+    control.replaceChildren(tengo ? estadoTengo : agregar);
   };
 
-  const cambiar = async (tengo) => {
-    if (misCartas.has(carta.id) === tengo) return;
-    // "Me falta" borra todas las copias: con más de una, se confirma
-    const copias = misCartas.get(carta.id)?.copias ?? 0;
-    if (!tengo && copias > 1) {
-      const quitar = await confirmar({
-        titulo: `¿Quitar ${carta.nombre} de tu colección?`,
-        mensaje: `Se quitarán las ${copias} copias, con su idioma y condición.`,
-        textoConfirmar: 'Quitar copias',
-        peligro: true,
-      });
-      if (!quitar) return;
-    }
-    pintar(tengo);
-    btnTengo.disabled = btnFalta.disabled = true;
+  agregar.addEventListener('click', async () => {
+    if (misCartas.has(carta.id)) return;
+    pintar(true);
     try {
-      await alCambiar(carta, tengo);
+      await alCambiar(carta, true);
     } catch {
-      pintar(!tengo);
-    } finally {
-      btnTengo.disabled = btnFalta.disabled = false;
+      pintar(false);
+      agregar.focus();
+      return;
     }
-  };
-
-  btnTengo.addEventListener('click', () => cambiar(true));
-  btnFalta.addEventListener('click', () => cambiar(false));
+    // El botón ya no está: si la tarjeta sigue en la grilla, el foco
+    // queda en su imagen (si salió de la lista, lo movió sacarDeGrilla)
+    if (tarjeta.isConnected && (document.activeElement === document.body || !document.activeElement)) {
+      tarjeta.querySelector('.carta__imagen')?.focus();
+    }
+  });
 
   pintar(misCartas.has(carta.id));
-  grupo.append(btnTengo, btnFalta);
-  return grupo;
-}
-
-function crearBotonMarcado(texto, clase) {
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = `marcado__boton ${clase}`;
-  btn.textContent = texto;
-  return btn;
+  return control;
 }
 
 let alAbrirCarta = () => {};

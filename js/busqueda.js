@@ -2,7 +2,7 @@
 // Pantalla Buscar
 // =============================================================
 // Búsqueda por nombre, número y expansión (#/buscar?q=…), sus filtros,
-// la pestaña Todas / Tengo / Me falta y el resumen. Buscar solo cambia
+// la vista Todas / Tengo / Me falta (en la URL) y el resumen. Buscar solo cambia
 // la URL: la consulta la hace la ruta (router.js llama a mostrar()).
 // =============================================================
 
@@ -27,7 +27,7 @@ const busquedasGuardadas = new Map();
 
 const MAX_BUSQUEDAS_GUARDADAS = 10;
 
-let filtro = 'todas';      // pestaña activa: 'todas' | 'tengo' | 'falta'
+let filtro = 'todas';      // vista: 'todas' | 'tengo' | 'falta' (en la URL: &ver=)
 
 // Expansión, rareza y orden (vienen de la URL): ver filtros.js
 let filtrosBusqueda = filtrado.leerFiltros(new URLSearchParams(), filtrado.BUSCAR);
@@ -41,14 +41,15 @@ const FILTROS = {
 };
 
 const VACIO_POR_FILTRO = {
-  tengo: 'Todavía no tienes ninguna de estas cartas.',
-  falta: '¡Tienes todas estas cartas!',
+  tengo: 'Todavía no tienes ninguna de estas cartas. Usa «Agregar a mi colección» en las que tengas.',
+  falta: '¡Ya las tienes todas!',
 };
 
-/** #/buscar?q=joltik&set=sv04&orden=numero */
-function hashBuscar(texto, filtros) {
+/** #/buscar?q=joltik&set=sv04&orden=numero&ver=falta */
+function hashBuscar(texto, filtros, ver = filtro) {
   if (!texto) return '#/buscar';
-  return `#/buscar?${filtrado.escribirFiltros(new URLSearchParams({ q: texto }), filtros, filtrado.BUSCAR)}`;
+  const params = filtrado.escribirFiltros(new URLSearchParams({ q: texto }), filtros, filtrado.BUSCAR);
+  return `#/buscar?${filtrado.escribirVista(params, ver, 'todas')}`;
 }
 
 /** Las cartas de la búsqueda con expansión, rareza y orden aplicados. */
@@ -131,9 +132,10 @@ async function cambiarDesdeBusqueda(carta, tengo) {
     throw error; // la tarjeta vuelve a su estado anterior
   }
   mostrarResumen();
-  // En "Todas" la carta se queda donde está; en "Tengo" o "Me falta" sale de la vista
-  if (filtro === 'todas') actualizarConteos();
-  else dibujarBusqueda();
+  actualizarConteos();
+  // En "Me falta", la carta que agregué sale de la lista: solo esa
+  // tarjeta, sin redibujar la grilla (el foco pasa a la siguiente)
+  if (!FILTROS[filtro](carta) && ui.sacarDeGrilla('#grilla', carta.id) === 0) dibujarBusqueda();
 }
 
 // --- Búsqueda por número y expansión --------------------------
@@ -252,7 +254,6 @@ function mostrarBusqueda(texto, { cartas, demasiadas = false, base = '', sets = 
   cartasActuales = cartas;
   busquedaActual = texto;
   avisoBusqueda = aviso;
-  filtro = 'todas';
 
   if (demasiadas) {
     ui.mensajeEstado(
@@ -280,7 +281,7 @@ async function buscarDesdeRuta(texto, reintento = false) {
   ui.buscando(false); // por si quedó a medias una búsqueda anterior
 
   if (texto === busquedaActual) {
-    dibujarBusqueda(); // refleja lo marcado desde otras pantallas
+    dibujarBusqueda(); // refleja lo agregado o quitado desde otras pantallas
     return;
   }
   if (busquedasGuardadas.has(texto)) {
@@ -291,7 +292,6 @@ async function buscarDesdeRuta(texto, reintento = false) {
   cartasActuales = [];
   busquedaActual = '';
   avisoBusqueda = '';
-  filtro = 'todas';
   // En un reintento queda a la vista "Reintentando…" hasta que responda
   if (!reintento) {
     ui.mensajeEstado(texto ? `Buscando cartas de ${texto}…` : '');
@@ -327,7 +327,7 @@ async function buscarDesdeRuta(texto, reintento = false) {
 // Así Atrás, Adelante y recargar mantienen los resultados.
 const formBusqueda = document.querySelector('#form-busqueda');
 
-/** Formulario de búsqueda y pestañas Todas / Tengo / Me falta. */
+/** Formulario de búsqueda y vista Todas / Tengo / Me falta. */
 export function preparar() {
   formBusqueda.addEventListener('submit', (e) => {
     e.preventDefault();
@@ -335,7 +335,7 @@ export function preparar() {
     if (!texto) return;
 
     // Una búsqueda nueva parte sin filtros ni orden
-    const destino = hashBuscar(texto, filtrado.leerFiltros(new URLSearchParams(), filtrado.BUSCAR));
+    const destino = hashBuscar(texto, filtrado.leerFiltros(new URLSearchParams(), filtrado.BUSCAR), 'todas');
     // Misma URL: no habrá hashchange, así que se llama directo
     if (window.location.hash === destino) buscarDesdeRuta(texto);
     else window.location.hash = destino;
@@ -345,12 +345,17 @@ export function preparar() {
     const boton = e.target.closest('[data-filtro]');
     if (!boton || boton.dataset.filtro === filtro) return;
     filtro = boton.dataset.filtro;
+    // Igual que los selects: replaceState, sin una entrada de historial por clic
+    const destino = hashBuscar(busquedaActual, filtrosBusqueda);
+    history.replaceState(null, '', destino);
+    ui.actualizarEnlaces('buscar', destino);
     dibujarBusqueda();
   });
 }
 
-/** Muestra la pantalla Buscar que pide la ruta (#/buscar?q=…&set=…). */
+/** Muestra la pantalla Buscar que pide la ruta (#/buscar?q=…&set=…&ver=…). */
 export function mostrar(params) {
   filtrosBusqueda = filtrado.leerFiltros(params, filtrado.BUSCAR);
+  filtro = filtrado.leerVista(params, 'todas');
   buscarDesdeRuta(params.get('q')?.trim() ?? '');
 }

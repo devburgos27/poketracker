@@ -1,10 +1,10 @@
 # PokéTracker
 
-Mini sistema web para coleccionistas de cartas **Pokémon TCG**: busca un Pokémon, mira todas sus cartas con la imagen real y marca las que ya tienes para saber cuáles te faltan.
+Mini sistema web para coleccionistas de cartas **Pokémon TCG**: busca un Pokémon, mira todas sus cartas con la imagen real y agrega a tu colección las que ya tienes para saber cuáles te faltan.
 
 ### 👉 [Abrir PokéTracker](https://poketracker-ten.vercel.app)
 
-Buscar cartas no requiere cuenta. Para marcar las tuyas, entra con tu cuenta de Google.
+Buscar cartas no requiere cuenta. Para guardar tu colección, entra con tu cuenta de Google.
 
 ## Tecnologías
 
@@ -15,7 +15,7 @@ No hay servidor propio ni paso de compilación: es un sitio estático.
 ## Cómo funciona
 
 - **Cartas:** se consultan en vivo a la API GraphQL de TCGdex (gratis, sin API key). Todas esas llamadas están aisladas en `js/api.js`. Esto ya se puso a prueba: el proyecto partió con pokemontcg.io, que anunció su cierre para marzo de 2027, y migrar a TCGdex solo requirió reescribir ese archivo.
-- **Colección:** bajo cada carta hay botones **Tengo** / **Me falta**. Al tocar una carta se abre su detalle (con flechas, ← → o deslizando se pasa a la carta anterior o siguiente de la lista), donde se registran las copias (cantidad, y opcionalmente idioma, condición, acabado —normal, holo, reverse, reverse Poké Ball o Master Ball— y sello promocional de cada una). En Supabase se guardan **solo las cartas que el usuario tiene**. "Me falta" se calcula comparando las cartas de la API con las guardadas, así que los resultados de una búsqueda se pueden filtrar en "Todas", "Tengo" y "Me falta". También se puede buscar por el número impreso en la carta: `Pikachu 025` (nombre y número) o `025/182` (número y total del set). Al final se puede agregar parte del nombre de la expansión (`Pikachu 025 wizards`, `joltik phantom forces`), y queda aplicada en el filtro de expansión. Los resultados se pueden filtrar por expansión y rareza, y ordenar por fecha, número, nombre o rareza; todo en el navegador y guardado en la URL, así un enlace compartido abre con los mismos filtros. La pestaña **Mi colección** lista todas tus cartas y se puede filtrar por Pokémon y por expansión, y ordenar.
+- **Colección:** bajo cada carta hay un botón **Agregar a mi colección**, o el estado **En tu colección ✓** si ya la tienes. Para quitar una carta, en su detalle está **Quitar de mi colección** (pide confirmación y dice cuántas copias se borran). Al tocar una carta se abre su detalle (con flechas, ← → o deslizando se pasa a la carta anterior o siguiente de la lista), donde se registran las copias (cantidad, y opcionalmente idioma, condición, acabado —normal, holo, reverse, reverse Poké Ball o Master Ball— y sello promocional de cada una). En Supabase se guardan **solo las cartas que el usuario tiene**. "Me falta" no se guarda: es una vista que compara las cartas de la API con las guardadas. En Buscar y en el detalle de un objetivo se elige ver "Todas", "Tengo" o "Me falta" (con "Te faltan 12"), y la elección queda en la URL (`&ver=falta`). También se puede buscar por el número impreso en la carta: `Pikachu 025` (nombre y número) o `025/182` (número y total del set). Al final se puede agregar parte del nombre de la expansión (`Pikachu 025 wizards`, `joltik phantom forces`), y queda aplicada en el filtro de expansión. Los resultados se pueden filtrar por expansión y rareza, y ordenar por fecha, número, nombre o rareza; todo en el navegador y guardado en la URL, así un enlace compartido abre con los mismos filtros. La pestaña **Mi colección** lista todas tus cartas y se puede filtrar por Pokémon y por expansión, y ordenar.
 - **Navegación:** cuatro pantallas (Inicio, Buscar, Colección y Progreso) con rutas en el hash (`#/buscar?q=joltik`), así el botón Atrás, recargar y compartir un enlace funcionan sin servidor. En móvil la navegación es una barra inferior.
 - **Progreso:** puedes seguir un Pokémon (todas sus cartas, por número de Pokédex) o una expansión, y ver cuántas tienes con una barra de progreso. La lista de cartas de cada objetivo viene de TCGdex y se guarda un día en el navegador. Inicio muestra tus 3 objetivos más recientes. Si todavía no sigues nada, la app te sugiere las expansiones y los Pokémon de los que más cartas tienes (hasta 5), y los puedes seguir con un toque.
 - **Cartas sin imagen:** cerca del 7 % de las cartas no tienen imagen en TCGdex. Para esas, la app usa la misma carta en [pokemontcg.io](https://pokemontcg.io) o, si no está, la versión de TCGdex en otro idioma con los mismos ids de carta (español, francés, italiano, alemán, portugués…), con una etiqueta como "Imagen en español". Si no hay en ninguna, muestra un recuadro con el nombre, el número y la expansión.
@@ -53,7 +53,7 @@ js/
     pagina.js       cabecera: sesión, tema y navegación
     pantallas.js    mensajes y grillas de Buscar, Inicio y Colección
     filtros.js      pestañas y selects de filtros
-    cartas.js       tarjeta de carta y Tengo / Me falta
+    cartas.js       tarjeta de carta y "Agregar a mi colección"
     imagen.js       carga de imágenes con reintento y recuadro sin imagen
     detalle.js      detalle de carta: imagen y datos
     detalle-navegacion.js  anterior / siguiente: flechas, teclado y deslizar

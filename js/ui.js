@@ -46,6 +46,7 @@ export {
 } from './ui/filtros.js';
 export {
   enfocarCarta,
+  sacarDeGrilla,
 } from './ui/cartas.js';
 export {
   prepararDetalle,

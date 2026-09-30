@@ -196,3 +196,22 @@ export function datosFiltros(cartas, filtros, config) {
     hayFiltros: hayFiltros(filtros),
   };
 }
+
+// --- Vista Todas / Tengo / Me falta ---------------------------
+// Es una vista, no una acción: filtra la lista según lo que tengo.
+// Va en la URL (&ver=tengo, &ver=falta), así se mantiene al recargar y
+// al volver. Cada pantalla tiene su vista por defecto (Buscar: todas;
+// detalle de un objetivo: falta), que no se escribe.
+export const VISTAS = ['todas', 'tengo', 'falta'];
+
+/** La vista que pide la URL, o la de base si falta o no es válida. */
+export function leerVista(params, base) {
+  const ver = params.get('ver');
+  return VISTAS.includes(ver) ? ver : base;
+}
+
+/** Agrega &ver=… a los parámetros si no es la vista de base. */
+export function escribirVista(params, ver, base) {
+  if (ver !== base) params.set('ver', ver);
+  return params;
+}
