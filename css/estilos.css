@@ -3,9 +3,9 @@
    ============================================================= */
 
 /* --- Tokens: tema claro (por defecto) ---------------------- */
-/* El tema se elige con data-tema="claro" | "oscuro" en <html>.
-   Sin data-tema, manda la preferencia del sistema.
-   Contrastes verificados (WCAG): ver docs/roadmap.md. */
+/* El tema es data-bs-theme="light" | "dark" en <html> (el atributo de
+   Bootstrap). Lo pone el script del <head>: la elección guardada o, si
+   no hay, la del sistema. Contrastes verificados (WCAG): ver docs/roadmap.md. */
 :root {
   color-scheme: light;
 
@@ -69,9 +69,9 @@
 }
 
 /* --- Tokens: tema oscuro ----------------------------------- */
-/* Los dos bloques de abajo deben ser IGUALES: uno aplica cuando el
-   usuario eligió oscuro, el otro cuando no eligió y el sistema es oscuro. */
-:root[data-tema="oscuro"] {
+/* Un solo bloque: data-bs-theme="dark" lo pone el <head> tanto si el
+   usuario eligió oscuro como si no eligió y el sistema es oscuro. */
+[data-bs-theme="dark"] {
   color-scheme: dark;
 
   --fondo: #0b1020;
@@ -107,42 +107,51 @@
   --google-texto: #e3e3e3;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) {
-    color-scheme: dark;
+/* --- Bootstrap: sus variables apuntan a nuestros tokens -------- */
+/* Una sola paleta: Bootstrap lee nuestros tokens y cambia de tema con
+   ellos. Bootstrap define las suyas en ":root, [data-bs-theme=light]" y
+   "[data-bs-theme=dark]"; estas van después y con la misma
+   especificidad, así que ganan en los dos temas.
+   Las variantes "-rgb" (--bs-body-color-rgb, --bs-link-color-rgb…) no se
+   mapean: Bootstrap las quiere como "r, g, b" y serían una copia de la
+   paleta. Se agregan en 11.1 solo si un componente las necesita. */
+:root,
+[data-bs-theme] {
+  --bs-body-font-family: var(--fuente);
+  --bs-body-color: var(--texto);
+  --bs-body-bg: var(--fondo);
+  --bs-emphasis-color: var(--texto);
+  --bs-secondary-color: var(--texto-suave);
+  --bs-secondary-bg: var(--superficie-2);
+  --bs-tertiary-color: var(--texto-suave);
+  --bs-tertiary-bg: var(--superficie-2);
 
-    --fondo: #0b1020;
-    --superficie: #151b2e;
-    --superficie-2: #1e2640;
-    --borde: #2a3350;
-    --borde-control: #626f94;
-    --texto: #eef1f8;
-    --texto-suave: #9aa5c0;
+  --bs-link-color: var(--info);
+  --bs-link-hover-color: var(--info);
 
-    --primario: #ffd60a;
-    --primario-hover: #ffe14d;
-    --sobre-primario: #0b1020;
-    --primario-borde: transparent;
-    --marca-texto: #ffd60a;
-    --info: #4cc3ff;
-    --exito: #4ade80;
-    --sobre-exito: #0b1020;
-    --advertencia: #ffa94d;
-    --error: #ff6b6b;
-    --foco: #ffd60a;
-    --progreso: #ffd60a;
-    --sobre-error: #0b1020;
-    --error-hover: #ff8787;
-    --capa: rgb(7 11 24 / 0.82);
-    --brillo-icono: drop-shadow(0 0 14px rgb(255 214 10 / 0.45));
+  --bs-border-color: var(--borde);
+  --bs-border-color-translucent: var(--borde);
+  --bs-border-radius-sm: var(--radio-s);
+  --bs-border-radius: var(--radio-m);
+  --bs-border-radius-lg: var(--radio-l);
+  --bs-border-radius-xl: var(--radio-l);
+  --bs-border-radius-xxl: var(--radio-l);
+  --bs-border-radius-pill: var(--radio-pill);
+  --bs-box-shadow: var(--sombra);
 
-    --sombra: 0 1px 3px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.3);
-    --brillo: 0 0 12px rgb(255 214 10 / 0.35);
+  /* Foco: nuestro color de foco y 3 px, como el outline propio */
+  --bs-focus-ring-width: 3px;
+  --bs-focus-ring-color: var(--foco);
 
-    --google-fondo: #131314;
-    --google-borde: #8e918f;
-    --google-texto: #e3e3e3;
-  }
+  --bs-primary: var(--primario);
+  --bs-success: var(--exito);
+  --bs-danger: var(--error);
+  --bs-warning: var(--advertencia);
+  --bs-info: var(--info);
+  --bs-form-valid-color: var(--exito);
+  --bs-form-valid-border-color: var(--exito);
+  --bs-form-invalid-color: var(--error);
+  --bs-form-invalid-border-color: var(--error);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -183,6 +192,19 @@ a { color: var(--info); }
 }
 
 [hidden] { display: none !important; }
+
+/* --- Reboot de Bootstrap ------------------------------------ */
+/* Bootstrap trae su "Reboot" (estilos base de toda la página). Se deja
+   lo que se ve igual o mejor, y se neutraliza aquí solo lo que empeora
+   o cambia el comportamiento (revisado con capturas antes y después):
+   - Se deja: interlineado 1.2 en títulos (los de dos líneas quedan más
+     compactos), botones que heredan la fuente de la página (la insignia
+     de acabados ya no sale en Arial) y márgenes de párrafo del Reboot.
+   - Se neutraliza: */
+/* Reboot: smooth. Al cambiar de pantalla la página sube al instante, como antes */
+:root { scroll-behavior: auto; }
+/* Reboot: 500. Con 700 los títulos mantienen su jerarquía */
+h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 /* Títulos que reciben el foco al cambiar de pantalla: no son
    interactivos, así que no se les dibuja el anillo de foco */
@@ -607,6 +629,9 @@ select:disabled { opacity: 0.6; }
   background: none;
   cursor: zoom-in;
 }
+/* Reboot: "button:not(:disabled) { cursor: pointer }" pesa más que una
+   clase sola; así se mantiene la lupa que indica "ampliar" */
+.carta__imagen:not(:disabled) { cursor: zoom-in; }
 .carta__imagen img {
   width: 100%;
   height: auto;
@@ -1022,7 +1047,7 @@ select:disabled { opacity: 0.6; }
   gap: var(--esp-1) var(--esp-4);
   margin: 0 0 var(--esp-5);
 }
-.detalle__datos dt { color: var(--texto-suave); }
+.detalle__datos dt { color: var(--texto-suave); font-weight: 400; } /* Reboot: dt en negrita */
 .detalle__datos dd { margin: 0; font-weight: 600; }
 
 .detalle__copias h3 { margin: 0 0 var(--esp-3); font-size: var(--texto-m); }

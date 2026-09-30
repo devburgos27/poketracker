@@ -6,9 +6,15 @@
   <title>Privacidad · PokéTracker</title>
   <meta name="description" content="Qué datos guarda PokéTracker, para qué se usan y cómo borrarlos.">
   <meta name="theme-color" content="#ffffff">
-  <!-- Aplica el tema guardado en la app antes de pintar -->
-  <script>try{var t=localStorage.getItem('pt-tema');if(t==='claro'||t==='oscuro')document.documentElement.dataset.tema=t}catch(e){}</script>
+  <!-- Tema antes de pintar (sin parpadeo): data-bs-theme="light" | "dark" en <html>,
+       el atributo que entienden Bootstrap y estilos.css. La elección guardada ('pt-tema')
+       manda; sin ella, el sistema, también si cambia con la página abierta. -->
+  <script>(function(){var d=document.documentElement,m=matchMedia('(prefers-color-scheme: dark)');function g(){try{var t=localStorage.getItem('pt-tema');return t==='claro'||t==='oscuro'?t:null}catch(e){return null}}function a(){d.setAttribute('data-bs-theme',(g()||(m.matches?'oscuro':'claro'))==='oscuro'?'dark':'light')}a();m.addEventListener('change',function(){if(!g())a()})})();</script>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <!-- Bootstrap 5.3.8, solo CSS (sin su JS), versión fija y con integrity. Va antes de
+       estilos.css: con la misma especificidad, ganan nuestras reglas por orden. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
   <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
@@ -103,6 +109,9 @@
         <a href="https://pokemontcg.io" target="_blank" rel="noopener">images.pokemontcg.io</a>
         (el sitio de imágenes de pokemontcg.io), así que tu navegador también se conecta a ese servidor.
         No se le envía ningún dato tuyo más allá de lo que implica pedir una imagen (como tu dirección IP).
+        Las librerías del sitio (los estilos de Bootstrap y el cliente de Supabase) se descargan de
+        <a href="https://www.jsdelivr.com" target="_blank" rel="noopener">jsDelivr</a>, una red pública de
+        distribución de archivos, con el mismo alcance: solo lo que implica pedir un archivo.
         Pokémon y sus marcas pertenecen a Nintendo, Game Freak y The Pokémon Company.
         PokéTracker no está afiliado a ninguna de ellas.
       </p>

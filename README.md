@@ -8,7 +8,7 @@ Buscar cartas no requiere cuenta. Para guardar tu colección, entra con tu cuent
 
 ## Tecnologías
 
-HTML, CSS y JavaScript vanilla (módulos ES), con **Supabase** (PostgreSQL + Auth + Row Level Security) como backend y **TCGdex** como fuente de datos e imágenes de cartas.
+HTML, CSS y JavaScript vanilla (módulos ES), con el CSS de **Bootstrap 5.3** (sin su JavaScript), **Supabase** (PostgreSQL + Auth + Row Level Security) como backend y **TCGdex** como fuente de datos e imágenes de cartas.
 
 No hay servidor propio ni paso de compilación: es un sitio estático.
 

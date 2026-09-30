@@ -47,15 +47,15 @@ export function mensajeLogin(texto, tipo = 'info') {
 
 // --- Tema claro / oscuro --------------------------------------
 // La preferencia se guarda en localStorage ('pt-tema'). Sin nada
-// guardado manda el sistema. El <head> aplica el tema guardado
-// antes de pintar; aquí solo se maneja el botón.
+// guardado manda el sistema. El script del <head> pone data-bs-theme
+// ("light" | "dark", el atributo de Bootstrap) antes de pintar y lo
+// actualiza si el sistema cambia; aquí solo se maneja el botón.
 
 const CLAVE_TEMA = 'pt-tema';
 const temaOscuroSistema = window.matchMedia('(prefers-color-scheme: dark)');
 
 function temaActual() {
-  return document.documentElement.dataset.tema
-    ?? (temaOscuroSistema.matches ? 'oscuro' : 'claro');
+  return document.documentElement.dataset.bsTheme === 'dark' ? 'oscuro' : 'claro';
 }
 
 /** Sincroniza el botón y la barra del navegador con el tema activo. */
@@ -71,7 +71,7 @@ function pintarTema() {
 export function prepararSelectorTema() {
   $('#btn-tema').addEventListener('click', () => {
     const nuevo = temaActual() === 'oscuro' ? 'claro' : 'oscuro';
-    document.documentElement.dataset.tema = nuevo;
+    document.documentElement.dataset.bsTheme = nuevo === 'oscuro' ? 'dark' : 'light';
     try {
       localStorage.setItem(CLAVE_TEMA, nuevo);
     } catch {
@@ -79,7 +79,8 @@ export function prepararSelectorTema() {
     }
     pintarTema();
   });
-  // Si no hay preferencia guardada y el sistema cambia, se sigue al sistema
+  // Si no hay preferencia guardada y el sistema cambia, el <head> ya
+  // cambió data-bs-theme: aquí se actualizan el botón y la barra
   temaOscuroSistema.addEventListener('change', pintarTema);
   pintarTema();
 }

@@ -7,9 +7,15 @@
   <title>PokéTracker · Tu colección de cartas Pokémon</title>
   <meta name="description" content="Lleva el registro de tu colección de cartas Pokémon TCG: busca un Pokémon, mira todas sus cartas y agrega a tu colección las que tienes.">
   <meta name="theme-color" content="#ffffff">
-  <!-- Aplica el tema guardado antes de pintar, para que no parpadee -->
-  <script>try{var t=localStorage.getItem('pt-tema');if(t==='claro'||t==='oscuro')document.documentElement.dataset.tema=t}catch(e){}</script>
+  <!-- Tema antes de pintar (sin parpadeo): data-bs-theme="light" | "dark" en <html>,
+       el atributo que entienden Bootstrap y estilos.css. La elección guardada ('pt-tema')
+       manda; sin ella, el sistema, también si cambia con la página abierta. -->
+  <script>(function(){var d=document.documentElement,m=matchMedia('(prefers-color-scheme: dark)');function g(){try{var t=localStorage.getItem('pt-tema');return t==='claro'||t==='oscuro'?t:null}catch(e){return null}}function a(){d.setAttribute('data-bs-theme',(g()||(m.matches?'oscuro':'claro'))==='oscuro'?'dark':'light')}a();m.addEventListener('change',function(){if(!g())a()})})();</script>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <!-- Bootstrap 5.3.8, solo CSS (sin su JS), versión fija y con integrity. Va antes de
+       estilos.css: con la misma especificidad, ganan nuestras reglas por orden. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
   <link rel="stylesheet" href="css/estilos.css">
   <!-- Precarga la conexión a la API de cartas para que la primera búsqueda sea más rápida -->
   <link rel="preconnect" href="https://api.tcgdex.net">
