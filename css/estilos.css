@@ -32,6 +32,8 @@
   --sobre-error: #ffffff;       /* texto sobre fondo de error (botón peligro) */
   --error-hover: #9c2019;
   --capa: rgb(233 237 245 / 0.88);  /* fondo de los avisos a pantalla completa */
+  --exito-fondo: #ebf6ee;       /* insignia "En tu colección ✓" (texto --exito: 4,87:1) */
+  --sombra-menu: 0 12px 32px -12px rgb(18 24 41 / 0.35);
   --brillo-icono: none;
 
   --sombra: 0 1px 2px rgb(18 24 41 / 0.06), 0 4px 12px rgb(18 24 41 / 0.06);
@@ -97,6 +99,8 @@
   --sobre-error: #0b1020;
   --error-hover: #ff8787;
   --capa: rgb(7 11 24 / 0.82);
+  --exito-fondo: #173326;
+  --sombra-menu: 0 12px 32px -8px rgb(0 0 0 / 0.6);
   --brillo-icono: drop-shadow(0 0 14px rgb(255 214 10 / 0.45));
 
   --sombra: 0 1px 3px rgb(0 0 0 / 0.4), 0 4px 12px rgb(0 0 0 / 0.3);
@@ -114,7 +118,11 @@
    especificidad, así que ganan en los dos temas.
    Las variantes "-rgb" (--bs-body-color-rgb, --bs-link-color-rgb…) no se
    mapean: Bootstrap las quiere como "r, g, b" y serían una copia de la
-   paleta. Se agregan en 11.1 solo si un componente las necesita. */
+   paleta. En 11.1 ningún componente las necesita: btn, btn-check,
+   btn-group, badge, form-control y form-select usan las variables sin
+   "-rgb"; la única que leen (--bs-btn-focus-shadow-rgb) va en la sombra
+   de foco, que aquí es "none" (usamos nuestro outline). El color de los
+   enlaces lo pone la regla "a" de este archivo. */
 :root,
 [data-bs-theme] {
   --bs-body-font-family: var(--fuente);
@@ -172,7 +180,23 @@ body {
 }
 
 img { max-width: 100%; display: block; }
-a { color: var(--info); }
+
+/* Enlaces: un solo estilo en toda la app (azul, seminegrita y subrayado;
+   el subrayado engrosa al pasar). Los que parecen botón usan .btn */
+a {
+  color: var(--info);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+a:hover { text-decoration-thickness: 2px; }
+/* Enlaces sueltos (no dentro de una oración): área táctil de 44 px */
+.enlace-suelto {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alto-toque);
+}
 
 .contenedor {
   width: 100%;
@@ -227,117 +251,208 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   outline-offset: 2px;
 }
 
-/* --- Botones ----------------------------------------------- */
-/* .boton = acción principal: amarillo con texto oscuro en ambos temas */
-.boton {
+/* --- Botones (btn de Bootstrap) ----------------------------- */
+/* Base .btn de Bootstrap con nuestros tokens: píldora, 44 px de alto como
+   mínimo y nuestro anillo de foco (el de Bootstrap es una sombra
+   translúcida que no llega a 3:1). Variantes:
+   - btn-primary: acción principal, amarillo con texto oscuro en ambos temas
+   - btn-outline-secondary: secundaria, con borde
+   - btn-link: botón de texto (Salir, Limpiar filtros, Dejar de seguir…)
+   - btn-outline-danger: destructiva con confirmación ("Quitar de mi colección")
+   - btn-danger: confirmar algo destructivo (modal de confirmación)
+   - btn-icono (propia): cuadrada, solo un ícono
+   - btn-google (propia): colores de la guía de marca de Google */
+.btn {
+  --bs-btn-padding-x: 1.25rem;
+  --bs-btn-padding-y: 0.6rem;
+  --bs-btn-font-size: var(--texto-m);
+  --bs-btn-font-weight: 600;
+  --bs-btn-line-height: 1.25;
+  --bs-btn-border-radius: var(--radio-pill);
+  --bs-btn-color: var(--texto);
+  --bs-btn-hover-color: var(--texto);
+  --bs-btn-active-color: var(--texto);
+  --bs-btn-disabled-color: var(--texto);
+  --bs-btn-focus-box-shadow: none;
+  --bs-btn-disabled-opacity: 0.6;
+  --bs-btn-active-shadow: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--esp-2);
   min-height: var(--alto-toque);
-  font: inherit;
-  font-weight: 600;
-  border: none;
-  border-radius: var(--radio-pill);
-  padding: 0.6rem 1.25rem;
-  background: var(--primario);
-  color: var(--sobre-primario);
-  box-shadow: inset 0 0 0 1px var(--primario-borde);
-  cursor: pointer;
-  text-decoration: none;
   white-space: nowrap;
-  transition: background var(--duracion), box-shadow var(--duracion);
+  transition: background-color var(--duracion), border-color var(--duracion), color var(--duracion), box-shadow var(--duracion);
 }
-.boton:hover:not(:disabled) {
-  background: var(--primario-hover);
-  box-shadow: inset 0 0 0 1px var(--primario-borde), var(--brillo);
+.btn:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
 }
-.boton:disabled { opacity: 0.6; cursor: wait; }
+.btn > svg { flex-shrink: 0; }
 
-.boton--secundario {
-  background: transparent;
-  color: var(--texto);
-  box-shadow: inset 0 0 0 1px var(--borde-control);
+.btn-primary {
+  --bs-btn-bg: var(--primario);
+  --bs-btn-color: var(--sobre-primario);
+  --bs-btn-border-color: var(--primario-borde);
+  --bs-btn-hover-bg: var(--primario-hover);
+  --bs-btn-hover-color: var(--sobre-primario);
+  --bs-btn-hover-border-color: var(--primario-borde);
+  --bs-btn-active-bg: var(--primario-hover);
+  --bs-btn-active-color: var(--sobre-primario);
+  --bs-btn-active-border-color: var(--primario-borde);
+  --bs-btn-disabled-bg: var(--primario);
+  --bs-btn-disabled-color: var(--sobre-primario);
+  --bs-btn-disabled-border-color: var(--primario-borde);
 }
-.boton--secundario:hover:not(:disabled) {
-  background: var(--superficie-2);
-  box-shadow: inset 0 0 0 1px var(--borde-control);
-}
+/* Brillo solo en tema oscuro (--brillo es "none" en claro) */
+.btn-primary:hover { box-shadow: var(--brillo); }
 
-/* Acción destructiva (ej: "Quitar copias") */
-.boton--peligro {
-  background: var(--error);
-  color: var(--sobre-error);
-  box-shadow: none;
-}
-.boton--peligro:hover:not(:disabled) {
-  background: var(--error-hover);
-  box-shadow: none;
-}
-
-.boton--texto {
-  min-height: 0;
-  background: none;
-  box-shadow: none;
-  color: var(--texto-suave);
-  padding: var(--esp-1) var(--esp-2);
-}
-.boton--texto:hover:not(:disabled) {
-  background: none;
-  box-shadow: none;
-  color: var(--marca-texto);
+.btn-outline-secondary {
+  --bs-btn-bg: transparent;
+  --bs-btn-color: var(--texto);
+  --bs-btn-border-color: var(--borde-control);
+  --bs-btn-hover-bg: var(--superficie-2);
+  --bs-btn-hover-color: var(--texto);
+  --bs-btn-hover-border-color: var(--borde-control);
+  --bs-btn-active-bg: var(--superficie-2);
+  --bs-btn-active-color: var(--texto);
+  --bs-btn-active-border-color: var(--borde-control);
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-color: var(--texto);
+  --bs-btn-disabled-border-color: var(--borde-control);
 }
 
-/* Botón cuadrado con solo un ícono (ej: cambiar tema) */
-.boton--icono {
+/* Botón de texto: gris que pasa a ámbar; sin subrayado, para no
+   confundirse con los enlaces */
+.btn-link {
+  --bs-btn-padding-x: var(--esp-2);
+  --bs-btn-font-weight: 600;
+  --bs-btn-color: var(--texto-suave);
+  --bs-btn-hover-color: var(--marca-texto);
+  --bs-btn-active-color: var(--marca-texto);
+  --bs-btn-disabled-color: var(--texto-suave);
+  text-decoration: none;
+}
+.btn-link:hover { text-decoration: none; }
+
+.btn-outline-danger {
+  --bs-btn-bg: transparent;
+  --bs-btn-color: var(--error);
+  --bs-btn-border-color: var(--error);
+  --bs-btn-hover-bg: var(--error);
+  --bs-btn-hover-color: var(--sobre-error);
+  --bs-btn-hover-border-color: var(--error);
+  --bs-btn-active-bg: var(--error-hover);
+  --bs-btn-active-color: var(--sobre-error);
+  --bs-btn-active-border-color: var(--error-hover);
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-color: var(--error);
+  --bs-btn-disabled-border-color: var(--error);
+}
+.btn-danger {
+  --bs-btn-bg: var(--error);
+  --bs-btn-color: var(--sobre-error);
+  --bs-btn-border-color: var(--error);
+  --bs-btn-hover-bg: var(--error-hover);
+  --bs-btn-hover-color: var(--sobre-error);
+  --bs-btn-hover-border-color: var(--error-hover);
+  --bs-btn-active-bg: var(--error-hover);
+  --bs-btn-active-color: var(--sobre-error);
+  --bs-btn-active-border-color: var(--error-hover);
+  --bs-btn-disabled-bg: var(--error);
+  --bs-btn-disabled-color: var(--sobre-error);
+  --bs-btn-disabled-border-color: var(--error);
+}
+
+.btn-icono {
+  --bs-btn-padding-x: 0;
+  --bs-btn-padding-y: 0;
+  --bs-btn-bg: transparent;
+  --bs-btn-color: var(--texto-suave);
+  --bs-btn-border-color: var(--borde);
+  --bs-btn-hover-bg: var(--superficie-2);
+  --bs-btn-hover-color: var(--marca-texto);
+  --bs-btn-hover-border-color: var(--borde);
+  --bs-btn-active-bg: var(--superficie-2);
+  --bs-btn-active-color: var(--marca-texto);
+  --bs-btn-active-border-color: var(--borde);
+  --bs-btn-disabled-color: var(--texto-suave);
+  --bs-btn-disabled-border-color: var(--borde);
   width: var(--alto-toque);
-  padding: 0;
-  background: transparent;
-  color: var(--texto-suave);
-  box-shadow: inset 0 0 0 1px var(--borde);
-}
-.boton--icono:hover:not(:disabled) {
-  background: var(--superficie-2);
-  color: var(--marca-texto);
-  box-shadow: inset 0 0 0 1px var(--borde);
 }
 
-/* Botón de Google: fondo neutro con el logo a color, como pide Google */
-.boton--google {
-  background: var(--google-fondo);
-  color: var(--google-texto);
-  box-shadow: inset 0 0 0 1px var(--google-borde);
+.btn-google {
+  --bs-btn-bg: var(--google-fondo);
+  --bs-btn-color: var(--google-texto);
+  --bs-btn-border-color: var(--google-borde);
+  --bs-btn-hover-bg: var(--google-fondo);
+  --bs-btn-hover-color: var(--google-texto);
+  --bs-btn-hover-border-color: var(--google-borde);
+  --bs-btn-active-bg: var(--google-fondo);
+  --bs-btn-active-color: var(--google-texto);
+  --bs-btn-active-border-color: var(--google-borde);
+  --bs-btn-disabled-bg: var(--google-fondo);
+  --bs-btn-disabled-color: var(--google-texto);
+  --bs-btn-disabled-border-color: var(--google-borde);
 }
-.boton--google:hover:not(:disabled) {
-  background: var(--google-fondo);
-  box-shadow: inset 0 0 0 1px var(--google-borde), var(--sombra);
-}
-.boton--google__logo { flex-shrink: 0; }
+.btn-google:hover { box-shadow: var(--sombra); }
 
-/* --- Campos ------------------------------------------------ */
-input {
-  font: inherit;
+/* --- Campos (form-control, form-select) --------------------- */
+/* Borde de 3:1 (--borde-control, no el decorativo de Bootstrap), fondo de
+   superficie y nuestro anillo de foco en vez de la sombra azul */
+.form-control,
+.form-select {
+  min-height: var(--alto-toque);
+  min-width: 0;
   color: var(--texto);
-  background: var(--superficie);
-  border: 1px solid var(--borde-control);
-  border-radius: var(--radio-pill);
+  background-color: var(--superficie);
+  border-color: var(--borde-control);
+}
+.form-control {
   padding: 0.6rem 1rem;
-  min-height: var(--alto-toque);
-  min-width: 0;
+  border-radius: var(--radio-pill);
 }
-input::placeholder { color: var(--texto-suave); }
-
-select {
-  font: inherit;
+.form-control::placeholder { color: var(--texto-suave); }
+.form-select { border-radius: var(--radio-s); }
+.form-control:focus,
+.form-select:focus {
   color: var(--texto);
-  background: var(--superficie);
-  border: 1px solid var(--borde-control);
-  border-radius: var(--radio-s);
-  padding: 0.4rem 0.6rem;
-  min-height: var(--alto-toque);
-  min-width: 0;
+  background-color: var(--superficie);
+  border-color: var(--borde-control);
+  box-shadow: none;
 }
-select:disabled { opacity: 0.6; }
+.form-control:focus-visible,
+.form-select:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+.form-select:disabled { color: var(--texto); background-color: var(--superficie); opacity: 0.6; }
+
+/* --- Insignias (badge) ------------------------------------- */
+/* .badge de Bootstrap en píldora, con variantes de nuestra paleta:
+   - badge--marca: amarillo con texto oscuro ("×2")
+   - badge--neutra: superficie con borde (acabados, "Simulación: …")
+   - badge--exito: estado "En tu colección ✓" (texto, no solo color) */
+.badge {
+  --bs-badge-font-size: var(--texto-xs);
+  --bs-badge-padding-x: 0.6em;
+  --bs-badge-padding-y: 0.3em;
+  --bs-badge-border-radius: var(--radio-pill);
+  --bs-badge-color: var(--texto);
+  line-height: 1.2;
+}
+.badge--marca {
+  --bs-badge-color: var(--sobre-primario);
+  background: var(--primario);
+}
+.badge--neutra {
+  background: var(--superficie);
+  box-shadow: 0 0 0 1px var(--borde);
+}
+.badge--exito {
+  --bs-badge-color: var(--exito);
+  background: var(--exito-fondo);
+}
 
 /* --- Cabecera ---------------------------------------------- */
 .cabecera {
@@ -361,6 +476,7 @@ select:disabled { opacity: 0.6; }
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  min-height: var(--alto-toque);
   color: var(--texto);
   text-decoration: none;
   font-weight: 700;
@@ -387,10 +503,86 @@ select:disabled { opacity: 0.6; }
   white-space: nowrap;
 }
 
-/* Muestra el sol o la luna según el tema activo */
+/* Tema: el botón muestra el sol o la luna del tema que se ve (también
+   en Automático) y abre un menú con Automático / Claro / Oscuro */
 .selector-tema__luna { display: none; }
-.selector-tema[aria-pressed="true"] .selector-tema__sol { display: none; }
-.selector-tema[aria-pressed="true"] .selector-tema__luna { display: block; }
+[data-bs-theme="dark"] .selector-tema__sol { display: none; }
+[data-bs-theme="dark"] .selector-tema__luna { display: block; }
+
+/* Menú (atributo popover: se cierra con Esc o tocando fuera). Lo ubica
+   pagina.js bajo el botón, alineado a su borde derecho */
+.menu-tema {
+  position: absolute;
+  inset: auto;
+  top: var(--menu-arriba, 0);
+  right: var(--menu-derecha, 0);
+  margin: 0;
+  min-width: 13rem;
+  padding: var(--esp-1);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-m);
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: var(--sombra-menu);
+}
+.menu-tema__grupo { margin: 0; padding: 0; border: none; min-width: 0; }
+.menu-tema__titulo {
+  float: none;
+  width: auto;
+  margin: 0;
+  padding: var(--esp-2) var(--esp-3) var(--esp-1);
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+/* Cada opción es un radio (flechas para moverse) con aspecto de fila */
+.menu-tema__opcion {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-3);
+  min-height: var(--alto-toque);
+  padding: 0 var(--esp-3);
+  border-radius: var(--radio-s);
+  font-weight: 600;
+  cursor: pointer;
+}
+.menu-tema__opcion:hover { background: var(--superficie-2); }
+.menu-tema__opcion .icono { color: var(--texto-suave); }
+.menu-tema__opcion:has(:checked) .icono { color: var(--marca-texto); }
+/* La elegida: ✓ al final y negrita (no solo color) */
+.menu-tema__opcion:has(:checked) { font-weight: 700; }
+.menu-tema__opcion:has(:checked)::after { content: "✓"; margin-left: auto; }
+.menu-tema__opcion:has(:focus-visible) {
+  outline: 3px solid var(--foco);
+  outline-offset: -3px;
+}
+
+/* Respaldo sin popover (Safari de iOS 16 y anteriores, Firefox < 125):
+   esos navegadores no ocultan <div popover>, así que se oculta aquí
+   desde el primer dibujo; el botón alterna los tres estados (pagina.js).
+   La "A" marca Automático (texto, no solo el ícono) */
+@supports not selector(:popover-open) {
+  .menu-tema { display: none; }
+}
+.selector-tema--ciclo { position: relative; }
+.selector-tema--ciclo[data-preferencia="auto"]::after {
+  content: "A";
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  min-width: 1.1rem;
+  padding: 0 0.2rem;
+  border-radius: var(--radio-pill);
+  background: var(--superficie);
+  box-shadow: 0 0 0 1px var(--borde-control);
+  color: var(--texto);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.1rem;
+  text-align: center;
+}
 
 .mensaje {
   margin: var(--esp-2) 0 0;
@@ -436,36 +628,68 @@ select:disabled { opacity: 0.6; }
   background: var(--marca-texto);
 }
 
-/* --- Pestañas: filtros ------------------------------------- */
-/* La pestaña activa se marca con aria-pressed: fondo amarillo, negrita y
-   ✓ (no depende solo del color). */
-.pestanas {
+/* --- Vista Todas / Tengo / Me falta ------------------------- */
+/* btn-group + btn-check de Bootstrap: radios con aspecto de control
+   segmentado (se eligen con las flechas; Tab entra en la elegida). La
+   elegida va en amarillo, en negrita y con ✓ (no depende solo del color) */
+.pestanas.btn-group {
   display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--esp-2);
-}
-.pestanas__item {
-  font: inherit;
-  font-size: var(--texto-s);
-  font-weight: 600;
-  min-height: var(--alto-toque);
-  padding: 0.4rem 1rem;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: var(--esp-1);
+  gap: var(--esp-1);
   border: 1px solid var(--borde);
   border-radius: var(--radio-pill);
-  background: var(--superficie);
-  color: var(--texto-suave);
-  cursor: pointer;
-  transition: background var(--duracion), color var(--duracion);
+  background: var(--superficie-2);
 }
-.pestanas__item:hover { color: var(--texto); background: var(--superficie-2); }
-.pestanas__item[aria-pressed="true"] {
-  background: var(--primario);
-  border-color: var(--primario);
-  color: var(--sobre-primario);
+/* Pesa más que las reglas de .btn-group que juntan los botones (sin
+   radio en los bordes internos y con margen negativo) */
+.btn-group.pestanas > .btn.pestanas__item {
+  margin-left: 0;
+  border-radius: var(--radio-pill);
+}
+.pestanas__item {
+  --bs-btn-padding-x: 1rem;
+  --bs-btn-padding-y: 0.4rem;
+  --bs-btn-font-size: var(--texto-s);
+  --bs-btn-border-color: transparent;
+  --bs-btn-color: var(--texto-suave);
+  --bs-btn-hover-bg: var(--superficie);
+  --bs-btn-hover-color: var(--texto);
+  --bs-btn-hover-border-color: transparent;
+  --bs-btn-active-bg: var(--primario);
+  --bs-btn-active-color: var(--sobre-primario);
+  --bs-btn-active-border-color: var(--primario-borde);
+}
+/* Bootstrap deja el botón quieto al pasar sobre un btn-check: aquí sí cambia */
+.pestanas .btn-check:not(:checked) + .pestanas__item:hover {
+  color: var(--texto);
+  background-color: var(--superficie);
+}
+.pestanas .btn-check:checked + .pestanas__item {
   font-weight: 700;
+  box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.3);
 }
-.pestanas__item[aria-pressed="true"]::before { content: "✓ "; }
+.pestanas .btn-check:checked + .pestanas__item::before { content: "✓ "; white-space: pre; }
+.pestanas .btn-check:focus-visible + .pestanas__item {
+  z-index: 1;
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+/* Pantallas angostas: el grupo usa todo el ancho y, si no cabe, el
+   conteo baja a una segunda línea dentro del botón ("Me falta / (224)") */
+@media (max-width: 400px) {
+  .pestanas.btn-group { width: 100%; }
+  .btn-group.pestanas > .btn.pestanas__item { flex: 1 1 auto; }
+  .pestanas__item {
+    --bs-btn-padding-x: 0.4rem;
+    --bs-btn-padding-y: 0.2rem;
+    --bs-btn-font-size: var(--texto-xs);
+    --bs-btn-line-height: 1.15;
+    white-space: normal;
+  }
+}
 /* "Te faltan 12" bajo las pestañas */
 .pestanas__conteo {
   margin: calc(-1 * var(--esp-3)) 0 var(--esp-4);
@@ -537,8 +761,10 @@ select:disabled { opacity: 0.6; }
   padding: var(--esp-6) var(--esp-4);
   text-align: center;
   color: var(--texto-suave);
-  border: 2px dashed var(--borde);
-  border-radius: var(--radio-m);
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-l);
+  box-shadow: var(--sombra);
 }
 .vacio p { margin: 0 0 var(--esp-4); }
 .vacio p:last-child { margin-bottom: 0; }
@@ -616,7 +842,8 @@ select:disabled { opacity: 0.6; }
 .carta {
   position: relative;       /* para la insignia ×N */
   background: var(--superficie);
-  border-radius: var(--radio-m);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-l);
   box-shadow: var(--sombra);
   overflow: hidden;
   display: flex;
@@ -693,14 +920,10 @@ select:disabled { opacity: 0.6; }
   position: absolute;
   top: var(--esp-2);
   right: var(--esp-2);
-  padding: 0.1rem 0.55rem;
-  border-radius: var(--radio-pill);
-  background: var(--primario);
-  color: var(--sobre-primario);
+  z-index: 1;               /* encima de la imagen (que también es posicionada) */
+  --bs-badge-font-size: var(--texto-s);
   /* Anillo del color de la tarjeta: la separa del borde amarillo de muchas cartas */
   box-shadow: 0 0 0 2px var(--superficie), var(--sombra);
-  font-size: var(--texto-s);
-  font-weight: 700;
   pointer-events: none;     /* el clic llega a la imagen de abajo */
 }
 
@@ -711,14 +934,7 @@ select:disabled { opacity: 0.6; }
   left: 0.9rem;
   bottom: 0.3rem;
   max-width: calc(100% - 1.8rem);
-  padding: 0.05rem 0.5rem;
-  border-radius: var(--radio-pill);
-  background: var(--superficie);
-  color: var(--texto);
   box-shadow: 0 0 0 1px var(--borde), var(--sombra);
-  font-size: var(--texto-xs);
-  font-weight: 700;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: none;     /* el clic llega a la imagen de abajo */
@@ -740,40 +956,32 @@ select:disabled { opacity: 0.6; }
 }
 
 /* --- Control de colección de la tarjeta -------------------- */
-/* "Agregar a mi colección" o "En tu colección ✓". La tarjeta que tengo
-   lleva además un borde verde (el texto ya lo dice: no depende del color) */
-.carta--tengo { box-shadow: 0 0 0 2px var(--exito), var(--sombra); }
-
-.marcado { margin-top: 0.6rem; }
-
-.marcado__agregar,
-.marcado__estado {
+/* "Agregar a mi colección" (btn-primary: la acción más visible de Buscar
+   y Me falta) o la insignia "En tu colección ✓". La tarjeta que tengo no
+   cambia de borde: el estado lo dice la insignia. Ambos ocupan la misma
+   altura, así las filas de la grilla no saltan al agregar. */
+.marcado {
+  container-type: inline-size;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
   min-height: var(--alto-toque);
-  padding: 0.3rem var(--esp-2);
-  border-radius: var(--radio-pill);
-  font: inherit;
-  font-size: var(--texto-xs);
-  font-weight: 700;
-  line-height: 1.2;
-  text-align: center;
+  margin-top: 0.6rem;
 }
 .marcado__agregar {
-  border: 1px solid var(--borde-control);
-  background: none;
-  color: var(--texto);
-  cursor: pointer;
-  transition: background var(--duracion), color var(--duracion);
+  --bs-btn-padding-x: var(--esp-2);
+  --bs-btn-font-size: var(--texto-s);
+  --bs-btn-font-weight: 700;
+  width: 100%;
+  gap: 0.3em;
 }
-.marcado__agregar:hover { background: var(--superficie-2); }
-/* Estado, no botón: texto verde sin relleno (5,4:1 en tema claro) */
-.marcado__estado {
-  margin: 0;
-  color: var(--exito);
+.marcado__mas { font-weight: 800; }
+/* Tarjeta angosta: solo "+ Agregar" en una línea (la etiqueta accesible
+   sigue siendo "Agregar Joltik 050 (Plasma Storm) a mi colección") */
+@container (width < 13.5rem) {
+  .marcado__resto { display: none; }
 }
+.marcado__estado { margin: 0; }
 
 /* --- Detalle de carta ------------------------------------- */
 .dialogo {
@@ -831,7 +1039,7 @@ select:disabled { opacity: 0.6; }
 .detalle__imagen { grid-area: imagen; }
 .detalle__flecha--anterior { grid-area: anterior; }
 .detalle__flecha--siguiente { grid-area: siguiente; }
-.detalle__flecha { font-size: var(--texto-l); }
+.detalle__flecha { --bs-btn-font-size: var(--texto-l); }
 /* En el borde de la lista: desactivada, sin el cursor de "esperando" */
 .detalle__flecha:disabled { opacity: 0.35; cursor: default; }
 .detalle__posicion {
@@ -877,10 +1085,14 @@ select:disabled { opacity: 0.6; }
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    font-size: var(--texto-xl);
+    --bs-btn-font-size: var(--texto-xl);
     /* Relleno del panel (se distingue en tema claro) y borde claro (en oscuro) */
-    background: var(--superficie);
-    color: var(--texto);
+    --bs-btn-bg: var(--superficie);
+    --bs-btn-color: var(--texto);
+    --bs-btn-border-color: transparent;
+    --bs-btn-disabled-bg: var(--superficie);
+    --bs-btn-disabled-color: var(--texto);
+    --bs-btn-disabled-border-color: transparent;
     box-shadow: inset 0 0 0 2px var(--texto-suave);
   }
   .detalle__flecha--anterior { left: 0; }
@@ -978,25 +1190,15 @@ select:disabled { opacity: 0.6; }
   .efecto[data-acabado]::after { animation: none; }
 }
 
-/* "Simulación: Reverse holo", abajo al centro de la imagen */
+/* "Simulación: Reverse holo": insignia chica bajo la imagen, así no
+   tapa el pie de la carta (número y símbolo de la expansión) */
 .efecto__etiqueta {
-  position: absolute;
-  left: 50%;
-  bottom: var(--esp-2);
-  transform: translateX(-50%);
-  max-width: calc(100% - 2 * var(--esp-2));
-  margin: 0;
-  padding: 0.1rem 0.6rem;
-  border-radius: var(--radio-pill);
-  background: var(--superficie);
-  color: var(--texto);
-  box-shadow: 0 0 0 1px var(--borde), var(--sombra);
-  font-size: var(--texto-xs);
-  font-weight: 700;
-  white-space: nowrap;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: var(--esp-2) auto 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  pointer-events: none;
 }
 
 /* Botones de acabado bajo la imagen (radios con aspecto de botón).
@@ -1059,7 +1261,7 @@ select:disabled { opacity: 0.6; }
   align-items: center;
   gap: var(--esp-3);
 }
-.contador .boton--icono { font-size: var(--texto-l); }
+.contador .btn-icono { --bs-btn-font-size: var(--texto-l); }
 .contador__numero {
   min-width: 2ch;
   font-size: var(--texto-l);
@@ -1087,13 +1289,31 @@ select:disabled { opacity: 0.6; }
   font-size: var(--texto-s);
   font-weight: 700;
 }
+/* Menos relleno que un form-select común: en la columna de una copia
+   tiene que caber "Reverse holo" (a 320 px, con la letra un poco menor) */
+.copia__campo .form-select {
+  padding-left: 0.5rem;
+  padding-right: 1.6rem;
+  background-position: right 0.45rem center;
+  font-size: var(--texto-s);
+}
+@media (max-width: 400px) {
+  .copia__campo .form-select { font-size: var(--texto-xs); }
+}
 .copia__campo {
   display: grid;
   gap: var(--esp-1);
   font-size: var(--texto-xs);
   color: var(--texto-suave);
 }
-.copia__quitar { min-height: var(--alto-toque); justify-self: end; }
+/* "Quitar" de una copia: botón de texto en rojo (6,5:1 en claro, AA en oscuro) */
+.copia__quitar {
+  --bs-btn-color: var(--error);
+  --bs-btn-hover-color: var(--error-hover);
+  --bs-btn-active-color: var(--error-hover);
+  --bs-btn-disabled-color: var(--error);
+  justify-self: end;
+}
 /* Casilla "Sello promocional": área táctil de 44 px */
 .copia__sello {
   grid-column: 1 / 3;
@@ -1130,7 +1350,6 @@ select:disabled { opacity: 0.6; }
 }
 .seguir--izquierda { justify-content: flex-start; }
 .seguir__estado { font-weight: 700; }
-.seguir__enlace { font-weight: 600; }
 .seguir__mensaje {
   flex-basis: 100%;
   margin: 0;
@@ -1189,10 +1408,11 @@ select:disabled { opacity: 0.6; }
   gap: var(--esp-2);
   padding: var(--esp-4);
   border: 1px solid var(--borde);
-  border-radius: var(--radio-m);
+  border-radius: var(--radio-l);
   background: var(--superficie);
   box-shadow: var(--sombra);
   color: var(--texto);
+  font-weight: 400;
   text-decoration: none;
   transition: border-color var(--duracion);
 }
@@ -1205,12 +1425,17 @@ select:disabled { opacity: 0.6; }
   color: var(--texto-suave);
 }
 .objetivo__nombre { font-size: var(--texto-l); font-weight: 700; }
+/* "Ver faltantes ›": parte de la tarjeta-enlace, con el mismo estilo de enlace */
 .objetivo__ver {
   justify-self: end;
   font-size: var(--texto-s);
   font-weight: 600;
   color: var(--info);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
 }
+.objetivo:hover .objetivo__ver { text-decoration-thickness: 2px; }
 .progreso-pie {
   max-width: 720px;
   margin: var(--esp-4) auto var(--esp-6);
@@ -1248,12 +1473,17 @@ select:disabled { opacity: 0.6; }
   justify-content: space-between;
   gap: var(--esp-2);
 }
-.seccion__enlace { font-weight: 600; }
-#inicio-progreso .objetivos { margin: var(--esp-3) 0 0; }
+/* Inicio: los objetivos llenan el ancho (1 a 3 por fila según el espacio) */
+#inicio-progreso .objetivos {
+  max-width: none;
+  margin: var(--esp-3) 0 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
 
 /* Sugerencias: "Unified Minds · tienes 2 cartas [Seguir]" */
 .sugerencias-caja { max-width: 720px; margin: var(--esp-4) auto var(--esp-6); }
-#inicio-progreso .sugerencias-caja { margin: var(--esp-3) 0 0; }
+#inicio-progreso .sugerencias-caja { max-width: none; margin: var(--esp-3) 0 0; }
+#inicio-progreso .sugerencias { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
 .sugerencias__texto { margin: var(--esp-2) 0 var(--esp-3); color: var(--texto-suave); }
 .sugerencias {
   list-style: none;
@@ -1276,11 +1506,7 @@ select:disabled { opacity: 0.6; }
 #progreso-aviso .vacio { margin: 0 0 var(--esp-3); }
 
 /* Detalle de un objetivo */
-.volver {
-  display: inline-block;
-  margin-top: var(--esp-5);
-  font-weight: 600;
-}
+.volver { margin-top: var(--esp-4); }
 .objetivo-cabecera {
   max-width: 720px;
   padding-block: var(--esp-3) var(--esp-2);
@@ -1370,7 +1596,7 @@ select:disabled { opacity: 0.6; }
   justify-content: center;
   gap: var(--esp-3);
 }
-.confirmar__acciones .boton { min-width: 10rem; }
+.confirmar__acciones .btn { min-width: 10rem; }
 
 @keyframes confirmar-fundido {
   from { opacity: 0; }
@@ -1393,7 +1619,7 @@ select:disabled { opacity: 0.6; }
 }
 
 .pie p { margin: 0; }
-.pie p + p { margin-top: var(--esp-2); }
+.pie p + p { margin-top: var(--esp-1); }
 
 /* --- Página de privacidad ---------------------------------- */
 
@@ -1472,7 +1698,7 @@ select:disabled { opacity: 0.6; }
     order: 1;
     flex-basis: 100%;
   }
-  .boton--google { width: 100%; }
+  .btn-google { width: 100%; }
   .acciones { flex-direction: column; }
   .sesion-activa { justify-content: space-between; }
   .grilla {
@@ -1492,7 +1718,7 @@ select:disabled { opacity: 0.6; }
   }
   .copia { grid-template-columns: 1fr 1fr; }
   .confirmar__acciones { flex-direction: column-reverse; }
-  .confirmar__acciones .boton { width: 100%; }
+  .confirmar__acciones .btn { width: 100%; }
   .copia__quitar { grid-column: 1 / -1; justify-self: start; }
   .copia__sello { grid-column: auto; align-self: end; } /* junto a "Acabado" */
 }

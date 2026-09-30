@@ -43,7 +43,7 @@ export function crearErrorConexion(alReintentar, { compacto = false } = {}) {
 
   const boton = document.createElement('button');
   boton.type = 'button';
-  boton.className = 'boton boton--secundario sin-conexion__boton';
+  boton.className = 'btn btn-outline-secondary sin-conexion__boton';
   const icono = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   icono.setAttribute('class', 'icono');
   icono.setAttribute('aria-hidden', 'true');
@@ -90,7 +90,8 @@ export function confirmar({ titulo, mensaje, textoConfirmar = 'Aceptar', peligro
   $('#confirmar-mensaje').textContent = mensaje;
   const aceptar = $('#confirmar-aceptar');
   aceptar.textContent = textoConfirmar;
-  aceptar.classList.toggle('boton--peligro', peligro);
+  aceptar.classList.toggle('btn-danger', peligro);
+  aceptar.classList.toggle('btn-primary', !peligro);
 
   dialogo.returnValue = '';
   dialogo.showModal();

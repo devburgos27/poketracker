@@ -46,6 +46,17 @@
     <symbol id="icono-progreso" viewBox="0 0 24 24">
       <path d="M4 20V13M10 20V8M16 20v-9M22 20V4"/>
     </symbol>
+    <symbol id="icono-sol" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+    </symbol>
+    <symbol id="icono-luna" viewBox="0 0 24 24">
+      <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>
+    </symbol>
+    <symbol id="icono-pantalla" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="12" rx="2"/>
+      <path d="M8 20h8M12 16v4"/>
+    </symbol>
     <symbol id="icono-coleccion" viewBox="0 0 24 24">
       <rect x="8" y="3" width="12" height="16" rx="2"/>
       <path d="M4 7v12a2 2 0 0 0 2 2h9"/>
@@ -84,29 +95,45 @@
       <!-- Sesión: botón de Google o usuario conectado -->
       <div class="sesion">
         <div id="login" data-solo="visitante">
-          <button type="button" class="boton boton--google" data-accion="google">
-            <svg class="boton--google__logo" width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
+          <button type="button" class="btn btn-google" data-accion="google">
+            <svg width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
             Entrar con Google
           </button>
         </div>
 
         <div id="sesion-activa" class="sesion-activa" data-solo="usuario" hidden>
           <span id="usuario-email" class="sesion-activa__email"></span>
-          <button id="btn-salir" type="button" class="boton boton--texto">Salir</button>
+          <button id="btn-salir" type="button" class="btn btn-link">Salir</button>
         </div>
       </div>
 
-      <!-- Tema claro / oscuro: pressed = oscuro -->
-      <button id="btn-tema" type="button" class="boton boton--icono selector-tema"
-              aria-label="Tema oscuro" aria-pressed="false" title="Cambiar tema">
-        <svg class="selector-tema__sol" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="12" cy="12" r="4"/>
-          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-        </svg>
-        <svg class="selector-tema__luna" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
-          <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>
-        </svg>
+      <!-- Tema: Automático / Claro / Oscuro. El botón muestra el tema que se
+           ve y abre el menú (popover nativo: Esc o tocar fuera lo cierran) -->
+      <button id="btn-tema" type="button" class="btn btn-icono selector-tema" popovertarget="menu-tema"
+              aria-label="Tema: automático" title="Tema: automático">
+        <svg class="selector-tema__sol icono" aria-hidden="true"><use href="#icono-sol"/></svg>
+        <svg class="selector-tema__luna icono" aria-hidden="true"><use href="#icono-luna"/></svg>
       </button>
+      <div id="menu-tema" class="menu-tema" popover>
+        <fieldset class="menu-tema__grupo">
+          <legend class="menu-tema__titulo">Tema</legend>
+          <label class="menu-tema__opcion">
+            <input type="radio" name="tema" value="auto" class="visualmente-oculto">
+            <svg class="icono" aria-hidden="true"><use href="#icono-pantalla"/></svg>
+            <span>Automático</span>
+          </label>
+          <label class="menu-tema__opcion">
+            <input type="radio" name="tema" value="claro" class="visualmente-oculto">
+            <svg class="icono" aria-hidden="true"><use href="#icono-sol"/></svg>
+            <span>Claro</span>
+          </label>
+          <label class="menu-tema__opcion">
+            <input type="radio" name="tema" value="oscuro" class="visualmente-oculto">
+            <svg class="icono" aria-hidden="true"><use href="#icono-luna"/></svg>
+            <span>Oscuro</span>
+          </label>
+        </fieldset>
+      </div>
     </div>
     <div class="contenedor">
       <p id="mensaje-login" class="mensaje" role="status" hidden></p>
@@ -128,11 +155,11 @@
           Busca cualquier Pokémon, mira todas sus cartas y agrega a tu colección las que ya tienes para saber cuáles te faltan.
         </p>
         <div class="acciones">
-          <button type="button" class="boton boton--google" data-accion="google">
-            <svg class="boton--google__logo" width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
+          <button type="button" class="btn btn-google" data-accion="google">
+            <svg width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
             Entrar con Google
           </button>
-          <a href="#/buscar" class="boton" data-enlace-buscar>Buscar cartas</a>
+          <a href="#/buscar" class="btn btn-primary" data-enlace-buscar>Buscar cartas</a>
         </div>
       </section>
 
@@ -141,8 +168,8 @@
         <section class="intro">
           <h2 data-titulo tabindex="-1">Tu colección</h2>
           <div class="acciones">
-            <a href="#/buscar" class="boton" data-enlace-buscar>Buscar cartas</a>
-            <a href="#/coleccion" class="boton boton--secundario" data-enlace-coleccion>Ver colección</a>
+            <a href="#/buscar" class="btn btn-primary" data-enlace-buscar>Buscar cartas</a>
+            <a href="#/coleccion" class="btn btn-outline-secondary" data-enlace-coleccion>Ver colección</a>
           </div>
         </section>
 
@@ -150,7 +177,7 @@
         <section id="inicio-progreso" aria-labelledby="titulo-inicio-progreso" hidden>
           <div class="seccion__cabecera">
             <h3 id="titulo-inicio-progreso" class="seccion__titulo">Tu progreso</h3>
-            <a id="inicio-ver-todo" href="#/progreso" class="seccion__enlace" hidden>Ver todo<span class="visualmente-oculto"> tu progreso</span></a>
+            <a id="inicio-ver-todo" href="#/progreso" class="seccion__enlace enlace-suelto" hidden>Ver todo<span class="visualmente-oculto"> tu progreso</span></a>
           </div>
           <p id="estado-inicio-progreso" class="estado" role="status" aria-live="polite"></p>
           <div id="inicio-progreso-contenido"></div>
@@ -175,8 +202,8 @@
 
         <form id="form-busqueda" class="form-busqueda" role="search">
           <label for="pokemon" class="visualmente-oculto">Nombre o número de la carta</label>
-          <input id="pokemon" name="pokemon" type="search" placeholder="Ej: Joltik, Pikachu, Charizard" autocomplete="off" required>
-          <button id="btn-buscar" type="submit" class="boton">Buscar</button>
+          <input id="pokemon" name="pokemon" type="search" class="form-control" placeholder="Ej: Joltik, Pikachu, Charizard" autocomplete="off" required>
+          <button id="btn-buscar" type="submit" class="btn btn-primary">Buscar</button>
         </form>
         <p class="intro__ayuda">Los nombres van en inglés, tal como aparecen en las cartas. También puedes buscar por número. Ej: Joltik, Pikachu 025, Pikachu 025 wizards o 025/182.</p>
       </section>
@@ -190,10 +217,14 @@
       <div id="filtros-busqueda" class="filtros-cartas" role="group" aria-label="Filtrar y ordenar resultados" hidden></div>
 
       <!-- Filtro por estado: solo con sesión y con resultados -->
-      <div id="filtros" class="filtros pestanas" role="group" aria-label="Ver resultados" hidden>
-        <button type="button" class="pestanas__item" data-filtro="todas" aria-pressed="true">Todas</button>
-        <button type="button" class="pestanas__item" data-filtro="tengo" aria-pressed="false">Tengo</button>
-        <button type="button" class="pestanas__item" data-filtro="falta" aria-pressed="false">Me falta</button>
+      <!-- Radios con aspecto de botón (btn-group + btn-check): las flechas cambian la vista -->
+      <div id="filtros" class="filtros pestanas btn-group" role="group" aria-label="Ver resultados" hidden>
+        <input type="radio" class="btn-check" name="ver-busqueda" id="ver-busqueda-todas" value="todas" data-filtro="todas" autocomplete="off" checked>
+        <label class="btn pestanas__item" for="ver-busqueda-todas">Todas</label>
+        <input type="radio" class="btn-check" name="ver-busqueda" id="ver-busqueda-tengo" value="tengo" data-filtro="tengo" autocomplete="off">
+        <label class="btn pestanas__item" for="ver-busqueda-tengo">Tengo</label>
+        <input type="radio" class="btn-check" name="ver-busqueda" id="ver-busqueda-falta" value="falta" data-filtro="falta" autocomplete="off">
+        <label class="btn pestanas__item" for="ver-busqueda-falta">Me falta</label>
       </div>
       <!-- "Te faltan 12" con la vista Me falta (lo llena ui.js) -->
       <p id="filtros-conteo" class="pestanas__conteo" role="status" hidden></p>
@@ -210,8 +241,8 @@
         </section>
         <div class="vacio">
           <p>Entra con Google para seguir Pokémon o expansiones y ver cuánto te falta.</p>
-          <button type="button" class="boton boton--google" data-accion="google">
-            <svg class="boton--google__logo" width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
+          <button type="button" class="btn btn-google" data-accion="google">
+            <svg width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
             Entrar con Google
           </button>
         </div>
@@ -234,7 +265,7 @@
 
         <!-- Detalle de un objetivo (#/progreso?tipo=…&clave=…) -->
         <div id="progreso-detalle" hidden>
-          <a href="#/progreso" class="volver">‹ Todos los objetivos</a>
+          <a href="#/progreso" class="volver enlace-suelto">‹ Todos los objetivos</a>
           <section class="objetivo-cabecera" aria-labelledby="objetivo-titulo">
             <p id="objetivo-tipo" class="objetivo__tipo"></p>
             <h2 id="objetivo-titulo" class="objetivo-cabecera__titulo" data-titulo tabindex="-1"></h2>
@@ -246,10 +277,13 @@
 
           <p id="estado-objetivo" class="estado" role="status" aria-live="polite"></p>
 
-          <div id="filtros-objetivo" class="filtros pestanas" role="group" aria-label="Ver cartas del objetivo" hidden>
-            <button type="button" class="pestanas__item" data-filtro="todas" aria-pressed="false">Todas</button>
-            <button type="button" class="pestanas__item" data-filtro="tengo" aria-pressed="false">Tengo</button>
-            <button type="button" class="pestanas__item" data-filtro="falta" aria-pressed="true">Me falta</button>
+          <div id="filtros-objetivo" class="filtros pestanas btn-group" role="group" aria-label="Ver cartas del objetivo" hidden>
+            <input type="radio" class="btn-check" name="ver-objetivo" id="ver-objetivo-todas" value="todas" data-filtro="todas" autocomplete="off">
+            <label class="btn pestanas__item" for="ver-objetivo-todas">Todas</label>
+            <input type="radio" class="btn-check" name="ver-objetivo" id="ver-objetivo-tengo" value="tengo" data-filtro="tengo" autocomplete="off">
+            <label class="btn pestanas__item" for="ver-objetivo-tengo">Tengo</label>
+            <input type="radio" class="btn-check" name="ver-objetivo" id="ver-objetivo-falta" value="falta" data-filtro="falta" autocomplete="off" checked>
+            <label class="btn pestanas__item" for="ver-objetivo-falta">Me falta</label>
           </div>
           <p id="filtros-objetivo-conteo" class="pestanas__conteo" role="status" hidden></p>
 
@@ -264,15 +298,15 @@
         <h2 data-titulo tabindex="-1">Mi colección</h2>
         <form id="form-coleccion" class="form-busqueda" role="search" data-solo="usuario" hidden>
           <label for="filtro-coleccion" class="visualmente-oculto">Filtrar por Pokémon</label>
-          <input id="filtro-coleccion" name="filtro" type="search" placeholder="Filtrar por Pokémon (ej: Joltik)" autocomplete="off">
+          <input id="filtro-coleccion" name="filtro" type="search" class="form-control" placeholder="Filtrar por Pokémon (ej: Joltik)" autocomplete="off">
         </form>
       </section>
 
       <!-- Sin sesión: invitación a entrar (no se redirige) -->
       <div class="vacio" data-solo="visitante">
         <p>Entra con Google para ver tu colección y agregar las cartas que tienes.</p>
-        <button type="button" class="boton boton--google" data-accion="google">
-          <svg class="boton--google__logo" width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
+        <button type="button" class="btn btn-google" data-accion="google">
+          <svg width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
           Entrar con Google
         </button>
       </div>
@@ -291,7 +325,7 @@
     <p>Datos e imágenes de cartas: <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>
        y, cuando TCGdex no tiene la imagen, <a href="https://pokemontcg.io" target="_blank" rel="noopener">pokemontcg.io</a>.
        Pokémon y sus marcas pertenecen a Nintendo, Game Freak y The Pokémon Company. Proyecto sin fines comerciales.</p>
-    <p><a href="privacidad.html">Privacidad</a></p>
+    <p><a href="privacidad.html" class="enlace-suelto">Privacidad</a></p>
   </footer>
 
   <!-- Detalle de una carta: imagen grande, datos y "Tus copias" -->
@@ -299,13 +333,13 @@
     <div class="detalle__contenido">
       <div class="detalle__cabecera">
         <h2 id="detalle-titulo" class="detalle__titulo"></h2>
-        <button id="dialogo-cerrar" type="button" class="boton boton--secundario" autofocus>Cerrar</button>
+        <button id="dialogo-cerrar" type="button" class="btn btn-outline-secondary" autofocus>Cerrar</button>
       </div>
 
       <div class="detalle__cuerpo">
         <!-- Imagen con "anterior" / "siguiente" a los lados (en móvil, debajo) -->
         <div class="detalle__visor">
-          <button id="detalle-anterior" type="button" class="boton boton--icono detalle__flecha detalle__flecha--anterior"
+          <button id="detalle-anterior" type="button" class="btn btn-icono detalle__flecha detalle__flecha--anterior"
                   aria-label="Carta anterior" hidden><span aria-hidden="true">‹</span></button>
           <div class="detalle__imagen">
             <div class="detalle__marco">
@@ -314,15 +348,16 @@
               <div id="detalle-sin-imagen" class="carta__sin-imagen respaldo" hidden></div>
               <!-- Vista por acabado: efecto CSS sobre la misma imagen (no es una foto) -->
               <div id="detalle-efecto" class="efecto" aria-hidden="true" hidden></div>
-              <p id="detalle-efecto-etiqueta" class="efecto__etiqueta" hidden></p>
             </div>
+            <!-- "Simulación: Reverse holo" bajo la imagen: no tapa su pie -->
+            <p id="detalle-efecto-etiqueta" class="efecto__etiqueta badge badge--neutra" hidden></p>
             <p id="detalle-imagen-nota" class="carta__idioma" hidden></p>
             <!-- Acabados registrados en tus copias (lo llena ui.js) -->
             <fieldset id="detalle-acabados" class="acabados" hidden>
               <legend class="visualmente-oculto">Ver la carta con el acabado</legend>
             </fieldset>
           </div>
-          <button id="detalle-siguiente" type="button" class="boton boton--icono detalle__flecha detalle__flecha--siguiente"
+          <button id="detalle-siguiente" type="button" class="btn btn-icono detalle__flecha detalle__flecha--siguiente"
                   aria-label="Carta siguiente" hidden><span aria-hidden="true">›</span></button>
           <p id="detalle-posicion" class="detalle__posicion" hidden></p>
         </div>
@@ -339,15 +374,15 @@
           <section class="detalle__copias" data-solo="usuario" hidden aria-labelledby="detalle-copias-titulo">
             <h3 id="detalle-copias-titulo">Tus copias</h3>
             <div class="contador" role="group" aria-label="Cantidad de copias">
-              <button id="copias-restar" type="button" class="boton boton--icono" aria-label="Quitar una copia" data-foco="restar">−</button>
+              <button id="copias-restar" type="button" class="btn btn-icono" aria-label="Quitar una copia" data-foco="restar">−</button>
               <output id="copias-cantidad" class="contador__numero" aria-live="polite">0</output>
-              <button id="copias-sumar" type="button" class="boton boton--icono" aria-label="Agregar una copia" data-foco="sumar">+</button>
+              <button id="copias-sumar" type="button" class="btn btn-icono" aria-label="Agregar una copia" data-foco="sumar">+</button>
             </div>
             <p id="copias-resumen" class="copias__resumen" hidden></p>
             <p id="estado-detalle" class="mensaje" role="status" hidden></p>
             <ol id="lista-copias" class="copias"></ol>
             <!-- Solo si la tienes: borra la carta con todas sus copias (pide confirmación) -->
-            <button id="copias-quitar-todo" type="button" class="boton boton--peligro copias__quitar-todo" data-foco="quitar-todo" hidden>Quitar de mi colección</button>
+            <button id="copias-quitar-todo" type="button" class="btn btn-outline-danger copias__quitar-todo" data-foco="quitar-todo" hidden>Quitar de mi colección</button>
           </section>
 
           <p class="detalle__aviso" data-solo="visitante">Entra con Google para registrar tus copias de esta carta.</p>
@@ -363,8 +398,8 @@
       <h2 id="confirmar-titulo" class="confirmar__titulo"></h2>
       <p id="confirmar-mensaje" class="confirmar__mensaje"></p>
       <div class="confirmar__acciones">
-        <button id="confirmar-cancelar" type="button" class="boton boton--secundario" autofocus>Cancelar</button>
-        <button id="confirmar-aceptar" type="button" class="boton"></button>
+        <button id="confirmar-cancelar" type="button" class="btn btn-outline-secondary" autofocus>Cancelar</button>
+        <button id="confirmar-aceptar" type="button" class="btn btn-primary"></button>
       </div>
     </div>
   </dialog>

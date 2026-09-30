@@ -79,7 +79,7 @@ function crearTarjeta(carta, marcado, lista, opciones = {}) {
   // tus copias (el lector de pantalla lo oye en la etiqueta del botón)
   if (acabados) {
     const insignia = document.createElement('span');
-    insignia.className = 'carta__acabado';
+    insignia.className = 'carta__acabado badge badge--neutra';
     insignia.setAttribute('aria-hidden', 'true');
     insignia.textContent = acabados.corto;
     boton.append(insignia);
@@ -89,7 +89,7 @@ function crearTarjeta(carta, marcado, lista, opciones = {}) {
   // (el lector de pantalla ya lo oye en la etiqueta del botón)
   if (copias > 1) {
     const insignia = document.createElement('span');
-    insignia.className = 'carta__copias';
+    insignia.className = 'carta__copias badge badge--marca';
     insignia.setAttribute('aria-hidden', 'true');
     insignia.textContent = `×${copias}`;
     tarjeta.append(insignia);
@@ -175,8 +175,8 @@ async function probarAlternativas(boton, tarjeta, carta, respaldo) {
 
 /**
  * Control de colección de la tarjeta: "Agregar a mi colección" si no la
- * tengo, o el estado "En tu colección ✓" si la tengo (texto, no solo el
- * color del borde). Agregar se muestra al instante y se revierte si
+ * tengo (en tarjetas angostas se ve "+ Agregar"; el resto lo oculta el
+ * CSS), o la insignia "En tu colección ✓" si la tengo (texto, no solo color). Agregar se muestra al instante y se revierte si
  * alCambiar falla (el mensaje de error lo muestra quien llama). Quitar
  * no está aquí: va en el detalle, con confirmación.
  */
@@ -185,13 +185,20 @@ function crearControlColeccion(carta, tarjeta, { misCartas, alCambiar }) {
   control.className = 'marcado';
 
   const estadoTengo = document.createElement('p');
-  estadoTengo.className = 'marcado__estado';
+  estadoTengo.className = 'marcado__estado badge badge--exito';
   estadoTengo.textContent = 'En tu colección ✓';
 
   const agregar = document.createElement('button');
   agregar.type = 'button';
-  agregar.className = 'marcado__agregar';
-  agregar.textContent = 'Agregar a mi colección';
+  agregar.className = 'btn btn-primary marcado__agregar';
+  const mas = document.createElement('span');
+  mas.className = 'marcado__mas';
+  mas.setAttribute('aria-hidden', 'true');
+  mas.textContent = '+';
+  const resto = document.createElement('span');
+  resto.className = 'marcado__resto';
+  resto.textContent = ' a mi colección';
+  agregar.append(mas, 'Agregar', resto);
   agregar.setAttribute('aria-label', `Agregar ${carta.nombre} ${carta.numero} (${carta.nombreSet}) a mi colección`);
 
   const pintar = (tengo) => {

@@ -20,7 +20,7 @@ No hay servidor propio ni paso de compilación: es un sitio estático.
 - **Progreso:** puedes seguir un Pokémon (todas sus cartas, por número de Pokédex) o una expansión, y ver cuántas tienes con una barra de progreso. La lista de cartas de cada objetivo viene de TCGdex y se guarda un día en el navegador. Inicio muestra tus 3 objetivos más recientes. Si todavía no sigues nada, la app te sugiere las expansiones y los Pokémon de los que más cartas tienes (hasta 5), y los puedes seguir con un toque.
 - **Cartas sin imagen:** cerca del 7 % de las cartas no tienen imagen en TCGdex. Para esas, la app usa la misma carta en [pokemontcg.io](https://pokemontcg.io) o, si no está, la versión de TCGdex en otro idioma con los mismos ids de carta (español, francés, italiano, alemán, portugués…), con una etiqueta como "Imagen en español". Si no hay en ninguna, muestra un recuadro con el nombre, el número y la expansión.
 - **Usuarios:** login con Google (Supabase Auth). Es la única forma de entrar: la app no maneja contraseñas.
-- **Tema claro y oscuro:** sigue la preferencia del sistema y se puede cambiar con el botón ☀️/🌙 de la cabecera; la elección se guarda en el navegador.
+- **Tema claro y oscuro:** el botón de la cabecera abre un menú con Automático (sigue al sistema), Claro y Oscuro; la elección se guarda en el navegador.
 - **Seguridad:** reglas RLS en la base de datos garantizan que cada usuario solo pueda ver y modificar sus propias cartas (ver `sql/schema.sql`).
 - **Privacidad:** [`privacidad.html`](https://poketracker-ten.vercel.app/privacidad.html), enlazada al pie de la app, explica qué datos se guardan, para qué y cómo borrarlos.
 - **Hosting:** Vercel, como sitio estático.
@@ -52,7 +52,7 @@ js/
     base.js         mensajes, "No pudimos conectar" y confirmación
     pagina.js       cabecera: sesión, tema y navegación
     pantallas.js    mensajes y grillas de Buscar, Inicio y Colección
-    filtros.js      pestañas y selects de filtros
+    filtros.js      vista Todas / Tengo / Me falta y selects de filtros
     cartas.js       tarjeta de carta y "Agregar a mi colección"
     imagen.js       carga de imágenes con reintento y recuadro sin imagen
     detalle.js      detalle de carta: imagen y datos

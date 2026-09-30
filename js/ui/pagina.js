@@ -2,7 +2,7 @@
 // Interfaz: cabecera y navegación
 // =============================================================
 // Lo que es de toda la página: sesión (Entrar con Google / Salir),
-// tema claro / oscuro y qué pantalla se ve (títulos y enlaces).
+// tema (Automático / Claro / Oscuro) y qué pantalla se ve (títulos y enlaces).
 // =============================================================
 
 import { $, escribirMensaje } from './base.js';
@@ -45,44 +45,137 @@ export function mensajeLogin(texto, tipo = 'info') {
   el.hidden = !texto;
 }
 
-// --- Tema claro / oscuro --------------------------------------
-// La preferencia se guarda en localStorage ('pt-tema'). Sin nada
-// guardado manda el sistema. El script del <head> pone data-bs-theme
-// ("light" | "dark", el atributo de Bootstrap) antes de pintar y lo
-// actualiza si el sistema cambia; aquí solo se maneja el botón.
+// --- Tema: Automático / Claro / Oscuro ------------------------
+// La preferencia se guarda en localStorage ('pt-tema'): 'claro',
+// 'oscuro' o nada (= Automático, sigue al sistema). Las elecciones
+// guardadas antes del selector de tres estados valen igual. El script
+// del <head> pone data-bs-theme ("light" | "dark", el atributo de
+// Bootstrap) antes de pintar; aquí se manejan el botón y su menú.
 
 const CLAVE_TEMA = 'pt-tema';
 const temaOscuroSistema = window.matchMedia('(prefers-color-scheme: dark)');
+
+/** 'auto' | 'claro' | 'oscuro' */
+let preferencia = leerPreferencia();
+
+function leerPreferencia() {
+  try {
+    const guardada = localStorage.getItem(CLAVE_TEMA);
+    return guardada === 'claro' || guardada === 'oscuro' ? guardada : 'auto';
+  } catch {
+    return 'auto';
+  }
+}
+
+function guardarPreferencia() {
+  try {
+    if (preferencia === 'auto') localStorage.removeItem(CLAVE_TEMA);
+    else localStorage.setItem(CLAVE_TEMA, preferencia);
+  } catch {
+    // Sin almacenamiento (modo privado estricto): la elección dura hasta recargar
+  }
+}
 
 function temaActual() {
   return document.documentElement.dataset.bsTheme === 'dark' ? 'oscuro' : 'claro';
 }
 
-/** Sincroniza el botón y la barra del navegador con el tema activo. */
+/** Pone el tema que corresponde a la preferencia y actualiza el botón y el menú. */
+function aplicarTema() {
+  const oscuro = preferencia === 'auto' ? temaOscuroSistema.matches : preferencia === 'oscuro';
+  document.documentElement.dataset.bsTheme = oscuro ? 'dark' : 'light';
+  pintarTema();
+}
+
+/** Botón ("Tema: automático (oscuro)"), radios del menú y barra del navegador. */
 function pintarTema() {
-  const oscuro = temaActual() === 'oscuro';
-  $('#btn-tema').setAttribute('aria-pressed', String(oscuro));
+  const texto = preferencia === 'auto' ? `Tema: automático (${temaActual()})` : `Tema: ${preferencia}`;
+  const boton = $('#btn-tema');
+  boton.setAttribute('aria-label', texto);
+  boton.title = texto;
+  boton.dataset.preferencia = preferencia;  // la "A" del respaldo sin popover
+  document.querySelectorAll('#menu-tema input[name="tema"]').forEach((radio) => {
+    radio.checked = radio.value === preferencia;
+  });
   // Toma el fondo de la cabecera del CSS, así no se repiten colores aquí
   const fondo = getComputedStyle(document.documentElement).getPropertyValue('--superficie').trim();
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', fondo);
 }
 
-/** Prepara el botón ☀️/🌙 de la cabecera. */
+/**
+ * Prepara el botón de tema y su menú (atributo popover: Esc y tocar
+ * fuera lo cierran solos). El menú se abre con el foco en la opción
+ * elegida; las flechas cambian el tema al instante. Elegir con el mouse
+ * o el dedo, o con Enter, cierra el menú y devuelve el foco al botón.
+ * Sin popover en el navegador, el botón alterna los tres estados.
+ */
 export function prepararSelectorTema() {
-  $('#btn-tema').addEventListener('click', () => {
-    const nuevo = temaActual() === 'oscuro' ? 'claro' : 'oscuro';
-    document.documentElement.dataset.bsTheme = nuevo === 'oscuro' ? 'dark' : 'light';
-    try {
-      localStorage.setItem(CLAVE_TEMA, nuevo);
-    } catch {
-      // Sin almacenamiento (modo privado estricto): el tema dura hasta recargar
-    }
-    pintarTema();
+  const boton = $('#btn-tema');
+  const menu = $('#menu-tema');
+
+  // En Automático, si el sistema cambia, el tema cambia con él. (El
+  // <head> ya lo hace si no hay nada guardado; esto cubre además el caso
+  // sin almacenamiento, donde la elección solo vive en esta variable.)
+  temaOscuroSistema.addEventListener('change', aplicarTema);
+
+  if ('popover' in HTMLElement.prototype) prepararMenuTema(boton, menu);
+  else prepararCicloTema(boton, menu);
+  aplicarTema();
+}
+
+/**
+ * Respaldo sin popover (Safari de iOS 16 y anteriores, Firefox < 125):
+ * esos navegadores no abren el menú y tampoco lo ocultan. Se oculta
+ * (también desde el CSS, antes de que corra esto) y el botón alterna
+ * Automático → Claro → Oscuro. Una "A" en el botón marca Automático,
+ * porque el sol o la luna solos no distinguen Automático de Claro u Oscuro.
+ */
+function prepararCicloTema(boton, menu) {
+  const ORDEN = ['auto', 'claro', 'oscuro'];
+  menu.hidden = true;
+  boton.removeAttribute('popovertarget');
+  boton.classList.add('selector-tema--ciclo');
+  boton.addEventListener('click', () => {
+    preferencia = ORDEN[(ORDEN.indexOf(preferencia) + 1) % ORDEN.length];
+    guardarPreferencia();
+    aplicarTema();
   });
-  // Si no hay preferencia guardada y el sistema cambia, el <head> ya
-  // cambió data-bs-theme: aquí se actualizan el botón y la barra
-  temaOscuroSistema.addEventListener('change', pintarTema);
-  pintarTema();
+}
+
+/** Menú Automático / Claro / Oscuro con el popover nativo. */
+function prepararMenuTema(boton, menu) {
+  let conPuntero = false;
+
+  // Bajo el botón y alineado a su borde derecho (el menú es absoluto
+  // respecto a la página, así se desplaza con ella)
+  menu.addEventListener('beforetoggle', (e) => {
+    if (e.newState !== 'open') return;
+    const r = boton.getBoundingClientRect();
+    menu.style.setProperty('--menu-arriba', `${r.bottom + window.scrollY + 6}px`);
+    menu.style.setProperty('--menu-derecha', `${document.documentElement.clientWidth - r.right - window.scrollX}px`);
+  });
+  menu.addEventListener('toggle', (e) => {
+    if (e.newState === 'open') menu.querySelector('input:checked')?.focus();
+  });
+
+  const cerrar = () => {
+    menu.hidePopover();
+    boton.focus();
+  };
+  menu.addEventListener('pointerdown', () => { conPuntero = true; });
+  menu.addEventListener('keydown', (e) => {
+    conPuntero = false;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      cerrar();
+    }
+  });
+  menu.addEventListener('change', (e) => {
+    preferencia = e.target.value;
+    guardarPreferencia();
+    aplicarTema();
+    if (conPuntero) cerrar();
+  });
 }
 
 // --- Navegación -----------------------------------------------

@@ -94,7 +94,7 @@ function crearFilaCopia(copia, indice, ocupado, conQuitar) {
 
   const quitar = document.createElement('button');
   quitar.type = 'button';
-  quitar.className = 'boton boton--texto copia__quitar';
+  quitar.className = 'btn btn-link copia__quitar';
   quitar.textContent = 'Quitar';
   quitar.setAttribute('aria-label', `Quitar copia ${indice + 1}`);
   quitar.dataset.foco = `quitar-${indice}`;
@@ -165,6 +165,7 @@ function crearSelector(etiqueta, campo, opciones, copia, indice, ocupado) {
   texto.textContent = etiqueta;
 
   const select = document.createElement('select');
+  select.className = 'form-select';
   select.dataset.foco = `${campo}-${indice}`;
   select.disabled = ocupado;
   select.append(

@@ -2,7 +2,7 @@
 // Interfaz: filtros de cartas
 // =============================================================
 // Vista Todas / Tengo / Me falta (Buscar y detalle de un objetivo:
-// botones con aria-pressed en un grupo) y los selects de expansión, rareza y orden (Buscar y
+// radios btn-check en un btn-group) y los selects de expansión, rareza y orden (Buscar y
 // Colección). Qué filtra cada uno lo decide filtros.js (sin "ui/").
 // =============================================================
 
@@ -26,10 +26,10 @@ export function mostrarFiltros(conteos, activo = 'todas', selector = '#filtros')
   if (!conteos) return;
 
   const nombres = { todas: 'Todas', tengo: 'Tengo', falta: 'Me falta' };
-  filtros.querySelectorAll('[data-filtro]').forEach((btn) => {
-    const clave = btn.dataset.filtro;
-    btn.textContent = `${nombres[clave]} (${conteos[clave]})`;
-    btn.setAttribute('aria-pressed', String(clave === activo));
+  filtros.querySelectorAll('[data-filtro]').forEach((radio) => {
+    const clave = radio.dataset.filtro;
+    filtros.querySelector(`label[for="${radio.id}"]`).textContent = `${nombres[clave]} (${conteos[clave]})`;
+    radio.checked = clave === activo;
   });
   // Con 0 no se muestra: lo dice el estado vacío de la grilla
   const n = conteos[activo];
@@ -73,6 +73,7 @@ export function mostrarFiltrosCartas(selector, datos, alCambiar) {
     const texto = document.createElement('span');
     texto.textContent = etiqueta;
     const select = document.createElement('select');
+    select.className = 'form-select';
     select.dataset.campo = campo;
     if (todas) select.append(new Option(todas, ''));
     select.append(...opciones.map((o) => new Option(o.cantidad === undefined ? o.texto : `${o.texto} (${o.cantidad})`, o.valor)));
@@ -88,7 +89,7 @@ export function mostrarFiltrosCartas(selector, datos, alCambiar) {
   if (datos.hayFiltros) {
     const limpiar = document.createElement('button');
     limpiar.type = 'button';
-    limpiar.className = 'boton boton--texto filtros-cartas__limpiar';
+    limpiar.className = 'btn btn-link filtros-cartas__limpiar';
     limpiar.dataset.campo = 'limpiar';
     limpiar.textContent = 'Limpiar filtros';
     limpiar.addEventListener('click', () => alCambiar(null));

@@ -341,10 +341,11 @@ export function preparar() {
     else window.location.hash = destino;
   });
 
-  document.querySelector('#filtros').addEventListener('click', (e) => {
-    const boton = e.target.closest('[data-filtro]');
-    if (!boton || boton.dataset.filtro === filtro) return;
-    filtro = boton.dataset.filtro;
+  // Radios: 'change' llega con clic, toque y flechas del teclado
+  document.querySelector('#filtros').addEventListener('change', (e) => {
+    const radio = e.target.closest('[data-filtro]');
+    if (!radio || radio.dataset.filtro === filtro) return;
+    filtro = radio.dataset.filtro;
     // Igual que los selects: replaceState, sin una entrada de historial por clic
     const destino = hashBuscar(busquedaActual, filtrosBusqueda);
     history.replaceState(null, '', destino);

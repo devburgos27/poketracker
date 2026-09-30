@@ -66,10 +66,11 @@ const VISTA_OBJETIVO = 'falta';
 /** Conecta el módulo con main.js. */
 export function preparar(dependencias) {
   dep = dependencias;
-  document.querySelector('#filtros-objetivo').addEventListener('click', (e) => {
-    const boton = e.target.closest('[data-filtro]');
-    if (!boton || !detalle?.cartas || boton.dataset.filtro === detalle.filtro) return;
-    detalle.filtro = boton.dataset.filtro;
+  // Radios: 'change' llega con clic, toque y flechas del teclado
+  document.querySelector('#filtros-objetivo').addEventListener('change', (e) => {
+    const radio = e.target.closest('[data-filtro]');
+    if (!radio || !detalle?.cartas || radio.dataset.filtro === detalle.filtro) return;
+    detalle.filtro = radio.dataset.filtro;
     // La vista va en la URL (&ver=todas, &ver=tengo; "Me falta" es la de
     // base): se mantiene al recargar y al volver. replaceState, como los filtros
     const ver = String(filtrado.escribirVista(new URLSearchParams(), detalle.filtro, VISTA_OBJETIVO));

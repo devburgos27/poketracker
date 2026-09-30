@@ -115,7 +115,7 @@ export function mostrarProgresoVacio() {
   const texto = document.createElement('p');
   texto.textContent = 'Sigue un Pokémon desde la búsqueda o una expansión desde el detalle de una carta.';
   const buscar = document.createElement('a');
-  buscar.className = 'boton';
+  buscar.className = 'btn btn-primary';
   buscar.href = '#/buscar';
   buscar.dataset.enlaceBuscar = '';
   buscar.textContent = 'Buscar cartas';
@@ -251,7 +251,7 @@ export function mostrarSugerencias(selector, items, alSeguir, { titulo = '', tex
 
     const boton = document.createElement('button');
     boton.type = 'button';
-    boton.className = 'boton boton--secundario';
+    boton.className = 'btn btn-outline-secondary';
     boton.textContent = s.ocupado ? 'Guardando…' : 'Seguir';
     if (!s.ocupado) boton.setAttribute('aria-label', `Seguir ${s.nombre}`);
     // aria-disabled (no disabled) para no perder el foco del teclado
@@ -321,7 +321,7 @@ export function mostrarPieProgreso(datos) {
     : `Listas de TCGdex del ${cuando}.`;
   const boton = document.createElement('button');
   boton.type = 'button';
-  boton.className = 'boton boton--texto';
+  boton.className = 'btn btn-link';
   boton.textContent = 'Actualizar';
   boton.addEventListener('click', () => {
     boton.disabled = true;
@@ -411,15 +411,15 @@ export function mostrarSeguir(selector, estado) {
     hijos.push(texto);
     if (estado.enlace) {
       const ver = document.createElement('a');
-      ver.className = 'seguir__enlace';
+      ver.className = 'seguir__enlace enlace-suelto';
       ver.href = estado.enlace;
       ver.textContent = 'Ver progreso';
       hijos.push(ver);
     }
-    hijos.push(boton(estado.ocupado ? 'Guardando…' : 'Dejar de seguir', 'boton boton--texto', estado.alDejar,
+    hijos.push(boton(estado.ocupado ? 'Guardando…' : 'Dejar de seguir', 'btn btn-link', estado.alDejar,
       estado.ocupado ? null : `Dejar de seguir ${estado.nombre}`));
   } else {
-    hijos.push(boton(estado.ocupado ? 'Guardando…' : `Seguir ${estado.nombre}`, 'boton boton--secundario', estado.alSeguir));
+    hijos.push(boton(estado.ocupado ? 'Guardando…' : `Seguir ${estado.nombre}`, 'btn btn-outline-secondary', estado.alSeguir));
   }
   if (estado.mensaje) {
     const mensaje = document.createElement('p');
