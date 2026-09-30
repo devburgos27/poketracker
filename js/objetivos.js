@@ -377,6 +377,7 @@ async function completarDatosCartas() {
  */
 async function seguirSugerencia(s, pantalla) {
   const clave = claveDe(s);
+  const origen = document.activeElement;
   const { MAX_OBJETIVOS } = dep.coleccion();
   const limite = `Llegaste al límite de ${MAX_OBJETIVOS} objetivos. Deja de seguir alguno para agregar otro.`;
   if (objetivos.length >= MAX_OBJETIVOS) {
@@ -393,6 +394,7 @@ async function seguirSugerencia(s, pantalla) {
     if (carga !== cargaActual) return; // cerró sesión mientras guardaba
     objetivos = [nuevo, ...objetivos.filter((o) => o.id !== nuevo.id)];
     estadoSugerencias.delete(clave);
+    ui.avisar(`Siguiendo ${s.nombre}`, { origen });
     // La sugerencia desaparece: si tenía el foco (teclado), pasa al objetivo nuevo
     if (document.activeElement?.closest('[data-sugerencia]')) {
       enfocarLuego = { pantalla, href: ui.enlaceObjetivo(nuevo) };
@@ -539,10 +541,12 @@ async function seguir(selector, candidato, opciones) {
     mostrarSeguir(selector, candidato, opciones, { mensaje: limite });
     return;
   }
+  const origen = document.activeElement;
   mostrarSeguir(selector, candidato, opciones, { ocupado: true });
   try {
     const nuevo = await dep.coleccion().seguirObjetivo(candidato);
     objetivos = [nuevo, ...objetivos.filter((o) => o.id !== nuevo.id)];
+    ui.avisar(`Siguiendo ${candidato.nombre}`, { origen });
   } catch (error) {
     console.error(error);
     mostrarSeguir(selector, candidato, opciones, {
@@ -557,10 +561,12 @@ async function seguir(selector, candidato, opciones) {
 async function dejarDeSeguir(selector, candidato, opciones) {
   const actual = buscarObjetivo(candidato.tipo, candidato.clave);
   if (!actual) return;
+  const origen = document.activeElement;
   mostrarSeguir(selector, candidato, opciones, { ocupado: true });
   try {
     await dep.coleccion().dejarDeSeguir(actual.id);
     objetivos = objetivos.filter((o) => o.id !== actual.id);
+    ui.avisar(`Dejaste de seguir ${candidato.nombre}`, { tipo: 'info', origen });
     olvidarLista(actual); // si la vuelve a seguir, se pide de nuevo
   } catch (error) {
     console.error(error);

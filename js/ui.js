@@ -83,3 +83,4 @@ export {
   errorObjetivo,
   mostrarSeguir,
 } from './ui/progreso.js';
+export { avisar } from './ui/avisos.js';

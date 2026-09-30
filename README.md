@@ -60,6 +60,7 @@ js/
     copias.js       "Tus copias": idioma, condición, acabado y sello
     acabados.js     insignia de acabados y vista simulada por acabado
     progreso.js     barra, objetivos, sugerencias y Seguir
+    avisos.js       avisos breves ("Siguiendo Joltik"), anunciados al lector de pantalla
 datos/
   imagenes-alternativas.json  imágenes de respaldo en pokemontcg.io (generada, fija)
 herramientas/

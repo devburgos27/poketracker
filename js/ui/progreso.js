@@ -234,20 +234,19 @@ export function mostrarSugerencias(selector, items, alSeguir, { titulo = '', tex
     item.className = 'sugerencia seguir seguir--izquierda';
     item.dataset.sugerencia = `${s.tipo}:${s.clave}`;
 
+    // Compacta: ícono del tipo (rayo = Pokémon, cartas = expansión), el
+    // nombre y debajo "Pokémon · #595 · tienes 2 cartas"
+    const icono = crearIcono(s.tipo === 'pokemon' ? 'icono-rayo' : 'icono-coleccion');
+    icono.classList.add('sugerencia__icono');
     const datos = document.createElement('div');
     datos.className = 'sugerencia__datos';
-    const tipo = document.createElement('span');
-    tipo.className = 'objetivo__tipo';
-    tipo.textContent = textoTipo(s);
     const nombre = document.createElement('span');
     nombre.className = 'sugerencia__nombre';
     nombre.textContent = s.nombre;
-    const cantidad = document.createElement('span');
-    cantidad.className = 'sugerencia__cantidad';
-    cantidad.textContent = ` · tienes ${s.cantidad} ${s.cantidad === 1 ? 'carta' : 'cartas'}`;
-    const linea = document.createElement('span');
-    linea.append(nombre, cantidad);
-    datos.append(tipo, linea);
+    const detalle = document.createElement('span');
+    detalle.className = 'sugerencia__detalle';
+    detalle.textContent = `${textoTipo(s)} · tienes ${s.cantidad} ${s.cantidad === 1 ? 'carta' : 'cartas'}`;
+    datos.append(nombre, detalle);
 
     const boton = document.createElement('button');
     boton.type = 'button';
@@ -260,7 +259,7 @@ export function mostrarSugerencias(selector, items, alSeguir, { titulo = '', tex
       if (boton.getAttribute('aria-disabled') !== 'true') alSeguir(s);
     });
 
-    item.append(datos, boton);
+    item.append(icono, datos, boton);
     if (s.mensaje) {
       const mensaje = document.createElement('p');
       mensaje.className = 'seguir__mensaje';
