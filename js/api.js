@@ -117,7 +117,7 @@ export async function buscarCartas(nombre) {
 //   "Pikachu 025": nombre + número en una consulta (siempre chica).
 //   "025/182": sets con ese total impreso, sus cartas (solo ids) y
 //     luego los datos completos solo de las que coinciden.
-//   "150" solo: la consulta por número (main.js no la hace si es < 100).
+//   "150" solo: la consulta por número (busqueda.js no la hace si es < 100).
 // Números con letras (TG25, SV001) no se buscan por ahora.
 
 /** ¿El número de la carta (localId) es exactamente ese? "025" = 25; "TG25" no. */

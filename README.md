@@ -33,25 +33,44 @@ privacidad.html   política de privacidad
 favicon.svg       ícono de la pestaña (el rayo de la marca)
 css/estilos.css
 js/
-  config.js     URL y llave pública de Supabase
-  supabase.js   cliente de Supabase
-  api.js        adaptador de la API de cartas
-  auth.js       login con Google y sesión
-  coleccion.js  tu colección, copias y objetivos en Supabase
-  objetivos.js  objetivos, progreso y la pantalla Progreso
-  filtros.js    filtros por expansión y rareza, y orden (Buscar y Colección)
-  imagenes.js   imágenes de respaldo para cartas sin imagen en TCGdex
+  main.js           punto de entrada: arranque, login y conexión entre módulos
+  router.js         rutas en el hash (#/buscar?q=…) y qué pantalla se ve
+  estado.js         lo compartido: tus cartas en memoria y la pantalla actual
+  busqueda.js       pantalla Buscar (nombre, número y expansión)
+  listas.js         Colección y "Agregadas recientemente" de Inicio
+  objetivos.js      objetivos, progreso y la pantalla Progreso
+  detalle-carta.js  detalle de carta: copias y anterior / siguiente
+  filtros.js        filtros por expansión y rareza, y orden (Buscar y Colección)
+  imagenes.js       imágenes de respaldo para cartas sin imagen en TCGdex
+  api.js            adaptador de la API de cartas (TCGdex)
+  config.js         URL y llave pública de Supabase
+  supabase.js       cliente de Supabase
+  auth.js           login con Google y sesión
+  coleccion.js      tu colección, copias y objetivos en Supabase
+  ui.js             la interfaz: reúne lo de js/ui/
+  ui/
+    base.js         mensajes, "No pudimos conectar" y confirmación
+    pagina.js       cabecera: sesión, tema y navegación
+    pantallas.js    mensajes y grillas de Buscar, Inicio y Colección
+    filtros.js      pestañas y selects de filtros
+    cartas.js       tarjeta de carta y Tengo / Me falta
+    imagen.js       carga de imágenes con reintento y recuadro sin imagen
+    detalle.js      detalle de carta: imagen y datos
+    detalle-navegacion.js  anterior / siguiente: flechas, teclado y deslizar
+    copias.js       "Tus copias": idioma, condición, acabado y sello
+    acabados.js     insignia de acabados y vista simulada por acabado
+    progreso.js     barra, objetivos, sugerencias y Seguir
 datos/
   imagenes-alternativas.json  imágenes de respaldo en pokemontcg.io (generada, fija)
 herramientas/
   generar-imagenes.mjs  generó la lista de pokemontcg.io (no hace falta volver a correrlo)
-  ui.js         todo lo que se dibuja en pantalla
-  main.js       punto de entrada
 sql/
   schema.sql      esquema completo (proyectos nuevos)
   002_copias.sql  migración: copias por carta
   003_permisos_coleccion.sql  migración: solo los permisos que usa la app
   004_objetivos.sql  migración: objetivos (Pokémon o expansiones que sigues)
+  005_limites.sql    migración: límites de tamaño y cantidad
+  006_acabado_copias.sql  migración: acabado y sello por copia
 ```
 
 ## Correr en local

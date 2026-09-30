@@ -182,3 +182,17 @@ export function opcionesRareza(cartas, filtros) {
     .map(([valor, cantidad]) => ({ valor, texto: valor, cantidad }))
     .sort((a, b) => posicionRareza(a.valor) - posicionRareza(b.valor) || a.valor.localeCompare(b.valor));
 }
+
+// Mensaje de la grilla cuando los filtros no dejan ninguna carta
+export const VACIO_CON_FILTROS = 'Ninguna carta coincide con los filtros.';
+
+/** Datos para los selects de filtros (Buscar y Colección). */
+export function datosFiltros(cartas, filtros, config) {
+  return {
+    sets: opcionesSet(cartas, filtros),
+    rarezas: config.conRareza ? opcionesRareza(cartas, filtros) : null,
+    ordenes: config.ordenes.map((valor) => ({ valor, texto: NOMBRES_ORDEN[valor] })),
+    filtros,
+    hayFiltros: hayFiltros(filtros),
+  };
+}
