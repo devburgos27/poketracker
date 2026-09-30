@@ -1481,6 +1481,29 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 .seguir [aria-disabled="true"] { opacity: 0.6; cursor: wait; }
 .seguir--izquierda .seguir__mensaje { text-align: left; }
+.seguir .icono { width: 18px; height: 18px; }
+
+/* Siguiendo (B4): un recuadro que agrupa el estado (verde, con ✓: no
+   solo color), "Ver progreso" y "Dejar de seguir", en vez de texto suelto */
+.seguir--siguiendo {
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: var(--esp-1) var(--esp-1) var(--esp-1) var(--esp-4);
+  gap: 0 var(--esp-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-l);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+.seguir--siguiendo.seguir--izquierda { margin-inline: 0; }
+.seguir--siguiendo .seguir__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  color: var(--exito);
+}
+.seguir--siguiendo .seguir__mensaje { padding-block: var(--esp-2); }
 .seguir:not(.seguir--izquierda) .seguir__mensaje { text-align: center; }
 .detalle__info .seguir { margin: 0 0 var(--esp-5); }
 
@@ -1587,6 +1610,88 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 .filtros-cartas__campo select { min-height: var(--alto-toque); max-width: 100%; }
 .filtros-cartas__limpiar { min-height: var(--alto-toque); }
+
+/* Móvil: botón "Filtros (N)" e insignias de los filtros activos (en
+   escritorio no se ven: los selects están en la página) */
+.filtros-resumen { display: none; }
+.filtros-resumen__boton { --bs-btn-padding-x: var(--esp-3); gap: var(--esp-2); }
+.filtros-resumen__cuantos { --bs-badge-font-size: var(--texto-xs); }
+/* Filtro activo: insignia que se quita al tocarla (44 px de alto) */
+.filtros-resumen__activo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--esp-2);
+  min-height: var(--alto-toque);
+  max-width: 100%;
+  padding: 0.3rem 0.5rem 0.3rem var(--esp-3);
+  border: 1px solid var(--borde-control);
+  border-radius: var(--radio-l);
+  background: var(--acento-fondo);
+  color: var(--texto);
+  font: inherit;
+  font-size: var(--texto-s);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+.filtros-resumen__activo:hover { border-color: var(--texto-suave); }
+.filtros-resumen__x {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radio-pill);
+  background: var(--superficie);
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+/* Hoja inferior (<dialog>): sube desde abajo, a todo el ancho */
+.hoja {
+  width: 100%;
+  max-width: 100%;
+  max-height: 85dvh;
+  margin: auto 0 0;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-bottom: none;
+  border-radius: var(--radio-l) var(--radio-l) 0 0;
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: var(--sombra-menu);
+}
+.hoja::backdrop { background: rgb(0 0 0 / 0.6); }
+.hoja[open] { animation: hoja-subir 200ms ease-out; }
+@keyframes hoja-subir {
+  from { transform: translateY(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hoja[open] { animation: none; }
+}
+/* Asa decorativa arriba (identidad de "hoja", no es un control) */
+.hoja::before {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: var(--esp-2) auto 0;
+  border-radius: var(--radio-pill);
+  background: var(--borde-control);
+}
+.hoja__cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-3);
+  padding: var(--esp-2) var(--esp-4) var(--esp-3);
+  border-bottom: 1px solid var(--borde);
+}
+.hoja__titulo { margin: 0; font-size: var(--texto-l); }
+.hoja__cuerpo { padding: var(--esp-4) var(--esp-4) calc(var(--esp-5) + env(safe-area-inset-bottom)); }
+.hoja .filtros-cartas { margin: 0; }
+.hoja .filtros-cartas__limpiar { align-self: flex-start; }
 
 /* Inicio: "Tu progreso" con "Ver todo" al lado del título */
 .seccion__cabecera {
@@ -1816,6 +1921,20 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 
 @media (max-width: 600px) {
+  /* Filtros: a todo el ancho y alineados (sin el zigzag de selects
+     centrados de distinto ancho). En Buscar van en la hoja inferior */
+  .filtros-cartas { flex-direction: column; align-items: stretch; }
+  .filtros-cartas__campo { width: 100%; }
+  .filtros-cartas__limpiar { align-self: flex-start; }
+  main .filtros-cartas--con-hoja { display: none; }
+  .filtros-resumen {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--esp-2);
+    margin-bottom: var(--esp-4);
+  }
+
   .btn-google { width: 100%; }
   /* Cabecera: "Entrar con Google" queda en el logo "G" (44 px) */
   .sesion__google.btn-google { width: var(--alto-toque); --bs-btn-padding-x: 0; }

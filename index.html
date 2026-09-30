@@ -57,6 +57,12 @@
       <rect x="3" y="4" width="18" height="12" rx="2"/>
       <path d="M8 20h8M12 16v4"/>
     </symbol>
+    <symbol id="icono-filtros" viewBox="0 0 24 24">
+      <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/>
+      <circle cx="16" cy="6" r="2"/>
+      <circle cx="10" cy="12" r="2"/>
+      <circle cx="18" cy="18" r="2"/>
+    </symbol>
     <symbol id="icono-coleccion" viewBox="0 0 24 24">
       <rect x="8" y="3" width="12" height="16" rx="2"/>
       <path d="M4 7v12a2 2 0 0 0 2 2h9"/>
@@ -222,8 +228,11 @@
       <!-- "Seguir Joltik": solo con sesión y si el nombre coincide exacto -->
       <div id="seguir-busqueda" class="seguir" hidden></div>
 
-      <!-- Expansión, rareza y orden: con resultados, con o sin sesión (lo llena ui.js) -->
-      <div id="filtros-busqueda" class="filtros-cartas" role="group" aria-label="Filtrar y ordenar resultados" hidden></div>
+      <!-- Móvil: botón "Filtros (N)" que abre la hoja y los filtros activos como insignias (lo llena ui.js) -->
+      <div id="filtros-busqueda-resumen" class="filtros-resumen" role="group" aria-label="Filtros de la búsqueda" hidden></div>
+      <!-- Expansión, rareza y orden: con resultados, con o sin sesión (lo llena ui.js).
+           En móvil no se ven aquí: se mueven a la hoja #hoja-filtros al abrirla -->
+      <div id="filtros-busqueda" class="filtros-cartas filtros-cartas--con-hoja" role="group" aria-label="Filtrar y ordenar resultados" hidden></div>
 
       <!-- Filtro por estado: solo con sesión y con resultados -->
       <!-- Radios con aspecto de botón (btn-group + btn-check): las flechas cambian la vista -->
@@ -398,6 +407,15 @@
         </div>
       </div>
     </div>
+  </dialog>
+
+  <!-- Filtros en móvil: hoja inferior con los selects de Buscar (los mueve ui.js) -->
+  <dialog id="hoja-filtros" class="hoja" aria-labelledby="hoja-filtros-titulo">
+    <div class="hoja__cabecera">
+      <h2 id="hoja-filtros-titulo" class="hoja__titulo">Filtros</h2>
+      <button id="hoja-filtros-listo" type="button" class="btn btn-primary">Listo</button>
+    </div>
+    <div id="hoja-filtros-cuerpo" class="hoja__cuerpo"></div>
   </dialog>
 
   <!-- Confirmación a pantalla completa (la usa ui.confirmar) -->

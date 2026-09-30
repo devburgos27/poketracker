@@ -385,6 +385,8 @@ export function mostrarSeguir(selector, estado) {
   const caja = $(selector);
   const teniaFoco = caja.contains(document.activeElement);
   caja.hidden = !estado;
+  // Siguiendo: un solo recuadro con el estado, "Ver progreso" y "Dejar de seguir"
+  caja.classList.toggle('seguir--siguiendo', Boolean(estado?.siguiendo));
   if (!estado) {
     caja.replaceChildren();
     return;
@@ -408,6 +410,7 @@ export function mostrarSeguir(selector, estado) {
     const texto = document.createElement('span');
     texto.className = 'seguir__estado';
     texto.textContent = `Siguiendo ${estado.nombre} ✓`;
+    texto.prepend(crearIcono('icono-progreso'));
     hijos.push(texto);
     if (estado.enlace) {
       const ver = document.createElement('a');
@@ -419,7 +422,9 @@ export function mostrarSeguir(selector, estado) {
     hijos.push(boton(estado.ocupado ? 'Guardando…' : 'Dejar de seguir', 'btn btn-link', estado.alDejar,
       estado.ocupado ? null : `Dejar de seguir ${estado.nombre}`));
   } else {
-    hijos.push(boton(estado.ocupado ? 'Guardando…' : `Seguir ${estado.nombre}`, 'btn btn-outline-secondary', estado.alSeguir));
+    const seguir = boton(estado.ocupado ? 'Guardando…' : `Seguir ${estado.nombre}`, 'btn btn-outline-secondary', estado.alSeguir);
+    seguir.prepend(crearIcono('icono-progreso'));
+    hijos.push(seguir);
   }
   if (estado.mensaje) {
     const mensaje = document.createElement('p');
@@ -430,4 +435,15 @@ export function mostrarSeguir(selector, estado) {
   }
   caja.replaceChildren(...hijos);
   if (teniaFoco) caja.querySelector('button, a')?.focus();
+}
+
+/** Ícono de línea (<svg><use href="#…">), decorativo. */
+function crearIcono(id) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'icono');
+  svg.setAttribute('aria-hidden', 'true');
+  const uso = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  uso.setAttribute('href', `#${id}`);
+  svg.append(uso);
+  return svg;
 }

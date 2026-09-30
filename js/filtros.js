@@ -192,6 +192,7 @@ export function datosFiltros(cartas, filtros, config) {
     sets: opcionesSet(cartas, filtros),
     rarezas: config.conRareza ? opcionesRareza(cartas, filtros) : null,
     ordenes: config.ordenes.map((valor) => ({ valor, texto: NOMBRES_ORDEN[valor] })),
+    base: config.base,
     filtros,
     hayFiltros: hayFiltros(filtros),
   };

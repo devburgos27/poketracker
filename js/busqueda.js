@@ -66,6 +66,7 @@ export function dibujarBusqueda() {
     '#filtros-busqueda',
     cartasActuales.length ? filtrado.datosFiltros(cartasActuales, filtrosBusqueda, filtrado.BUSCAR) : null,
     cambiarFiltrosBusqueda,
+    { resumen: '#filtros-busqueda-resumen' },
   );
   if (!estado.misCartas) {
     ui.mostrarFiltros(null);
