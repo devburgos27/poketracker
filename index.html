@@ -60,6 +60,19 @@
     <symbol id="icono-rayo" viewBox="0 0 24 24">
       <path d="M14 2 4 14h6l-2 8 10-12h-6z"/>
     </symbol>
+    <!-- Íconos de los avisos (van dentro de un círculo de color) -->
+    <symbol id="icono-aviso-check" viewBox="0 0 24 24">
+      <path d="m6.5 12.5 3.5 3.5 7.5-8"/>
+    </symbol>
+    <symbol id="icono-aviso-rayo" viewBox="0 0 24 24">
+      <path d="M13 3.5 6 13h5.5l-1 7.5L18 11h-5.5z"/>
+    </symbol>
+    <symbol id="icono-aviso-menos" viewBox="0 0 24 24">
+      <path d="M7 12h10"/>
+    </symbol>
+    <symbol id="icono-aviso-alerta" viewBox="0 0 24 24">
+      <path d="M12 6.5v7M12 17.5v.01"/>
+    </symbol>
     <symbol id="icono-filtros" viewBox="0 0 24 24">
       <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/>
       <circle cx="16" cy="6" r="2"/>
@@ -166,13 +179,17 @@
 
     <!-- Pantalla: inicio -->
     <div id="vista-inicio" hidden>
-      <!-- Sin sesión: presentación -->
-      <section class="intro" data-solo="visitante">
-        <h2 data-titulo tabindex="-1">Tu colección Pokémon TCG, organizada en un solo lugar</h2>
-        <p class="intro__aviso">
+      <!-- Sin sesión: presentación (mismo panel que "Tu colección") -->
+      <section class="resumen" data-solo="visitante">
+        <p class="resumen__antetitulo">
+          <svg class="icono" aria-hidden="true"><use href="#icono-rayo"/></svg>
+          PokéTracker
+        </p>
+        <h2 class="resumen__titulo" data-titulo tabindex="-1">Tu colección Pokémon TCG, organizada en un solo lugar</h2>
+        <p class="resumen__texto">
           Busca cualquier Pokémon, mira todas sus cartas y agrega a tu colección las que ya tienes para saber cuáles te faltan.
         </p>
-        <div class="acciones">
+        <div class="acciones resumen__acciones">
           <button type="button" class="btn btn-google" data-accion="google">
             <svg width="18" height="18" aria-hidden="true"><use href="#icono-google"/></svg>
             Entrar con Google
@@ -183,9 +200,19 @@
 
       <!-- Con sesión: accesos rápidos y cartas recientes -->
       <div data-solo="usuario" hidden>
-        <section class="intro">
-          <h2 data-titulo tabindex="-1">Tu colección</h2>
-          <div class="acciones">
+        <!-- Tu colección: cifras de misCartas (las llena ui.js). "—" mientras cargan -->
+        <section class="resumen" aria-labelledby="titulo-resumen">
+          <p class="resumen__antetitulo">
+            <svg class="icono" aria-hidden="true"><use href="#icono-rayo"/></svg>
+            Tu colección
+          </p>
+          <h2 id="titulo-resumen" class="resumen__titulo" data-titulo tabindex="-1">Hola, entrenador</h2>
+          <dl class="resumen__cifras">
+            <div class="resumen__cifra"><dt data-cifra-texto="cartas">cartas distintas</dt><dd data-cifra="cartas">—</dd></div>
+            <div class="resumen__cifra"><dt data-cifra-texto="copias">copias en total</dt><dd data-cifra="copias">—</dd></div>
+            <div class="resumen__cifra"><dt data-cifra-texto="expansiones">expansiones</dt><dd data-cifra="expansiones">—</dd></div>
+          </dl>
+          <div class="acciones resumen__acciones">
             <a href="#/buscar" class="btn btn-primary" data-enlace-buscar>Buscar cartas</a>
             <a href="#/coleccion" class="btn btn-outline-secondary" data-enlace-coleccion>Ver colección</a>
           </div>

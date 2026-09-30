@@ -566,7 +566,7 @@ async function dejarDeSeguir(selector, candidato, opciones) {
   try {
     await dep.coleccion().dejarDeSeguir(actual.id);
     objetivos = objetivos.filter((o) => o.id !== actual.id);
-    ui.avisar(`Dejaste de seguir ${candidato.nombre}`, { tipo: 'info', origen });
+    ui.avisar(`Dejaste de seguir ${candidato.nombre}`, { tipo: 'neutro', origen });
     olvidarLista(actual); // si la vuelve a seguir, se pide de nuevo
   } catch (error) {
     console.error(error);

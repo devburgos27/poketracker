@@ -47,6 +47,38 @@ export function mostrarRecientes(cartas, marcado, textoVacio) {
   dibujarGrilla($('#grilla-recientes'), cartas, marcado, textoVacio);
 }
 
+/**
+ * "Tu colección" en Inicio: cartas distintas, copias en total y
+ * expansiones con al menos una carta. null = todavía no se sabe
+ * (cargando o sin conexión): "—", que el lector de pantalla oye como
+ * "sin datos".
+ * @param {null | {cartas: number, copias: number, expansiones: number}} cifras
+ */
+export function mostrarResumenInicio(cifras) {
+  const textos = {
+    cartas: ['carta distinta', 'cartas distintas'],
+    copias: ['copia en total', 'copias en total'],
+    expansiones: ['expansión', 'expansiones'],
+  };
+  for (const [clave, [uno, varios]] of Object.entries(textos)) {
+    const valor = document.querySelector(`[data-cifra="${clave}"]`);
+    const texto = document.querySelector(`[data-cifra-texto="${clave}"]`);
+    const n = cifras?.[clave];
+    texto.textContent = n === 1 ? uno : varios;
+    if (n === undefined) {
+      const guion = document.createElement('span');
+      guion.setAttribute('aria-hidden', 'true');
+      guion.textContent = '—';
+      const oculto = document.createElement('span');
+      oculto.className = 'visualmente-oculto';
+      oculto.textContent = 'sin datos';
+      valor.replaceChildren(guion, oculto);
+    } else {
+      valor.textContent = n.toLocaleString('es');
+    }
+  }
+}
+
 // --- Mi colección ---------------------------------------------
 
 /** Texto de estado de "Mi colección": "Cargando…", "12 cartas", errores. */

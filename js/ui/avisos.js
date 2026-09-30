@@ -24,12 +24,23 @@ import { $ } from './base.js';
 const DURACION = 4000;   // ms que queda visible
 const MAXIMO = 3;        // avisos a la vez; el más viejo se va primero
 
+// Ícono según el tipo (mismo trazo que los de la barra de navegación).
+// El tipo no depende solo del color: cada uno tiene su forma.
+//   exito (seguir, agregar): ✓ en círculo amarillo; en tema oscuro, el rayo
+//   neutro (dejar de seguir, quitar): − en círculo gris
+//   error: ! en círculo rojo
+const ICONOS = {
+  exito: ['icono-aviso-check aviso__claro', 'icono-aviso-rayo aviso__oscuro'],
+  neutro: ['icono-aviso-menos'],
+  error: ['icono-aviso-alerta'],
+};
+
 /**
  * Muestra un aviso breve.
  * @param {string} texto
- * @param {{tipo?: 'exito'|'info', duracion?: number, origen?: Element|null}} [opciones]
- *   tipo: exito lleva ✓; info, un punto. origen: el control que lo
- *   provocó (para la animación de 11.8; hoy no cambia nada)
+ * @param {{tipo?: 'exito'|'neutro'|'error', duracion?: number, origen?: Element|null}} [opciones]
+ *   origen: el control que lo provocó (para la animación de 11.8; hoy
+ *   no cambia nada)
  */
 export function avisar(texto, { tipo = 'exito', duracion = DURACION, origen = null } = {}) {
   const { region, movida } = regionActual();
@@ -39,7 +50,15 @@ export function avisar(texto, { tipo = 'exito', duracion = DURACION, origen = nu
   const icono = document.createElement('span');
   icono.className = 'aviso__icono';
   icono.setAttribute('aria-hidden', 'true');
-  icono.textContent = tipo === 'exito' ? '✓' : '•';
+  icono.append(...(ICONOS[tipo] ?? ICONOS.neutro).map((clases) => {
+    const [id, clase] = clases.split(' ');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', `icono${clase ? ` ${clase}` : ''}`);
+    const uso = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+    uso.setAttribute('href', `#${id}`);
+    svg.append(uso);
+    return svg;
+  }));
   const mensaje = document.createElement('span');
   mensaje.className = 'aviso__texto';
   aviso.append(icono, mensaje);

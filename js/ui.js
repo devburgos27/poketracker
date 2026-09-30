@@ -36,6 +36,7 @@ export {
   mensajeInicio,
   errorInicio,
   mostrarRecientes,
+  mostrarResumenInicio,
   mensajeColeccion,
   errorColeccion,
   mostrarColeccion,

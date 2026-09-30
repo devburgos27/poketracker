@@ -35,6 +35,9 @@
   --exito-fondo: #ebf6ee;       /* insignia "En tu colección ✓" (texto --exito: 4,87:1) */
   --sombra-menu: 0 12px 32px -12px rgb(18 24 41 / 0.35);
   --info-fondo: #e3eefa;
+  /* Panel "Tu colección": telaraña tenue y brillo del botón principal (solo en oscuro) */
+  --telarana-opacidad: 0.07;
+  --brillo-principal: 0 0 0 transparent;
   /* Relleno de la barra de progreso: ámbar oscuro en claro (5,4:1 contra
      la pista), amarillo con brillo en oscuro */
   --progreso-relleno: linear-gradient(90deg, #6f4700, var(--progreso));
@@ -113,6 +116,8 @@
   --exito-fondo: #173326;
   --sombra-menu: 0 12px 32px -8px rgb(0 0 0 / 0.6);
   --info-fondo: #10283f;
+  --telarana-opacidad: 0.12;
+  --brillo-principal: 0 0 0 1px rgb(255 214 10 / 0.4), 0 8px 26px -8px rgb(255 214 10 / 0.7);
   --progreso-relleno: linear-gradient(90deg, #ffb300, var(--progreso));
   --progreso-brillo: 0 0 12px rgb(255 214 10 / 0.5);
   --acento-fondo: #2e2a14;
@@ -766,6 +771,115 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 .intro__aviso { margin: 0 0 var(--esp-5); color: var(--texto-suave); }
 .intro__ayuda { margin: var(--esp-2) 0 0; font-size: var(--texto-s); color: var(--texto-suave); }
+
+/* --- Inicio: panel "Tu colección" (B5, C2, C10) -------------------- */
+/* Superficie con profundidad, un resplandor amarillo arriba a la derecha,
+   la telaraña y el rayo de la marca muy tenues (decorativos, detrás del
+   contenido) y las tres cifras en recuadros */
+.resumen {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  margin: var(--esp-5) 0 var(--esp-2);
+  padding: var(--esp-6) var(--esp-5);
+  border: 1px solid var(--borde);
+  border-radius: 22px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgb(255 214 10 / 0.16), transparent 55%),
+    var(--superficie);
+  box-shadow: var(--sombra);
+}
+.resumen::before {             /* telaraña en la esquina */
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -40px;
+  right: -40px;
+  width: 260px;
+  height: 260px;
+  background: var(--texto);
+  opacity: var(--telarana-opacidad);
+  -webkit-mask: var(--motivo-telarana-grande) center / contain no-repeat;
+  mask: var(--motivo-telarana-grande) center / contain no-repeat;
+}
+.resumen::after {              /* rayo grande y tenue */
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: 18px;
+  bottom: -34px;
+  width: 150px;
+  height: 190px;
+  background: var(--primario);
+  opacity: 0.14;
+  transform: rotate(8deg);
+  -webkit-mask: var(--motivo-rayo) center / contain no-repeat;
+  mask: var(--motivo-rayo) center / contain no-repeat;
+}
+:root {
+  --motivo-telarana-grande: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='black' stroke-width='1.6'%3E%3Cg transform='translate(100 100)'%3E%3Cpath d='M0-100V100M-100 0H100M-71-71 71 71M-71 71 71-71'/%3E%3Cpath d='M0-25 18-18 25 0 18 18 0 25-18 18-25 0-18-18Z'/%3E%3Cpath d='M0-50 35-35 50 0 35 35 0 50-35 35-50 0-35-35Z'/%3E%3Cpath d='M0-75 53-53 75 0 53 53 0 75-53 53-75 0-53-53Z'/%3E%3Cpath d='M0-98 69-69 98 0 69 69 0 98-69 69-98 0-69-69Z'/%3E%3C/g%3E%3C/svg%3E");
+  --motivo-rayo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2 4 14h6l-2 8 10-12h-6z'/%3E%3C/svg%3E");
+}
+.resumen__antetitulo {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-1);
+  margin: 0 0 var(--esp-1);
+  font-size: var(--texto-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--marca-texto);
+}
+.resumen__antetitulo .icono { width: 16px; height: 16px; }
+.resumen__titulo {
+  margin: 0 0 var(--esp-4);
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  line-height: 1.15;
+}
+.resumen__texto { max-width: 36rem; margin: calc(-1 * var(--esp-2)) 0 var(--esp-5); color: var(--texto-suave); }
+/* Las cifras: número grande arriba y qué cuenta debajo (en el código, dt
+   antes que dd: el lector dice "cartas distintas, 3") */
+.resumen { container: resumen / inline-size; }
+.resumen__cifras {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--esp-2);
+  max-width: 560px;
+  margin: 0 0 var(--esp-5);
+}
+.resumen__cifra {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  padding: var(--esp-3) 14px;
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  background: var(--superficie-2);
+}
+.resumen__cifra dd {
+  margin: 0;
+  font-size: clamp(1.4rem, 5vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.resumen__cifra dt {
+  font-size: var(--texto-xs);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--texto-suave);
+}
+.resumen .resumen__acciones { justify-content: flex-start; margin-bottom: 0; }
+.resumen .btn-primary { box-shadow: var(--brillo-principal); }
+/* Panel angosto (320 px): "expansiones" no cabe en un tercio; cada cifra
+   pasa a una fila, con el número a la izquierda */
+@container resumen (width < 19rem) {
+  .resumen__cifras { grid-template-columns: 1fr; gap: var(--esp-1); }
+  .resumen__cifra { flex-direction: row-reverse; justify-content: flex-end; align-items: baseline; gap: var(--esp-2); }
+  .resumen__cifra dd { font-size: var(--texto-l); }
+  .resumen__cifra dt { font-size: var(--texto-s); }
+}
 
 /* Fila de botones o enlaces principales de una pantalla */
 .acciones {
@@ -1931,17 +2045,25 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
   .aviso { transform: none; transition: opacity 0ms; }
 }
+/* Ícono en un círculo de color, con el trazo de los íconos de la barra.
+   La forma dice el tipo (✓ o rayo, −, !); el trazo contra su círculo
+   tiene al menos 3:1 en ambos temas */
 .aviso__icono {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: var(--radio-pill);
-  font-weight: 800;
 }
-.aviso--exito .aviso__icono { background: var(--exito-fondo); color: var(--exito); }
-.aviso--info .aviso__icono { background: var(--superficie-2); color: var(--texto-suave); }
+.aviso__icono .icono { width: 18px; height: 18px; stroke-width: 2.5; }
+.aviso--exito .aviso__icono { background: var(--primario); color: var(--sobre-primario); }
+.aviso--neutro .aviso__icono { background: var(--superficie-2); color: var(--texto-suave); }
+.aviso--error .aviso__icono { background: var(--error); color: var(--sobre-error); }
+/* Éxito: ✓ en tema claro; en oscuro, el rayo de la marca */
+.aviso__oscuro { display: none; }
+[data-bs-theme="dark"] .aviso__claro { display: none; }
+[data-bs-theme="dark"] .aviso__oscuro { display: block; }
 
 /* --- Pie --------------------------------------------------- */
 .pie {
@@ -2030,6 +2152,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 
 @media (max-width: 600px) {
+  .resumen { padding: var(--esp-5) var(--esp-4); }
+  .resumen__cifra { padding: var(--esp-2) var(--esp-3); }
   /* Filtros: a todo el ancho y alineados (sin el zigzag de selects
      centrados de distinto ancho). En Buscar van en la hoja inferior */
   .filtros-cartas { flex-direction: column; align-items: stretch; }

@@ -7,6 +7,8 @@
 // main.js / router.js lo puedan cambiar.
 // =============================================================
 
+import { avisar } from './ui/avisos.js';
+
 export const estado = {
   // Cartas que tengo: id de carta → { filaId, copias, setId, nombreSet, acabados, sello }; null = sin sesión
   misCartas: null,
@@ -18,13 +20,32 @@ export const estado = {
   rutaActual: null,     // vista visible: 'inicio' | 'buscar' | 'coleccion' | 'progreso'
 };
 
-/** Agrega (tengo = true) o quita una carta de la colección, en Supabase y en misCartas. */
+/** "Joltik 44/114": nombre y número de la carta para los avisos. */
+const nombreCarta = (c) => [c.nombre, c.totalSet ? `${c.numero}/${c.totalSet}` : c.numero].filter(Boolean).join(' ');
+
+/**
+ * Agrega (tengo = true) o quita una carta de la colección, en Supabase y
+ * en misCartas, con un aviso breve ("Joltik 44/114 agregada a tu
+ * colección"). Todas las pantallas pasan por aquí: Buscar, Me falta, el
+ * detalle de un objetivo, el detalle de carta (+ y "Quitar de mi
+ * colección") y Colección. Si falla, avisa y relanza el error: quien
+ * llama revierte la tarjeta y deja su mensaje en la pantalla.
+ */
 export async function guardarCambio(carta, tengo) {
-  if (tengo) {
-    const guardada = await estado.coleccion.marcarTengo(carta);
-    estado.misCartas?.set(carta.id, guardada);
-  } else {
-    await estado.coleccion.marcarMeFalta(carta.id);
-    estado.misCartas?.delete(carta.id);
+  const origen = document.activeElement;
+  const nombre = nombreCarta(carta);
+  try {
+    if (tengo) {
+      const guardada = await estado.coleccion.marcarTengo(carta);
+      estado.misCartas?.set(carta.id, guardada);
+    } else {
+      await estado.coleccion.marcarMeFalta(carta.id);
+      estado.misCartas?.delete(carta.id);
+    }
+  } catch (error) {
+    avisar(tengo ? `No se pudo agregar ${nombre}. Revisa tu conexión.` : `No se pudo quitar ${nombre}. Revisa tu conexión.`, { tipo: 'error', origen });
+    throw error;
   }
+  if (tengo) avisar(`${nombre} agregada a tu colección`, { origen });
+  else avisar(`${nombre} quitada de tu colección`, { tipo: 'neutro', origen });
 }

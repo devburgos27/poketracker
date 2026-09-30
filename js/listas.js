@@ -192,9 +192,31 @@ export function preparar() {
   });
 }
 
-/** Inicio: "Agregadas recientemente" ("Tu progreso" lo muestra objetivos.js). */
+/** Inicio: "Tu colección" y "Agregadas recientemente" ("Tu progreso" lo muestra objetivos.js). */
 export function mostrarInicio() {
+  dibujarResumen();
   cargarRecientes();
+}
+
+/**
+ * Cifras de "Tu colección", de misCartas (sin pedir nada a Supabase):
+ * cartas distintas, copias en total y expansiones con al menos una
+ * carta. Las filas antiguas sin set_id cuentan por el nombre de su
+ * expansión. Sin misCartas (cargando o sin conexión), "—".
+ */
+function dibujarResumen() {
+  const cartas = estado.misCartas;
+  if (!cartas) {
+    ui.mostrarResumenInicio(null);
+    return;
+  }
+  let copias = 0;
+  const expansiones = new Set();
+  for (const c of cartas.values()) {
+    copias += c.copias;
+    if (c.setId || c.nombreSet) expansiones.add(c.setId || c.nombreSet);
+  }
+  ui.mostrarResumenInicio({ cartas: cartas.size, copias, expansiones: expansiones.size });
 }
 
 /** Pantalla Colección que pide la ruta (#/coleccion?set=…&orden=…). */
@@ -213,7 +235,10 @@ export function redibujar() {
   cartasColeccion = cartasColeccion.filter((c) => estado.misCartas.has(c.id));
   cartasRecientes = cartasRecientes.filter((c) => estado.misCartas.has(c.id));
   if (estado.rutaActual === 'coleccion') dibujarColeccion();
-  else if (estado.rutaActual === 'inicio') dibujarRecientes();
+  else if (estado.rutaActual === 'inicio') {
+    dibujarResumen();
+    dibujarRecientes();
+  }
 }
 
 /** Al cerrar sesión: descarta cargas en curso y vacía las listas. */
