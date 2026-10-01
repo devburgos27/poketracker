@@ -881,6 +881,33 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   .resumen__cifra dt { font-size: var(--texto-s); }
 }
 
+/* Colección: resumen de una línea ("19 cartas distintas · 22 copias ·
+   12 expansiones"), las mismas cifras que Inicio, y "Actualizar" */
+.resumen-linea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 var(--esp-3);
+  margin: 0 0 var(--esp-2);
+}
+.resumen-linea__cifras {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--esp-2);
+  margin: 0;
+}
+.resumen-linea__cifra {
+  padding: var(--esp-1) var(--esp-3);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-pill);
+  background: var(--superficie);
+}
+.resumen-linea__cifra { color: var(--texto-suave); font-size: var(--texto-s); }
+.resumen-linea__cifras b { color: var(--texto); font-size: var(--texto-m); font-weight: 800; font-variant-numeric: tabular-nums; }
+.resumen-linea__actualizar[aria-disabled="true"] { opacity: 0.6; cursor: wait; }
+
 /* Fila de botones o enlaces principales de una pantalla */
 .acciones {
   display: flex;

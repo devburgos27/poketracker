@@ -8,6 +8,7 @@
 // =============================================================
 
 import { avisar } from './ui/avisos.js';
+import * as cacheColeccion from './cache-coleccion.js';
 
 export const estado = {
   // Cartas que tengo: id de carta → { filaId, copias, setId, nombreSet, acabados, sello }; null = sin sesión
@@ -18,6 +19,7 @@ export const estado = {
   // dicen "Cargando…" en vez de invitar a entrar.
   cargandoSesion: false,
   rutaActual: null,     // vista visible: 'inicio' | 'buscar' | 'coleccion' | 'progreso'
+  usuarioId: null,      // id del usuario conectado (la caché de Colección es por usuario)
 };
 
 /** "Joltik 44/114": nombre y número de la carta para los avisos. */
@@ -38,9 +40,11 @@ export async function guardarCambio(carta, tengo) {
     if (tengo) {
       const guardada = await estado.coleccion.marcarTengo(carta);
       estado.misCartas?.set(carta.id, guardada);
+      cacheColeccion.agregar(carta, guardada);
     } else {
       await estado.coleccion.marcarMeFalta(carta.id);
       estado.misCartas?.delete(carta.id);
+      cacheColeccion.quitar(carta.id);
     }
   } catch (error) {
     avisar(tengo ? `No se pudo agregar ${nombre}. Revisa tu conexión.` : `No se pudo quitar ${nombre}. Revisa tu conexión.`, { tipo: 'error', origen });

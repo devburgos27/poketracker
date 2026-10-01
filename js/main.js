@@ -113,6 +113,7 @@ async function iniciarLogin() {
       return;
     }
     usuarioId = nuevoId;
+    estado.usuarioId = nuevoId;
 
     if (!usuario) {
       estado.cargandoSesion = false;

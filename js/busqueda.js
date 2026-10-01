@@ -306,7 +306,9 @@ async function buscarDesdeRuta(texto, reintento = false) {
     const resultado = await consultarBusqueda(texto);
     if (pedido !== pedidoBusqueda) return; // el usuario ya pidió otra cosa
 
-    busquedasGuardadas.set(texto, resultado);
+    // Sin cartas no se guarda: si fue TCGdex fallando por un momento, al
+    // volver a esta búsqueda se pregunta de nuevo
+    if (resultado.cartas.length) busquedasGuardadas.set(texto, resultado);
     if (busquedasGuardadas.size > MAX_BUSQUEDAS_GUARDADAS) {
       // Un Map recuerda el orden de llegada: la primera es la más antigua
       busquedasGuardadas.delete(busquedasGuardadas.keys().next().value);

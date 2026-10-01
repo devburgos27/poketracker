@@ -81,6 +81,43 @@ export function mostrarResumenInicio(cifras) {
 
 // --- Mi colección ---------------------------------------------
 
+/**
+ * Resumen de arriba de Colección: "19 cartas distintas · 22 copias ·
+ * 12 expansiones" (mismos números que Inicio). null lo oculta.
+ * @param {null | {cartas: number, copias: number, expansiones: number}} cifras
+ */
+export function mostrarResumenColeccion(cifras) {
+  const caja = $('#resumen-coleccion');
+  caja.hidden = !cifras || cifras.cartas === 0;
+  if (caja.hidden) return;
+  const textos = {
+    cartas: ['carta distinta', 'cartas distintas'],
+    copias: ['copia', 'copias'],
+    expansiones: ['expansión', 'expansiones'],
+  };
+  for (const [clave, [uno, varios]] of Object.entries(textos)) {
+    const n = cifras[clave];
+    caja.querySelector(`[data-resumen="${clave}"]`).textContent = n.toLocaleString('es');
+    caja.querySelector(`[data-resumen-texto="${clave}"]`).textContent = n === 1 ? uno : varios;
+  }
+}
+
+let alActualizarColeccion = () => {};
+
+/** "Actualizar" del resumen: pide la colección de nuevo. */
+export function prepararActualizarColeccion(alActualizar) {
+  alActualizarColeccion = alActualizar;
+  $('#coleccion-actualizar').addEventListener('click', () => alActualizarColeccion());
+}
+
+/** Mientras se revalida: "Actualizando…" (aria-disabled, para no perder el foco). */
+export function actualizandoColeccion(activo) {
+  const boton = $('#coleccion-actualizar');
+  boton.textContent = activo ? 'Actualizando…' : 'Actualizar';
+  if (activo) boton.setAttribute('aria-disabled', 'true');
+  else boton.removeAttribute('aria-disabled');
+}
+
 /** Texto de estado de "Mi colección": "Cargando…", "12 cartas", errores. */
 export function mensajeColeccion(texto, tipo = 'info') {
   escribirMensaje($('#estado-coleccion'), texto, tipo);

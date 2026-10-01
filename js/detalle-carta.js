@@ -11,6 +11,7 @@ import { obtenerCarta } from './api.js';
 import * as ui from './ui.js';
 import * as objetivos from './objetivos.js';
 import { estado, guardarCambio } from './estado.js';
+import * as cacheColeccion from './cache-coleccion.js';
 import { redibujarPantalla } from './router.js';
 
 // --- Detalle de carta: "Tus copias" ----------------------------
@@ -151,6 +152,7 @@ async function guardarCopias(d, antes, nuevas, guardar) {
     const guardada = estado.misCartas?.get(d.carta.id);
     // Cantidad y acabados de la carta (×N e insignia de Colección)
     if (guardada) Object.assign(guardada, { copias: d.copias.length, ...estado.coleccion.resumenAcabados(d.copias) });
+    if (guardada) cacheColeccion.cambiaronCopias(d.carta.id, guardada);
     if (d.cerrado) redibujarPantalla(); // se cerró o se pasó a otra carta mientras guardaba
   } catch (error) {
     console.error(error);

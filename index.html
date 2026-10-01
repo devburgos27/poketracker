@@ -360,9 +360,20 @@
       </div>
 
       <div data-solo="usuario" hidden>
+        <!-- Resumen: mismas cifras que Inicio (lo llena ui.js) y "Actualizar" -->
+        <div id="resumen-coleccion" class="resumen-linea" hidden>
+          <p class="resumen-linea__cifras">
+            <span class="resumen-linea__cifra"><b data-resumen="cartas"></b> <span data-resumen-texto="cartas"></span></span><span class="visualmente-oculto">, </span>
+            <span class="resumen-linea__cifra"><b data-resumen="copias"></b> <span data-resumen-texto="copias"></span></span><span class="visualmente-oculto">, </span>
+            <span class="resumen-linea__cifra"><b data-resumen="expansiones"></b> <span data-resumen-texto="expansiones"></span></span>
+          </p>
+          <button id="coleccion-actualizar" type="button" class="btn btn-link resumen-linea__actualizar">Actualizar</button>
+        </div>
         <p id="estado-coleccion" class="estado" role="status" aria-live="polite"></p>
+        <!-- Móvil: botón "Filtros (N)" e insignias (lo llena ui.js); los selects van a la hoja -->
+        <div id="filtros-coleccion-resumen" class="filtros-resumen" role="group" aria-label="Filtros de tu colección" hidden></div>
         <!-- Expansión y orden (lo llena ui.js) -->
-        <div id="filtros-coleccion" class="filtros-cartas" role="group" aria-label="Filtrar y ordenar tu colección" hidden></div>
+        <div id="filtros-coleccion" class="filtros-cartas filtros-cartas--con-hoja" role="group" aria-label="Filtrar y ordenar tu colección" hidden></div>
         <section id="grilla-coleccion" class="grilla" aria-label="Mi colección"></section>
       </div>
     </div>

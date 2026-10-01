@@ -18,23 +18,67 @@ const GRAPHQL_URL = 'https://api.tcgdex.net/v2/graphql';
 // Series que no son cartas físicas (TCG Pocket es un juego de celular)
 const SERIES_DIGITALES = new Set(['tcgp']);
 
-/** Hace una consulta GraphQL y devuelve "data" (o lanza el error). */
-async function consultar(query, variables = {}) {
-  const respuesta = await fetch(GRAPHQL_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, variables }),
-  });
+// TCGdex a veces falla por un momento: corta la conexión, responde sin
+// CORS o con 5xx, o no responde. Cada consulta tiene un límite de 10 s
+// y un reintento automático al segundo; si vuelve a fallar, el error
+// llega a la pantalla ("No pudimos conectar" con Reintentar). Un 4xx
+// (consulta mal armada) no se reintenta.
+const LIMITE_CONSULTA = 10000;
+const ESPERA_REINTENTO_API = 1000;
+const esperar = (ms) => new Promise((listo) => setTimeout(listo, ms));
 
-  if (!respuesta.ok) {
-    throw new Error(`La API respondió con un error (${respuesta.status}).`);
+/**
+ * Hace una consulta GraphQL y devuelve "data" (o lanza el error), con un reintento.
+ * @param {(data: object) => boolean} [completa]  comprueba que la respuesta
+ *   traiga lo que siempre trae (por ejemplo, la lista de sets); si no,
+ *   cuenta como falla y también se reintenta
+ */
+async function consultar(query, variables = {}, completa = null) {
+  try {
+    return await consultarUnaVez(query, variables, completa);
+  } catch (error) {
+    if (error.definitivo) throw error;
+    await esperar(ESPERA_REINTENTO_API);
+    return consultarUnaVez(query, variables, completa);
   }
+}
 
-  const { data, errors } = await respuesta.json();
-  if (errors?.length) {
-    throw new Error(errors[0].message);
+// Respuestas que siempre traen la lista de sets (unos 200) o de cartas
+const conSets = (data) => Array.isArray(data.sets) && data.sets.length > 0;
+const conCartasYSets = (data) => Array.isArray(data.cards) && conSets(data);
+
+async function consultarUnaVez(query, variables, completa) {
+  const control = new AbortController();
+  const limite = setTimeout(() => control.abort(), LIMITE_CONSULTA);
+  try {
+    let respuesta;
+    try {
+      respuesta = await fetch(GRAPHQL_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables }),
+        signal: control.signal,
+      });
+    } catch (error) {
+      // Sin red, sin CORS o sin respuesta a tiempo: el navegador no da más detalle
+      throw new Error(control.signal.aborted ? 'TCGdex no respondió a tiempo.' : 'No se pudo conectar con TCGdex.', { cause: error });
+    }
+
+    if (!respuesta.ok) {
+      const error = new Error(`La API respondió con un error (${respuesta.status}).`);
+      error.definitivo = respuesta.status >= 400 && respuesta.status < 500 && ![408, 429].includes(respuesta.status);
+      throw error;
+    }
+
+    const { data, errors } = await respuesta.json();
+    if (errors?.length) {
+      throw new Error(errors[0].message);
+    }
+    if (!data || (completa && !completa(data))) throw new Error('TCGdex respondió incompleto.');
+    return data;
+  } finally {
+    clearTimeout(limite);
   }
-  return data;
 }
 
 // --- Sets: fecha y serie ---------------------------------------
@@ -52,7 +96,7 @@ function armarInfoSets(sets) {
 
 /** La lista de sets, pedida una vez por sesión. */
 function obtenerInfoSets() {
-  infoSetsGuardada ??= consultar(`{ ${CAMPOS_SETS} }`).then((data) => armarInfoSets(data.sets));
+  infoSetsGuardada ??= consultar(`{ ${CAMPOS_SETS} }`, {}, conSets).then((data) => armarInfoSets(data.sets));
   infoSetsGuardada.catch(() => { infoSetsGuardada = null; }); // si falló, se reintenta la próxima vez
   return infoSetsGuardada;
 }
@@ -60,13 +104,15 @@ function obtenerInfoSets() {
 const esDigital = (setId, infoSets) => SERIES_DIGITALES.has(infoSets.get(setId)?.serie);
 
 /**
- * Fecha de lanzamiento de cada set ("AAAA-MM-DD"), de la misma lista
- * pedida una vez por sesión. La usa Colección para ordenar por fecha.
- * @returns {Promise<Map<string, string>>}
+ * Fecha de lanzamiento ("AAAA-MM-DD") y total impreso de cada set, de
+ * las listas pedidas una vez por sesión. Colección e Inicio las usan
+ * para mostrar "25/25 · 2021" como Buscar (la base no los guarda) y
+ * para ordenar por fecha.
+ * @returns {Promise<Map<string, {fecha: string, total: number|null}>>}
  */
-export async function fechasDeSets() {
-  const infoSets = await obtenerInfoSets();
-  return new Map([...infoSets].map(([id, info]) => [id, info.fecha]));
+export async function datosDeSets() {
+  const [infoSets, totales] = await Promise.all([obtenerInfoSets(), obtenerTotalesSets()]);
+  return new Map([...infoSets].map(([id, info]) => [id, { fecha: info.fecha, total: totales.get(id) ?? null }]));
 }
 
 // --- Búsqueda --------------------------------------------------
@@ -99,7 +145,14 @@ export async function buscarCartas(nombre) {
   const limpio = nombre.trim();
   if (!limpio) return [];
 
-  const data = await consultar(CONSULTA, { nombre: limpio });
+  let data = await consultarBusquedaNombre(limpio);
+  if (data.cards.length === 0) {
+    // Sin cartas puede ser un nombre mal escrito... o TCGdex respondiendo
+    // vacío por un momento: se pregunta una vez más antes de decir
+    // "No encontramos"
+    await esperar(ESPERA_REINTENTO_API);
+    data = await consultarBusquedaNombre(limpio);
+  }
   const infoSets = armarInfoSets(data.sets);
   infoSetsGuardada ??= Promise.resolve(infoSets); // de paso queda para los objetivos
 
@@ -107,6 +160,15 @@ export async function buscarCartas(nombre) {
     .filter((c) => !esDigital(c.set.id, infoSets))
     .map((c) => adaptarCarta(c, infoSets.get(c.set.id)))
     .sort(compararCartas);
+}
+
+/**
+ * La consulta de búsqueda. Siempre trae la lista de sets (unos 200):
+ * sin ella, o sin la lista de cartas, es una falla (se reintenta) y no
+ * un "sin resultados".
+ */
+function consultarBusquedaNombre(nombre) {
+  return consultar(CONSULTA, { nombre }, conCartasYSets);
 }
 
 // --- Búsqueda por número ---------------------------------------
@@ -140,7 +202,7 @@ let totalesGuardados = null; // Promise<Map id de set → total impreso> de la s
 
 /** Total impreso (cardCount.official) de cada set físico, pedido una vez por sesión. */
 function obtenerTotalesSets() {
-  totalesGuardados ??= consultar('{ sets { id cardCount { official } serie { id } } }').then((data) => new Map(
+  totalesGuardados ??= consultar('{ sets { id cardCount { official } serie { id } } }', {}, conSets).then((data) => new Map(
     data.sets
       .filter((s) => !SERIES_DIGITALES.has(s.serie?.id))
       .map((s) => [s.id, s.cardCount?.official ?? null]),
@@ -158,8 +220,8 @@ function obtenerTotalesSets() {
 export async function buscarPorNumero({ numero, nombre = '', total = null }) {
   if (nombre || total === null) {
     const data = nombre
-      ? await consultar(CONSULTA_NOMBRE_NUMERO, { nombre, numero: String(numero) })
-      : await consultar(CONSULTA_NUMERO, { numero: String(numero) });
+      ? await consultar(CONSULTA_NOMBRE_NUMERO, { nombre, numero: String(numero) }, conCartasYSets)
+      : await consultar(CONSULTA_NUMERO, { numero: String(numero) }, conCartasYSets);
     const infoSets = armarInfoSets(data.sets);
     infoSetsGuardada ??= Promise.resolve(infoSets);
     return data.cards
@@ -319,18 +381,58 @@ export async function cargarListasObjetivos(objetivos, alLlegar, { forzar = fals
   for (let i = 0; i < pendientes.length; i += TANDA_OBJETIVOS) {
     const tanda = pendientes.slice(i, i + TANDA_OBJETIVOS);
     try {
-      const data = await consultar(`{ ${tanda.map((o, j) => consultaDeLista(o, `o${j}`)).join(' ')} }`);
-      tanda.forEach((o, j) => {
-        const lista = armarLista(o, data[`o${j}`], infoSets);
-        guardarLista(o, lista);
-        alLlegar(o, lista);
-      });
+      let vacias = await pedirTanda(tanda, infoSets, alLlegar);
+      if (vacias.length) {
+        // Un objetivo solo se puede seguir si tiene cartas: una lista
+        // vacía es TCGdex fallando por un momento. Se pide una vez más y,
+        // si sigue vacía, cuenta como sin conexión (nunca se guarda)
+        await esperar(ESPERA_REINTENTO_API);
+        vacias = await pedirTanda(vacias, infoSets, alLlegar);
+        fallidos.push(...vacias);
+      }
     } catch (error) {
       console.error(error);
       fallidos.push(...tanda);
     }
   }
   return { fallidos };
+}
+
+/**
+ * Pide las listas de una tanda de objetivos: guarda y entrega las que
+ * llegan con cartas y devuelve los objetivos que llegaron vacíos.
+ */
+async function pedirTanda(tanda, infoSets, alLlegar) {
+  const data = await consultar(`{ ${tanda.map((o, j) => consultaDeLista(o, `o${j}`)).join(' ')} }`);
+  const vacias = [];
+  tanda.forEach((o, j) => {
+    const lista = armarLista(o, data[`o${j}`], infoSets);
+    if (lista.noDisponible) {
+      vacias.push(o);
+      return;
+    }
+    guardarLista(o, lista);
+    alLlegar(o, lista);
+  });
+  return vacias;
+}
+
+/**
+ * Todas las cartas de un objetivo, con imagen y datos (para su detalle).
+ * Si TCGdex responde sin cartas, se pide una vez más; si sigue sin
+ * cartas, es un error (se muestra "No pudimos conectar" con Reintentar):
+ * un objetivo solo se puede seguir si tiene cartas.
+ *
+ * @param {{tipo: string, clave: string}} o
+ * @returns {Promise<{nombre: string, cartas: Array, lista: object}>}
+ */
+export async function obtenerCartasObjetivo(o) {
+  const resultado = await pedirCartasObjetivo(o);
+  if (resultado) return resultado;
+  await esperar(ESPERA_REINTENTO_API);
+  const otraVez = await pedirCartasObjetivo(o);
+  if (otraVez) return otraVez;
+  throw new Error('TCGdex respondió sin cartas para este objetivo.');
 }
 
 /**
@@ -341,12 +443,12 @@ export async function cargarListasObjetivos(objetivos, alLlegar, { forzar = fals
  * @param {{tipo: string, clave: string}} o
  * @returns {Promise<null | {nombre: string, cartas: Array, lista: object}>}
  */
-export async function obtenerCartasObjetivo(o) {
+async function pedirCartasObjetivo(o) {
   const infoSets = await obtenerInfoSets();
 
   if (o.tipo === 'pokemon') {
     const data = await consultar(`{ cards(filters: { dexId: ${Number(o.clave)} }) { ${CAMPOS_CARTA} } }`);
-    const cartas = data.cards
+    const cartas = (data.cards ?? [])
       .filter((c) => !esDigital(c.set.id, infoSets))
       .map((c) => adaptarCarta(c, infoSets.get(c.set.id)))
       .sort(compararCartas);

@@ -47,6 +47,7 @@ js/
   supabase.js       cliente de Supabase
   auth.js           login con Google y sesión
   coleccion.js      tu colección, copias y objetivos en Supabase
+  cache-coleccion.js  caché de Colección (memoria y sessionStorage, por usuario)
   ui.js             la interfaz: reúne lo de js/ui/
   ui/
     base.js         mensajes, "No pudimos conectar" y confirmación
