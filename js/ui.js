@@ -13,7 +13,6 @@
 // =============================================================
 
 export {
-  crearErrorConexion,
   mostrarAvisoConexion,
   confirmar,
   prepararConfirmacion,
@@ -70,7 +69,6 @@ export {
   mostrarCopias,
 } from './ui/copias.js';
 export {
-  crearBarraProgreso,
   enlaceObjetivo,
   mostrarVistaProgreso,
   mensajeProgreso,

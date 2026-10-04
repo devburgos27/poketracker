@@ -159,7 +159,8 @@ function mostrarResumenCopias(copias) {
 /** Un <select> con "Sin indicar" y las opciones en español. */
 function crearSelector(etiqueta, campo, opciones, copia, indice, ocupado) {
   const label = document.createElement('label');
-  label.className = 'copia__campo';
+  // Acabado: fila completa (sus opciones son las más largas)
+  label.className = campo === 'acabado' ? 'copia__campo copia__campo--ancho' : 'copia__campo';
 
   const texto = document.createElement('span');
   texto.textContent = etiqueta;

@@ -469,21 +469,27 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 /* --- Campos (form-control, form-select) --------------------- */
 /* Borde de 3:1 (--borde-control, no el decorativo de Bootstrap), fondo de
-   superficie y nuestro anillo de foco en vez de la sombra azul */
+   superficie y nuestro anillo de foco en vez de la sombra azul.
+   En píldora, como botones, insignias y pestañas: todo lo que se toca es
+   píldora; los recuadros que contienen (tarjetas, copias, paneles), no */
 .form-control,
 .form-select {
   min-height: var(--alto-toque);
   min-width: 0;
+  border-radius: var(--radio-pill);
   color: var(--texto);
   background-color: var(--superficie);
   border-color: var(--borde-control);
 }
-.form-control {
-  padding: var(--esp-tarjeta) 1rem;
-  border-radius: var(--radio-pill);
-}
+.form-control { padding: var(--esp-tarjeta) 1rem; }
 .form-control::placeholder { color: var(--texto-suave); }
-.form-select { border-radius: var(--radio-s); }
+/* El texto a la misma distancia del borde que en el campo; la flecha,
+   lejos de la curva */
+.form-select {
+  padding-left: 1rem;
+  padding-right: 2.5rem;
+  background-position: right 1rem center;
+}
 .form-control:focus,
 .form-select:focus {
   color: var(--texto);
@@ -1576,9 +1582,11 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   padding: 0;
 }
 /* Cada copia es una tarjeta dentro del detalle */
+/* Idioma y condición lado a lado; el acabado, en su propia fila: sus
+   opciones son las más largas ("Reverse Master Ball") */
 .copia {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: end;
   gap: var(--esp-2) var(--esp-3);
   padding: var(--esp-3);
@@ -1592,17 +1600,19 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   font-size: var(--texto-s);
   font-weight: 700;
 }
-/* Menos relleno que un form-select común: en la columna de una copia
-   tiene que caber "Reverse holo" (a 320 px, con la letra un poco menor) */
+/* Menos relleno que un form-select común (sin acercar el texto ni la
+   flecha a la curva de la píldora): en media columna a 320 px tienen
+   que caber "Sin indicar" y "Muy buena", con la letra un poco menor */
 .copia__campo .form-select {
-  padding-left: 0.5rem;
+  padding-left: 0.75rem;
   padding-right: 1.6rem;
-  background-position: right 0.45rem center;
+  background-position: right 0.6rem center;
   font-size: var(--texto-s);
 }
 @media (max-width: 400px) {
   .copia__campo .form-select { font-size: var(--texto-xs); }
 }
+.copia__campo--ancho { grid-column: 1 / -1; }
 .copia__campo {
   display: grid;
   gap: var(--esp-1);
@@ -1619,7 +1629,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 /* Casilla "Sello promocional": área táctil de 44 px */
 .copia__sello {
-  grid-column: 1 / 3;
+  grid-column: 1;
   display: flex;
   align-items: center;
   gap: var(--esp-2);
@@ -1733,12 +1743,42 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   gap: var(--esp-3);
 }
 .objetivos > li { container: objetivo / inline-size; }
-/* Compacta (C4): tipo y nombre a la izquierda y la cifra a la derecha;
-   la barra debajo; al pie, el master set y "Ver faltantes ›". La barra
-   de progreso se reparte en la grilla de la tarjeta (display: contents);
-   su role="progressbar" sigue en el mismo elemento */
-.objetivo {
+
+/* Tarjeta de lista: un objetivo seguido o una sugerencia para seguir.
+   Mismo recuadro (borde, radio, superficie, margen izquierdo) y mismos
+   textos; cambia lo que lleva adentro:
+   - tarjeta-lista--objetivo: toda la tarjeta es un enlace al detalle
+     (sombra y borde al pasar el mouse), con la barra de progreso
+   - tarjeta-lista--sugerencia: ícono del tipo, nombre con su detalle
+     y "Seguir" (el recuadro no es un enlace: sin sombra) */
+.tarjeta-lista {
   display: grid;
+  align-items: center;
+  gap: 0 var(--esp-3);
+  margin: 0;
+  padding: var(--esp-3) var(--esp-4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-l);
+  background: var(--superficie);
+  color: var(--texto);
+}
+/* "POKÉMON · #595" (también en la cabecera del detalle de un objetivo) */
+.tarjeta-lista__antetitulo,
+.objetivo-cabecera__tipo {
+  font-size: var(--texto-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-mayus);
+  text-transform: uppercase;
+  color: var(--texto-suave);
+}
+.tarjeta-lista__nombre { font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.tarjeta-lista__detalle { font-size: var(--texto-s); color: var(--texto-suave); }
+
+/* Objetivo, compacta (C4): tipo y nombre a la izquierda y la cifra a la
+   derecha; la barra debajo; al pie, el master set y "Ver faltantes ›".
+   La barra de progreso se reparte en la grilla de la tarjeta (display:
+   contents); su role="progressbar" sigue en el mismo elemento */
+.tarjeta-lista--objetivo {
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
     "tipo   cifra"
@@ -1746,28 +1786,23 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
     "barra  barra"
     "nota   nota"
     "master ver";
-  align-items: center;
-  gap: 0 var(--esp-3);
-  padding: var(--esp-3) var(--esp-4);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-l);
-  background: var(--superficie);
   box-shadow: var(--sombra);
-  color: var(--texto);
   font-weight: 400;
   text-decoration: none;
   transition: border-color var(--duracion);
 }
-.objetivo:hover { border-color: var(--borde-control); }
-.objetivo .progreso { display: contents; }
-.objetivo .progreso__barra { grid-area: barra; margin: var(--esp-2) 0; }
-.objetivo .progreso__cifra { grid-area: cifra; text-align: right; }
-.objetivo .progreso__master { grid-area: master; }
+.tarjeta-lista--objetivo:hover { border-color: var(--borde-control); }
+.tarjeta-lista--objetivo .tarjeta-lista__antetitulo { grid-area: tipo; }
+.tarjeta-lista--objetivo .tarjeta-lista__nombre { grid-area: nombre; font-size: var(--texto-l); }
+.tarjeta-lista--objetivo .progreso { display: contents; }
+.tarjeta-lista--objetivo .progreso__barra { grid-area: barra; margin: var(--esp-2) 0; }
+.tarjeta-lista--objetivo .progreso__cifra { grid-area: cifra; text-align: right; }
+.tarjeta-lista--objetivo .progreso__master { grid-area: master; }
 /* Sin números ("Calculando…", "Sin datos…"): el texto va bajo la barra */
-.objetivo .progreso--sin-datos .progreso__cifra { grid-area: nota; text-align: left; }
+.tarjeta-lista--objetivo .progreso--sin-datos .progreso__cifra { grid-area: nota; text-align: left; }
 /* Tarjeta angosta (320 px): la cifra baja bajo la barra, a lo ancho */
 @container objetivo (width < 22rem) {
-  .objetivo {
+  .tarjeta-lista--objetivo {
     grid-template-areas:
       "tipo   tipo"
       "nombre nombre"
@@ -1776,19 +1811,10 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
       "nota   nota"
       "master ver";
   }
-  .objetivo .progreso__cifra { text-align: left; }
+  .tarjeta-lista--objetivo .progreso__cifra { text-align: left; }
 }
-.objetivo__tipo {
-  grid-area: tipo;
-  font-size: var(--texto-xs);
-  font-weight: 700;
-  letter-spacing: var(--tracking-mayus);
-  text-transform: uppercase;
-  color: var(--texto-suave);
-}
-.objetivo__nombre { grid-area: nombre; font-size: var(--texto-l); font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 /* "Ver faltantes ›": parte de la tarjeta-enlace, con el mismo estilo de enlace */
-.objetivo__ver {
+.tarjeta-lista__ver {
   grid-area: ver;
   justify-self: end;
   font-size: var(--texto-s);
@@ -1798,7 +1824,20 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   text-decoration-thickness: 1px;
   text-underline-offset: var(--subrayado-separacion);
 }
-.objetivo:hover .objetivo__ver { text-decoration-thickness: 2px; }
+.tarjeta-lista--objetivo:hover .tarjeta-lista__ver { text-decoration-thickness: 2px; }
+
+/* Sugerencia, compacta (C5): ícono, nombre con "Pokémon · #595 ·
+   tienes 3 cartas" debajo y "Seguir" (más cerca del borde derecho) */
+.tarjeta-lista--sugerencia {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--esp-1) var(--esp-3);
+  padding-block: var(--esp-2);
+  padding-right: var(--esp-2);
+}
+.tarjeta-lista--sugerencia .tarjeta-lista__icono { width: 22px; height: 22px; color: var(--marca-texto); }
+.tarjeta-lista__datos { display: grid; min-width: 0; line-height: 1.3; }
+.tarjeta-lista--sugerencia .btn { --bs-btn-padding-x: 1rem; }
+.tarjeta-lista--sugerencia .seguir__mensaje { grid-column: 1 / -1; }
 .progreso-pie {
   max-width: var(--ancho-lectura);
   margin: var(--esp-4) auto var(--esp-6);
@@ -1939,28 +1978,10 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   display: grid;
   gap: var(--esp-2);
 }
-/* Compacta (C5): ícono del tipo, nombre con su detalle debajo y
-   "Seguir"; en escritorio, dos por fila */
+/* En escritorio, dos sugerencias por fila (tarjeta-lista--sugerencia) */
 .sugerencias-caja:not(#inicio-sugerencias) .sugerencias {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
 }
-.sugerencia {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--esp-1) var(--esp-3);
-  margin: 0;
-  padding: var(--esp-2) var(--esp-2) var(--esp-2) var(--esp-3);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-m);
-  background: var(--superficie);
-}
-.sugerencia .sugerencia__icono { width: 22px; height: 22px; color: var(--marca-texto); }
-.sugerencia__datos { display: grid; min-width: 0; line-height: 1.3; }
-.sugerencia__nombre { font-weight: 700; overflow-wrap: anywhere; }
-.sugerencia__detalle { font-size: var(--texto-s); color: var(--texto-suave); }
-.sugerencia .btn { --bs-btn-padding-x: 1rem; }
-.sugerencia .seguir__mensaje { grid-column: 1 / -1; }
 #progreso-aviso .vacio { margin: 0 0 var(--esp-3); }
 
 /* Detalle de un objetivo */
@@ -2248,9 +2269,6 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
       "imagen   imagen   imagen"
       "anterior posicion siguiente";
   }
-  .copia { grid-template-columns: 1fr 1fr; }
   .confirmar__acciones { flex-direction: column-reverse; }
   .confirmar__acciones .btn { width: 100%; }
-  .copia__quitar { grid-column: 1 / -1; justify-self: start; }
-  .copia__sello { grid-column: auto; align-self: end; } /* junto a "Acabado" */
 }

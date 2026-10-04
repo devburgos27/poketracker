@@ -34,7 +34,7 @@ function textoPorcentaje(tengo, total) {
  * }} progreso  null = calculando
  * @param {string} idEtiqueta  id del elemento con el nombre del objetivo
  */
-export function crearBarraProgreso(progreso, idEtiqueta) {
+function crearBarraProgreso(progreso, idEtiqueta) {
   const bloque = document.createElement('div');
   bloque.className = 'progreso';
 
@@ -164,18 +164,18 @@ function dibujarListaObjetivos(contenedor, items, prefijo, enfocar = null) {
   lista.append(...items.map(({ objetivo, progreso }) => {
     const idNombre = `${prefijo}-${objetivo.id}`;
     const enlace = document.createElement('a');
-    enlace.className = 'objetivo';
+    enlace.className = 'tarjeta-lista tarjeta-lista--objetivo';
     enlace.href = enlaceObjetivo(objetivo);
 
     const tipo = document.createElement('span');
-    tipo.className = 'objetivo__tipo';
+    tipo.className = 'tarjeta-lista__antetitulo';
     tipo.textContent = textoTipo(objetivo);
     const nombre = document.createElement('span');
-    nombre.className = 'objetivo__nombre';
+    nombre.className = 'tarjeta-lista__nombre';
     nombre.id = idNombre;
     nombre.textContent = objetivo.nombre;
     const ver = document.createElement('span');
-    ver.className = 'objetivo__ver';
+    ver.className = 'tarjeta-lista__ver';
     ver.setAttribute('aria-hidden', 'true');
     ver.textContent = 'Ver faltantes ›';
 
@@ -231,20 +231,20 @@ export function mostrarSugerencias(selector, items, alSeguir, { titulo = '', tex
   lista.className = 'sugerencias';
   lista.append(...items.map((s) => {
     const item = document.createElement('li');
-    item.className = 'sugerencia seguir seguir--izquierda';
+    item.className = 'tarjeta-lista tarjeta-lista--sugerencia seguir seguir--izquierda';
     item.dataset.sugerencia = `${s.tipo}:${s.clave}`;
 
     // Compacta: ícono del tipo (rayo = Pokémon, cartas = expansión), el
     // nombre y debajo "Pokémon · #595 · tienes 2 cartas"
     const icono = crearIcono(s.tipo === 'pokemon' ? 'icono-rayo' : 'icono-coleccion');
-    icono.classList.add('sugerencia__icono');
+    icono.classList.add('tarjeta-lista__icono');
     const datos = document.createElement('div');
-    datos.className = 'sugerencia__datos';
+    datos.className = 'tarjeta-lista__datos';
     const nombre = document.createElement('span');
-    nombre.className = 'sugerencia__nombre';
+    nombre.className = 'tarjeta-lista__nombre';
     nombre.textContent = s.nombre;
     const detalle = document.createElement('span');
-    detalle.className = 'sugerencia__detalle';
+    detalle.className = 'tarjeta-lista__detalle';
     detalle.textContent = `${textoTipo(s)} · tienes ${s.cantidad} ${s.cantidad === 1 ? 'carta' : 'cartas'}`;
     datos.append(nombre, detalle);
 
