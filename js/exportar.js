@@ -17,9 +17,9 @@
 // - Fórmulas: un texto que empieza con = + - @ (o tabulación / retorno)
 //   lleva un apóstrofo adelante, así la planilla no lo ejecuta. Solo en
 //   textos: los números (total, año) los genera la app.
-// - Número como en la carta ("049/114"), siempre con un carácter
-//   invisible adelante para que Excel no lo convierta en fecha ni en
-//   número (ver numeroComoEnLaCarta).
+// - Número como en la carta, a 3 dígitos ("004/082"), siempre con un
+//   carácter invisible adelante para que Excel no lo convierta en fecha
+//   ni en número (ver numeroComoEnLaCarta).
 // - Sin indicar = celda vacía. Sello: "Sí" o "No" (no es "sin indicar").
 // - Fechas AAAA-MM-DD (en la hora local), que Excel reconoce como fecha.
 // =============================================================
@@ -49,22 +49,27 @@ function celda(valor) {
 // adelante Excel ya no lee el valor como fecha, número ni fórmula
 const INVISIBLE = '\u2060';
 
+/** "4" → "004": a 3 dígitos, para que la columna se ordene bien como texto (los de 4 o más, tal cual). */
+const tresDigitos = (n) => String(n).padStart(3, '0');
+
 /**
- * El número tal como se imprime en la carta: "049/114" (con el total
- * de la expansión) o solo "049" si no se sabe el total. Los que tienen
- * letras ("TG05", "SWSH020") van solos: en la carta no llevan el total
- * de la expansión.
+ * El número como en la carta, con número y total a 3 dígitos:
+ * "049/114", "004/082" (con el total de la expansión) o solo "005" si
+ * no se sabe el total. Los que tienen letras ("TG05", "SWSH020") van
+ * tal cual y solos: en la carta no llevan el total de la expansión.
+ * Solo en el CSV; la app muestra el número como viene.
  *
  * Siempre lleva el carácter invisible adelante. Excel en español
  * convierte muchos de estos valores y no hay una regla segura para saber
  * cuáles: "1/12" → 01-dic, "4/82" (Dark Charizard) → abr-82, "049" → 49.
- * Con el carácter, todos quedan como texto, tal cual; buscar "4/82" en
- * la planilla igual los encuentra. Como ya no empieza con = + - @, la
+ * Con el carácter, todos quedan como texto, tal cual; buscar "004/082"
+ * en la planilla igual los encuentra. Como ya no empieza con = + - @, la
  * protección contra fórmulas no le agrega el apóstrofo.
  */
 function numeroComoEnLaCarta(numero, total) {
   if (!numero) return null;
-  const texto = total && /^\d+$/.test(numero) ? `${numero}/${total}` : numero;
+  if (!/^\d+$/.test(numero)) return INVISIBLE + numero;
+  const texto = total && /^\d+$/.test(String(total)) ? `${tresDigitos(numero)}/${tresDigitos(total)}` : tresDigitos(numero);
   return INVISIBLE + texto;
 }
 
