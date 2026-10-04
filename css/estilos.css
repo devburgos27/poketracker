@@ -24,7 +24,6 @@
   --marca-texto: #8a5a00;       /* ámbar: texto e iconos de marca */
   --info: #0a63b8;              /* azul eléctrico: enlaces */
   --exito: #1b7a3a;
-  --sobre-exito: #ffffff;
   --advertencia: #9a4a00;
   --error: #b3261e;
   --foco: #0a63b8;
@@ -34,14 +33,14 @@
   --capa: rgb(233 237 245 / 0.88);  /* fondo de los avisos a pantalla completa */
   --exito-fondo: #ebf6ee;       /* insignia "En tu colección ✓" (texto --exito: 4,87:1) */
   --sombra-menu: 0 12px 32px -12px rgb(18 24 41 / 0.35);
-  --info-fondo: #e3eefa;
+  --info-fondo: #e3eefa;        /* insignia "Imagen en francés" (texto --info: 5,2:1) */
   /* Panel "Tu colección": telaraña tenue y brillo del botón principal (solo en oscuro) */
   --telarana-opacidad: 0.07;
   --brillo-principal: 0 0 0 transparent;
   /* Relleno de la barra de progreso: ámbar oscuro en claro (5,4:1 contra
      la pista), amarillo con brillo en oscuro */
   --progreso-relleno: linear-gradient(90deg, #6f4700, var(--progreso));
-  --progreso-brillo: none;        /* insignia "Imagen en francés" (texto --info: 5,2:1) */
+  --progreso-brillo: none;
   --acento-fondo: #fff4c2;      /* acabado elegido en el detalle */
   /* Brillo eléctrico: solo en tema oscuro (en claro, sombras neutras) */
   --brillo-tarjeta: 0 0 0 transparent;
@@ -78,7 +77,51 @@
   --texto-l: 1.25rem;
   --texto-xl: clamp(1.4rem, 4vw, 2rem);
 
+  /* Tamaños de texto fuera de la escala de arriba */
+  --texto-ml: 1.15rem;          /* cifra de progreso, subtítulos de privacidad */
+  --texto-titulo: 1.5rem;       /* logo y título del detalle de carta */
+  --texto-portada: clamp(1.6rem, 5vw, 2.2rem);  /* "Hola, entrenador", privacidad */
+  --texto-confirmar: clamp(1.5rem, 6vw, 2.25rem);
+
+  /* Espaciado de letras y subrayado */
+  --tracking-titulo: -0.02em;
+  --tracking-mayus: 0.06em;     /* textos en mayúsculas ("POKÉMON · #595") */
+  --tracking-antetitulo: 0.12em;
+  --subrayado-separacion: 0.2em;
+
+  /* Medidas de componentes */
+  --radio-xl: 22px;             /* panel "Tu colección" */
+  --radio-cifra: 14px;          /* recuadros de las cifras */
+  --esp-tarjeta: 0.6rem;        /* relleno interno de la tarjeta de carta y de los campos */
+  --esp-portada: 2.5rem;        /* arriba de cada pantalla */
+  --grilla-min: 160px;          /* ancho mínimo de una carta en la grilla */
+  --grilla-min-movil: 130px;
+  --grilla-espacio: 1.25rem;
+  --icono: 20px;
+  --icono-vacio: 48px;
+  --icono-vacio-chico: 32px;
+  --icono-confirmar: 72px;
+  --flecha-detalle: 56px;
+
+  /* Anchos máximos */
+  --ancho-lectura: 720px;       /* lista de Progreso, sugerencias y cabecera de un objetivo */
+  --ancho-legal: 680px;
+  --ancho-cifras: 560px;
+  --ancho-buscador: 520px;
+  --ancho-angosto: 480px;       /* confirmación y barra de progreso de un objetivo */
+  --ancho-detalle: 820px;
+
   --alto-toque: 44px;
+
+  /* Dibujos propios, usados como máscara (mask): */
+  /* telaraña hexagonal con un rayo al centro (estados vacíos, confirmación, sin imagen) */
+  --motivo-telarana: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M46 24 35 43.05H13L2 24 13 4.95h22z'/%3E%3Cpath d='M38 24 31 36.12H17L10 24l7-12.12h14z' opacity='.6'/%3E%3Cpath d='M38 24h8M31 36.12l4 6.93M17 36.12l-4 6.93M10 24H2M17 11.88l-4-6.93M31 11.88l4-6.93'/%3E%3Cpath d='M26 14 18 26h5l-2 8 9-13h-5z' fill='black' stroke='none'/%3E%3C/svg%3E");
+  /* la misma telaraña con el rayo cortado ("No pudimos conectar") */
+  --motivo-sin-conexion: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M46 24 35 43.05H13L2 24 13 4.95h22z'/%3E%3Cpath d='M38 24 31 36.12H17L10 24l7-12.12h14z' opacity='.6'/%3E%3Cpath d='M38 24h8M31 36.12l4 6.93M17 36.12l-4 6.93M10 24H2M17 11.88l-4-6.93M31 11.88l4-6.93'/%3E%3Cpath d='M26 14 22.2 19.6 27.4 24.8 30 21h-5zM20.2 22.8 18 26h5l-2 8 4.3-6.1z' fill='black' stroke='none'/%3E%3Cpath d='m16 16 16 16' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  /* telaraña grande y rayo del panel "Tu colección" de Inicio */
+  --motivo-telarana-grande: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='black' stroke-width='1.6'%3E%3Cg transform='translate(100 100)'%3E%3Cpath d='M0-100V100M-100 0H100M-71-71 71 71M-71 71 71-71'/%3E%3Cpath d='M0-25 18-18 25 0 18 18 0 25-18 18-25 0-18-18Z'/%3E%3Cpath d='M0-50 35-35 50 0 35 35 0 50-35 35-50 0-35-35Z'/%3E%3Cpath d='M0-75 53-53 75 0 53 53 0 75-53 53-75 0-53-53Z'/%3E%3Cpath d='M0-98 69-69 98 0 69 69 0 98-69 69-98 0-69-69Z'/%3E%3C/g%3E%3C/svg%3E");
+  --motivo-rayo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2 4 14h6l-2 8 10-12h-6z'/%3E%3C/svg%3E");
+
   --duracion: 150ms;
   --fuente: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --ancho-max: 1200px;
@@ -105,7 +148,6 @@
   --marca-texto: #ffd60a;
   --info: #4cc3ff;
   --exito: #4ade80;
-  --sobre-exito: #0b1020;
   --advertencia: #ffa94d;
   --error: #ff6b6b;
   --foco: #ffd60a;
@@ -191,6 +233,10 @@
 }
 
 /* --- Base -------------------------------------------------- */
+/* Algunas reglas de aquí repiten lo que ya hace el Reboot de Bootstrap
+   (box-sizing, márgenes y colores de body, [hidden], el texto solo para
+   lectores de pantalla). Se mantienen a propósito: si jsDelivr no
+   responde, la app se ve y funciona solo con este archivo (11.0). */
 *,
 *::before,
 *::after { box-sizing: border-box; }
@@ -212,7 +258,7 @@ a {
   font-weight: 600;
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 0.2em;
+  text-underline-offset: var(--subrayado-separacion);
 }
 a:hover { text-decoration-thickness: 2px; }
 /* Enlaces sueltos (no dentro de una oración): área táctil de 44 px */
@@ -260,8 +306,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 /* Íconos de línea (se usan con <use href="#icono-…">) */
 .icono {
-  width: 20px;
-  height: 20px;
+  width: var(--icono);
+  height: var(--icono);
   flex-shrink: 0;
   fill: none;
   stroke: currentColor;
@@ -433,7 +479,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   border-color: var(--borde-control);
 }
 .form-control {
-  padding: 0.6rem 1rem;
+  padding: var(--esp-tarjeta) 1rem;
   border-radius: var(--radio-pill);
 }
 .form-control::placeholder { color: var(--texto-suave); }
@@ -496,8 +542,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 .logo {
   margin: 0 auto 0 0;       /* empuja sesión y tema a la derecha */
-  font-size: 1.5rem;
-  letter-spacing: -0.02em;
+  font-size: var(--texto-titulo);
+  letter-spacing: var(--tracking-titulo);
 }
 .logo--enlace {
   display: inline-flex;
@@ -562,7 +608,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   margin: 0;
   font-size: var(--texto-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-mayus);
   text-transform: uppercase;
   color: var(--texto-suave);
 }
@@ -590,7 +636,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   padding: var(--esp-2) var(--esp-3) var(--esp-1);
   font-size: var(--texto-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-mayus);
   text-transform: uppercase;
   color: var(--texto-suave);
 }
@@ -649,7 +695,6 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   font-size: var(--texto-s);
   color: var(--texto-suave);
 }
-.mensaje[data-tipo="exito"] { color: var(--exito); }
 .mensaje[data-tipo="error"] { color: var(--error); }
 
 /* --- Navegación principal --------------------------------- */
@@ -763,7 +808,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 /* --- Intro y buscador -------------------------------------- */
 .intro {
   text-align: center;
-  padding-block: 2.5rem var(--esp-4);
+  padding-block: var(--esp-portada) var(--esp-4);
 }
 .intro h2 {
   margin: 0 0 var(--esp-2);
@@ -777,13 +822,14 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
    la telaraña y el rayo de la marca muy tenues (decorativos, detrás del
    contenido) y las tres cifras en recuadros */
 .resumen {
+  container: resumen / inline-size;  /* las cifras pasan a filas si el panel es angosto */
   position: relative;
   isolation: isolate;
   overflow: hidden;
   margin: var(--esp-5) 0 var(--esp-2);
   padding: var(--esp-6) var(--esp-5);
   border: 1px solid var(--borde);
-  border-radius: 22px;
+  border-radius: var(--radio-xl);
   background:
     radial-gradient(120% 140% at 100% 0%, rgb(255 214 10 / 0.16), transparent 55%),
     var(--superficie);
@@ -816,10 +862,6 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   -webkit-mask: var(--motivo-rayo) center / contain no-repeat;
   mask: var(--motivo-rayo) center / contain no-repeat;
 }
-:root {
-  --motivo-telarana-grande: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='black' stroke-width='1.6'%3E%3Cg transform='translate(100 100)'%3E%3Cpath d='M0-100V100M-100 0H100M-71-71 71 71M-71 71 71-71'/%3E%3Cpath d='M0-25 18-18 25 0 18 18 0 25-18 18-25 0-18-18Z'/%3E%3Cpath d='M0-50 35-35 50 0 35 35 0 50-35 35-50 0-35-35Z'/%3E%3Cpath d='M0-75 53-53 75 0 53 53 0 75-53 53-75 0-53-53Z'/%3E%3Cpath d='M0-98 69-69 98 0 69 69 0 98-69 69-98 0-69-69Z'/%3E%3C/g%3E%3C/svg%3E");
-  --motivo-rayo: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M14 2 4 14h6l-2 8 10-12h-6z'/%3E%3C/svg%3E");
-}
 .resumen__antetitulo {
   display: flex;
   align-items: center;
@@ -827,25 +869,24 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   margin: 0 0 var(--esp-1);
   font-size: var(--texto-xs);
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--tracking-antetitulo);
   text-transform: uppercase;
   color: var(--marca-texto);
 }
 .resumen__antetitulo .icono { width: 16px; height: 16px; }
 .resumen__titulo {
   margin: 0 0 var(--esp-4);
-  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  font-size: var(--texto-portada);
   line-height: 1.15;
 }
 .resumen__texto { max-width: 36rem; margin: calc(-1 * var(--esp-2)) 0 var(--esp-5); color: var(--texto-suave); }
 /* Las cifras: número grande arriba y qué cuenta debajo (en el código, dt
    antes que dd: el lector dice "cartas distintas, 3") */
-.resumen { container: resumen / inline-size; }
 .resumen__cifras {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--esp-2);
-  max-width: 560px;
+  max-width: var(--ancho-cifras);
   margin: 0 0 var(--esp-5);
 }
 .resumen__cifra {
@@ -854,7 +895,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   justify-content: flex-end;
   padding: var(--esp-3) 14px;
   border: 1px solid var(--borde);
-  border-radius: 14px;
+  border-radius: var(--radio-cifra);
   background: var(--superficie-2);
 }
 .resumen__cifra dd {
@@ -903,8 +944,9 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   border: 1px solid var(--borde);
   border-radius: var(--radio-pill);
   background: var(--superficie);
+  color: var(--texto-suave);
+  font-size: var(--texto-s);
 }
-.resumen-linea__cifra { color: var(--texto-suave); font-size: var(--texto-s); }
 .resumen-linea__cifras b { color: var(--texto); font-size: var(--texto-m); font-weight: 800; font-variant-numeric: tabular-nums; }
 .resumen-linea__actualizar[aria-disabled="true"] { opacity: 0.6; cursor: wait; }
 
@@ -925,7 +967,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 .form-busqueda {
   display: flex;
   gap: var(--esp-2);
-  max-width: 520px;
+  max-width: var(--ancho-buscador);
   margin-inline: auto;
 }
 .form-busqueda input { flex: 1; }
@@ -944,8 +986,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 /* --- Grilla de cartas -------------------------------------- */
 .grilla {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(var(--grilla-min), 1fr));
+  gap: var(--grilla-espacio);
   padding-bottom: var(--esp-7);
 }
 
@@ -967,22 +1009,14 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 .vacio::before {
   content: "";
   display: block;
-  width: 48px;
-  height: 48px;
+  width: var(--icono-vacio);
+  height: var(--icono-vacio);
   margin: 0 auto var(--esp-3);
   background: var(--marca-texto);
   -webkit-mask: var(--motivo-telarana) center / contain no-repeat;
   mask: var(--motivo-telarana) center / contain no-repeat;
 }
-:root {
-  /* Telaraña hexagonal con un rayo al centro (dibujo propio) */
-  --motivo-telarana: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M46 24 35 43.05H13L2 24 13 4.95h22z'/%3E%3Cpath d='M38 24 31 36.12H17L10 24l7-12.12h14z' opacity='.6'/%3E%3Cpath d='M38 24h8M31 36.12l4 6.93M17 36.12l-4 6.93M10 24H2M17 11.88l-4-6.93M31 11.88l4-6.93'/%3E%3Cpath d='M26 14 18 26h5l-2 8 9-13h-5z' fill='black' stroke='none'/%3E%3C/svg%3E");
-}
 
-/* Sin conexión: la misma telaraña con el rayo cortado (dibujo propio) */
-:root {
-  --motivo-sin-conexion: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='black' stroke-width='1.5' stroke-linejoin='round'%3E%3Cpath d='M46 24 35 43.05H13L2 24 13 4.95h22z'/%3E%3Cpath d='M38 24 31 36.12H17L10 24l7-12.12h14z' opacity='.6'/%3E%3Cpath d='M38 24h8M31 36.12l4 6.93M17 36.12l-4 6.93M10 24H2M17 11.88l-4-6.93M31 11.88l4-6.93'/%3E%3Cpath d='M26 14 22.2 19.6 27.4 24.8 30 21h-5zM20.2 22.8 18 26h5l-2 8 4.3-6.1z' fill='black' stroke='none'/%3E%3Cpath d='m16 16 16 16' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
-}
 
 /* Estado "No pudimos conectar": misma estructura que .vacio.
    El rojo va solo en el ícono; el texto, en los colores normales. */
@@ -1021,8 +1055,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   text-align: left;
 }
 .sin-conexion--compacto::before {
-  width: 32px;
-  height: 32px;
+  width: var(--icono-vacio-chico);
+  height: var(--icono-vacio-chico);
   margin: 0;
   flex-shrink: 0;
 }
@@ -1060,8 +1094,9 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 
 .carta__imagen {
+  position: relative;       /* para la imagen de respaldo que se prueba encima */
   border: none;
-  padding: 0.6rem 0.6rem 0;
+  padding: var(--esp-tarjeta) var(--esp-tarjeta) 0;
   background: none;
   cursor: zoom-in;
 }
@@ -1077,7 +1112,6 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   transition: transform 0.2s;
 }
 .carta__imagen:hover img { transform: scale(1.03); }
-.carta__imagen:disabled { cursor: default; }
 
 .carta__sin-imagen {
   aspect-ratio: 245 / 342;
@@ -1130,12 +1164,11 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 /* Imagen de respaldo mientras se prueba: encima del recuadro e invisible
    (así se descarga con la carga diferida, como las demás) */
-.carta__imagen { position: relative; }
 .carta__imagen .carta__img-probando {
   position: absolute;
-  top: 0.6rem;
-  left: 0.6rem;
-  width: calc(100% - 1.2rem);
+  top: var(--esp-tarjeta);
+  left: var(--esp-tarjeta);
+  width: calc(100% - 2 * var(--esp-tarjeta));
   opacity: 0;
 }
 
@@ -1211,7 +1244,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   justify-content: center;
   min-height: var(--alto-toque);
   margin-top: auto;
-  padding-top: 0.6rem;
+  padding-top: var(--esp-tarjeta);
 }
 .marcado__agregar {
   --bs-btn-padding-x: var(--esp-2);
@@ -1235,7 +1268,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   padding: 0;
   background: var(--superficie);
   color: var(--texto);
-  width: min(92vw, 820px);
+  width: min(92vw, var(--ancho-detalle));
   max-height: 92vh;
   overflow: auto;
 }
@@ -1250,7 +1283,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   gap: var(--esp-3);
   margin-bottom: var(--esp-4);
 }
-.detalle__titulo { margin: 0; font-size: 1.5rem; }
+.detalle__titulo { margin: 0; font-size: var(--texto-titulo); }
 
 /* Imagen a la izquierda y datos a la derecha; en móvil, uno bajo el otro */
 .detalle__cuerpo {
@@ -1310,8 +1343,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
    <dialog>). Más angosto, quedan bajo la imagen, como en móvil. */
 @media (min-width: 900px) {
   .detalle {
-    --canal-flecha: calc(56px + var(--esp-4));
-    width: min(96vw, calc(820px + 2 * var(--canal-flecha)));
+    --canal-flecha: calc(var(--flecha-detalle) + var(--esp-4));
+    width: min(96vw, calc(var(--ancho-detalle) + 2 * var(--canal-flecha)));
     padding-inline: var(--canal-flecha);
     background: transparent;
     border-radius: 0;
@@ -1337,8 +1370,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 56px;
-    height: 56px;
+    width: var(--flecha-detalle);
+    height: var(--flecha-detalle);
     border-radius: 50%;
     --bs-btn-font-size: var(--texto-xl);
     /* Relleno del panel (se distingue en tema claro) y borde claro (en oscuro) */
@@ -1677,7 +1710,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 .progreso--sin-datos .progreso__barra { border-style: dashed; }
 .progreso__cifra {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: var(--texto-ml);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -1695,7 +1728,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   list-style: none;
   margin: 0 auto;
   padding: 0;
-  max-width: 720px;
+  max-width: var(--ancho-lectura);
   display: grid;
   gap: var(--esp-3);
 }
@@ -1746,13 +1779,13 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   .objetivo .progreso__cifra { text-align: left; }
 }
 .objetivo__tipo {
+  grid-area: tipo;
   font-size: var(--texto-xs);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-mayus);
   text-transform: uppercase;
   color: var(--texto-suave);
 }
-.objetivo__tipo { grid-area: tipo; }
 .objetivo__nombre { grid-area: nombre; font-size: var(--texto-l); font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 /* "Ver faltantes ›": parte de la tarjeta-enlace, con el mismo estilo de enlace */
 .objetivo__ver {
@@ -1763,19 +1796,19 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   color: var(--info);
   text-decoration: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 0.2em;
+  text-underline-offset: var(--subrayado-separacion);
 }
 .objetivo:hover .objetivo__ver { text-decoration-thickness: 2px; }
 .progreso-pie {
-  max-width: 720px;
+  max-width: var(--ancho-lectura);
   margin: var(--esp-4) auto var(--esp-6);
   text-align: center;
   font-size: var(--texto-s);
   color: var(--texto-suave);
 }
-#progreso-aviso { max-width: 720px; margin-inline: auto; }
+#progreso-aviso { max-width: var(--ancho-lectura); margin-inline: auto; }
 /* "Todavía no sigues nada": mismo ancho que la lista y las sugerencias */
-#progreso-contenido > .vacio { max-width: 720px; margin-inline: auto; }
+#progreso-contenido > .vacio { max-width: var(--ancho-lectura); margin-inline: auto; }
 
 /* Filtros de cartas: expansión, rareza, orden y "Limpiar filtros" */
 .filtros-cartas {
@@ -1895,7 +1928,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 
 /* Sugerencias: "Unified Minds · tienes 2 cartas [Seguir]" */
-.sugerencias-caja { max-width: 720px; margin: var(--esp-4) auto var(--esp-6); }
+.sugerencias-caja { max-width: var(--ancho-lectura); margin: var(--esp-4) auto var(--esp-6); }
 #inicio-progreso .sugerencias-caja { max-width: none; margin: var(--esp-3) 0 0; }
 #inicio-progreso .sugerencias { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
 .sugerencias__texto { margin: var(--esp-2) 0 var(--esp-3); color: var(--texto-suave); }
@@ -1933,13 +1966,13 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 /* Detalle de un objetivo */
 .volver { margin-top: var(--esp-4); }
 .objetivo-cabecera {
-  max-width: 720px;
+  max-width: var(--ancho-lectura);
   padding-block: var(--esp-3) var(--esp-2);
 }
 .objetivo-cabecera__titulo {
   margin: var(--esp-1) 0 var(--esp-2);
   font-size: var(--texto-xl);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-titulo);
 }
 .objetivo__incluye,
 .objetivo__nota {
@@ -1947,7 +1980,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   color: var(--texto-suave);
 }
 .objetivo__nota { margin-top: var(--esp-2); font-size: var(--texto-s); }
-.objetivo-cabecera .progreso { max-width: 480px; }
+.objetivo-cabecera .progreso { max-width: var(--ancho-angosto); }
 
 /* Título dentro de un estado vacío */
 .vacio .vacio__titulo {
@@ -1982,7 +2015,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 .confirmar::backdrop { background: transparent; }
 
 .confirmar__contenido {
-  max-width: 480px;
+  max-width: var(--ancho-angosto);
   text-align: center;
   animation: confirmar-entrada 220ms ease-out;
 }
@@ -1997,8 +2030,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 .confirmar__icono::before {
   content: "";
   display: block;
-  width: 72px;
-  height: 72px;
+  width: var(--icono-confirmar);
+  height: var(--icono-confirmar);
   background: var(--marca-texto);
   -webkit-mask: var(--motivo-telarana) center / contain no-repeat;
   mask: var(--motivo-telarana) center / contain no-repeat;
@@ -2006,9 +2039,9 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 .confirmar__titulo {
   margin: 0 0 var(--esp-3);
-  font-size: clamp(1.5rem, 6vw, 2.25rem);
+  font-size: var(--texto-confirmar);
   line-height: 1.2;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-titulo);
   overflow-wrap: anywhere;      /* nombres largos no desbordan en 320 px */
 }
 .confirmar__mensaje {
@@ -2107,14 +2140,14 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 /* --- Página de privacidad ---------------------------------- */
 
 .legal {
-  max-width: 680px;
+  max-width: var(--ancho-legal);
   margin-inline: auto;
-  padding-block: 2.5rem var(--esp-7);
+  padding-block: var(--esp-portada) var(--esp-7);
 }
 .legal h1 {
   margin: 0;
-  font-size: clamp(1.6rem, 5vw, 2.2rem);
-  letter-spacing: -0.02em;
+  font-size: var(--texto-portada);
+  letter-spacing: var(--tracking-titulo);
 }
 .legal__fecha {
   margin: var(--esp-1) 0 var(--esp-6);
@@ -2123,7 +2156,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 .legal h2 {
   margin: var(--esp-6) 0 var(--esp-2);
-  font-size: 1.15rem;
+  font-size: var(--texto-ml);
 }
 .legal p,
 .legal li { color: var(--texto); }
@@ -2201,7 +2234,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   .sesion__google-texto { display: none; }
   .acciones { flex-direction: column; }
   .grilla {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--grilla-min-movil), 1fr));
     gap: var(--esp-3);
   }
 
