@@ -14,6 +14,7 @@ import * as ui from './ui.js';
 import * as filtrado from './filtros.js';
 import * as cacheColeccion from './cache-coleccion.js';
 import { estado, guardarCambio } from './estado.js';
+import * as exportar from './exportar.js';
 
 let filtrosColeccion = filtrado.leerFiltros(new URLSearchParams(), filtrado.COLECCION);
 
@@ -248,6 +249,38 @@ async function cambiarDesdeLista(carta, tengo) {
   }
 }
 
+// --- Exportar CSV -------------------------------------------------
+
+/**
+ * Descarga la colección como CSV (una fila por copia; ver exportar.js).
+ * La caché de Colección no tiene idioma, condición ni fecha de cada
+ * copia: se piden una vez, al exportar. Total y año de la expansión
+ * salen de las listas de sets de la sesión (sin conexión a TCGdex, esas
+ * dos columnas quedan vacías, pero el archivo se descarga igual).
+ * @param {HTMLElement} boton  desde ahí sale el aviso
+ */
+async function exportarColeccion(boton) {
+  ui.exportandoColeccion(true);
+  try {
+    const [cartas, sets] = await Promise.all([
+      estado.coleccion.listarParaExportar(),
+      datosDeSets().catch((error) => {
+        console.warn('Sin datos de expansiones para el CSV:', error);
+        return new Map();
+      }),
+    ]);
+    const filas = exportar.filasColeccion(cartas, sets);
+    exportar.descargar(exportar.textoCsv(filas), exportar.nombreArchivo());
+    const n = filas.length;
+    ui.avisar(`Exportaste ${n.toLocaleString('es')} ${n === 1 ? 'copia' : 'copias'} a CSV`, { origen: boton });
+  } catch (error) {
+    console.error(error);
+    ui.avisar('No se pudo exportar. Revisa tu conexión e inténtalo de nuevo.', { tipo: 'error', origen: boton });
+  } finally {
+    ui.exportandoColeccion(false);
+  }
+}
+
 // Filtra mientras se escribe, esperando 300 ms de pausa (la lista se
 // redibuja entera; con muchas cartas, no en cada tecla)
 let esperaFiltro;
@@ -272,6 +305,7 @@ export function preparar() {
   });
 
   ui.prepararActualizarColeccion(() => cargarColeccion({ forzar: true }));
+  ui.prepararExportarColeccion(exportarColeccion);
 
   // Al volver a la pestaña, lo de otro dispositivo o pestaña pudo cambiar:
   // se revalida (ya, si se está en Colección). Al esconderla, se guarda

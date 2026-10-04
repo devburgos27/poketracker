@@ -983,7 +983,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   font-size: var(--texto-s);
 }
 .resumen-linea__cifras b { color: var(--texto); font-size: var(--texto-m); font-weight: 800; font-variant-numeric: tabular-nums; }
-.resumen-linea__actualizar[aria-disabled="true"] { opacity: 0.6; cursor: wait; }
+.resumen-linea__actualizar[aria-disabled="true"],
+.resumen-linea__exportar[aria-disabled="true"] { opacity: 0.6; cursor: wait; }
 
 /* Fila de botones o enlaces principales de una pantalla */
 .acciones {

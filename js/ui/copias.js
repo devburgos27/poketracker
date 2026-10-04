@@ -9,13 +9,14 @@ import { $, crearErrorConexion, escribirMensaje } from './base.js';
 import { ACABADOS, mostrarVistasAcabado } from './acabados.js';
 import { saltar } from '../animaciones.js';
 
-// Nombres en español de los códigos que guarda la base
+// Nombres en español de los códigos que guarda la base (también los usa
+// exportar.js para el CSV)
 
-const IDIOMAS = {
+export const IDIOMAS = {
   en: 'Inglés', ja: 'Japonés', es: 'Español', ko: 'Coreano', de: 'Alemán',
   fr: 'Francés', pt: 'Portugués', it: 'Italiano', zh: 'Chino', otro: 'Otro',
 };
-const CONDICIONES = {
+export const CONDICIONES = {
   NM: 'Excelente', LP: 'Muy buena', MP: 'Buena', HP: 'Regular', DMG: 'Dañada',
 };
 let accionesCopias = null;

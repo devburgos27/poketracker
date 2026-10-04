@@ -159,6 +159,27 @@ export async function listarRecientes(cantidad) {
   return data.map(adaptarFila);
 }
 
+// Para "Exportar CSV": cada carta con todas sus copias y las fechas en
+// que se agregaron (la caché de Colección solo tiene acabado y sello)
+const COLUMNAS_EXPORTAR = 'id, nombre_pokemon, numero, nombre_set, set_id, created_at, copias(idioma, condicion, acabado, sello, created_at)';
+
+/**
+ * Toda la colección con el detalle de cada copia, en el orden de
+ * Colección (Pokémon y luego cuándo se agregó). Paginada, como Colección.
+ * @returns {Promise<Array<{id: number, nombre_pokemon: string, numero: string|null,
+ *   nombre_set: string|null, set_id: string|null, created_at: string,
+ *   copias: Array<{idioma: string|null, condicion: string|null, acabado: string|null,
+ *   sello: boolean, created_at: string}>}>>}
+ */
+export async function listarParaExportar() {
+  return traerTodas(() => supabase
+    .from('coleccion')
+    .select(COLUMNAS_EXPORTAR, { count: 'exact' })
+    .order('nombre_pokemon')
+    .order('created_at')
+    .order('id'));
+}
+
 /**
  * Convierte una fila de la tabla al formato "carta" de la app.
  * Además trae "guardada" ({ filaId, copias, setId, nombreSet, acabados,

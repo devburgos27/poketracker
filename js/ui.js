@@ -38,6 +38,8 @@ export {
   mostrarResumenInicio,
   mostrarResumenColeccion,
   prepararActualizarColeccion,
+  prepararExportarColeccion,
+  exportandoColeccion,
   actualizandoColeccion,
   mensajeColeccion,
   errorColeccion,

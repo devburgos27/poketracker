@@ -118,6 +118,25 @@ export function actualizandoColeccion(activo) {
   else boton.removeAttribute('aria-disabled');
 }
 
+/**
+ * "Exportar CSV" del resumen. alExportar recibe el botón (desde ahí
+ * sale el aviso).
+ */
+export function prepararExportarColeccion(alExportar) {
+  const boton = $('#coleccion-exportar');
+  boton.addEventListener('click', () => {
+    if (boton.getAttribute('aria-disabled') !== 'true') alExportar(boton);
+  });
+}
+
+/** Mientras se arma el archivo: "Exportando…" (aria-disabled, para no perder el foco). */
+export function exportandoColeccion(activo) {
+  const boton = $('#coleccion-exportar');
+  boton.querySelector('.resumen-linea__exportar-texto').textContent = activo ? 'Exportando…' : 'Exportar CSV';
+  if (activo) boton.setAttribute('aria-disabled', 'true');
+  else boton.removeAttribute('aria-disabled');
+}
+
 /** Texto de estado de "Mi colección": "Cargando…", "12 cartas", errores. */
 export function mensajeColeccion(texto, tipo = 'info') {
   escribirMensaje($('#estado-coleccion'), texto, tipo);
