@@ -5,6 +5,8 @@
 // confirmación a pantalla completa. Lo usan todas las pantallas.
 // =============================================================
 
+import { abrirBurbuja, cerrarBurbuja, prepararBurbuja } from '../animaciones.js';
+
 export const $ = (selector) => document.querySelector(selector);
 
 /** Escribe un mensaje de estado ("Buscando…", "12 cartas", errores). */
@@ -94,7 +96,7 @@ export function confirmar({ titulo, mensaje, textoConfirmar = 'Aceptar', peligro
   aceptar.classList.toggle('btn-primary', !peligro);
 
   dialogo.returnValue = '';
-  dialogo.showModal();
+  abrirBurbuja(dialogo, origen);
   $('#confirmar-cancelar').focus();
 
   return new Promise((resolve) => {
@@ -108,11 +110,13 @@ export function confirmar({ titulo, mensaje, textoConfirmar = 'Aceptar', peligro
 /** Botones y clic fuera del contenido del modal de confirmación. */
 export function prepararConfirmacion() {
   const dialogo = $('#dialogo-confirmar');
-  $('#confirmar-aceptar').addEventListener('click', () => dialogo.close('si'));
-  $('#confirmar-cancelar').addEventListener('click', () => dialogo.close('no'));
+  // La capa a pantalla completa es el propio <dialog>: se desvanece aparte
+  prepararBurbuja(dialogo, { panel: $('#dialogo-confirmar .confirmar__contenido'), fondo: dialogo });
+  $('#confirmar-aceptar').addEventListener('click', () => cerrarBurbuja(dialogo, 'si'));
+  $('#confirmar-cancelar').addEventListener('click', () => cerrarBurbuja(dialogo, 'no'));
   // La capa es el propio <dialog>: un clic que no cae en el contenido cancela
   dialogo.addEventListener('click', (e) => {
-    if (e.target === dialogo) dialogo.close('no');
+    if (e.target === dialogo) cerrarBurbuja(dialogo, 'no');
   });
   // Esc cierra el <dialog> solo, sin returnValue: cuenta como cancelar
 }

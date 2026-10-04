@@ -8,6 +8,7 @@
 // =============================================================
 
 import { $ } from './base.js';
+import { abrirBurbuja, cerrarBurbuja, prepararBurbuja } from '../animaciones.js';
 
 /**
  * Pestañas "Todas (N)" / "Tengo (N)" / "Me falta (N)" y, debajo, el
@@ -204,7 +205,8 @@ function abrirHoja(selectorCaja, selectorResumen) {
   caja.before(marcador);
   $('#hoja-filtros-cuerpo').append(caja);
   hoja = { caja, marcador, resumen: selectorResumen };
-  dialogo.showModal();
+  // Crece desde el botón "Filtros"
+  abrirBurbuja(dialogo, $(`${selectorResumen} .filtros-resumen__boton`));
   caja.querySelector('select')?.focus();
 }
 
@@ -212,10 +214,11 @@ let hojaPreparada = false;
 function prepararHoja(dialogo) {
   if (hojaPreparada) return;
   hojaPreparada = true;
-  $('#hoja-filtros-listo').addEventListener('click', () => dialogo.close());
+  prepararBurbuja(dialogo);
+  $('#hoja-filtros-listo').addEventListener('click', () => cerrarBurbuja(dialogo));
   // Tocar el fondo (fuera del contenido) también cierra; Esc lo cierra solo
   dialogo.addEventListener('click', (e) => {
-    if (e.target === dialogo) dialogo.close();
+    if (e.target === dialogo) cerrarBurbuja(dialogo);
   });
   // Al cerrar, los selects vuelven a su lugar y el foco al botón "Filtros"
   // (el de ahora: pudo redibujarse con cada cambio)
@@ -228,6 +231,6 @@ function prepararHoja(dialogo) {
   });
   // Si la pantalla se ensancha (girar el teléfono), los selects vuelven a la página
   MOVIL.addEventListener('change', () => {
-    if (!MOVIL.matches && dialogo.open) dialogo.close();
+    if (!MOVIL.matches) cerrarBurbuja(dialogo);
   });
 }

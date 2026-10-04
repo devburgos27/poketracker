@@ -9,6 +9,7 @@
 import * as imagenes from '../imagenes.js';
 import { crearImg, crearRespaldo, esperarImagen, textoIdioma } from './imagen.js';
 import { textoAcabados } from './acabados.js';
+import { celebrar } from '../animaciones.js';
 
 // Grilla → lista de sus cartas, tal como se ven. Es la que recorre el
 // detalle (anterior / siguiente); sacarDeGrilla() la mantiene al día.
@@ -209,6 +210,7 @@ function crearControlColeccion(carta, tarjeta, { misCartas, alCambiar }) {
   agregar.addEventListener('click', async () => {
     if (misCartas.has(carta.id)) return;
     pintar(true);
+    celebrar(estadoTengo, control); // pop y chispas (nada con prefers-reduced-motion)
     try {
       await alCambiar(carta, true);
     } catch {

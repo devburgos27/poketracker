@@ -7,6 +7,7 @@
 
 import { $, crearErrorConexion, escribirMensaje } from './base.js';
 import { ACABADOS, mostrarVistasAcabado } from './acabados.js';
+import { saltar } from '../animaciones.js';
 
 // Nombres en español de los códigos que guarda la base
 
@@ -50,7 +51,11 @@ export function mostrarCopias(copias, ocupado = false) {
 
   const cargando = copias === null;
   const cantidad = copias?.length ?? 0;
-  $('#copias-cantidad').textContent = cargando ? '…' : String(cantidad);
+  const numero = $('#copias-cantidad');
+  const antes = numero.textContent;
+  numero.textContent = cargando ? '…' : String(cantidad);
+  // La cifra salta al cambiar (no al cargar otra carta: antes decía "…")
+  if (!cargando && /^\d+$/.test(antes) && antes !== numero.textContent) saltar(numero);
   // "−" no quita la última copia: sacar la carta de la colección es
   // "Quitar de mi colección", con confirmación
   $('#copias-restar').disabled = ocupado || cargando || cantidad <= 1;

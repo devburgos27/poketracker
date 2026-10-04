@@ -8,6 +8,7 @@
 
 import { $, crearErrorConexion, escribirMensaje } from './base.js';
 import { dibujarGrilla } from './cartas.js';
+import { animarBarra } from '../animaciones.js';
 
 // --- Progreso: barra ------------------------------------------
 
@@ -33,8 +34,10 @@ function textoPorcentaje(tengo, total) {
  *   master?: {tengo: number, total: number}
  * }} progreso  null = calculando
  * @param {string} idEtiqueta  id del elemento con el nombre del objetivo
+ * @param {string} clave  el objetivo y la pantalla: la barra se anima
+ *   la primera vez que se ve en cada pantalla (animaciones.js)
  */
-function crearBarraProgreso(progreso, idEtiqueta) {
+function crearBarraProgreso(progreso, idEtiqueta, clave) {
   const bloque = document.createElement('div');
   bloque.className = 'progreso';
 
@@ -42,7 +45,13 @@ function crearBarraProgreso(progreso, idEtiqueta) {
   barra.className = 'progreso__barra';
   const relleno = document.createElement('div');
   relleno.className = 'progreso__relleno';
-  barra.append(relleno);
+  // Decorativos de la animación: la chispa en la punta y el pulso al completar
+  const chispa = document.createElement('span');
+  chispa.className = 'progreso__chispa';
+  relleno.append(chispa);
+  const pulso = document.createElement('span');
+  pulso.className = 'progreso__pulso';
+  barra.append(relleno, pulso);
 
   const cifra = document.createElement('p');
   cifra.className = 'progreso__cifra';
@@ -60,7 +69,6 @@ function crearBarraProgreso(progreso, idEtiqueta) {
   }
 
   const { tengo, total } = progreso.principal;
-  const pct = porcentaje(tengo, total);
   const texto = textoPorcentaje(tengo, total);
   const completo = total > 0 && tengo === total;
   barra.setAttribute('role', 'progressbar');
@@ -70,11 +78,11 @@ function crearBarraProgreso(progreso, idEtiqueta) {
   barra.setAttribute('aria-valuenow', String(tengo));
   barra.setAttribute('aria-valuetext', `${tengo} de ${total} cartas, ${texto.voz}${completo ? ', completo' : ''}`);
   // Con al menos una carta se ve un poco de relleno, aunque sea < 1 %
-  relleno.style.width = `${tengo > 0 ? Math.max(pct, 1) : 0}%`;
+  const fraccion = (t) => (t > 0 ? Math.max(porcentaje(t, total), 1) : 0) / 100;
+  const cifraDe = (t) => `${t} / ${total} · ${textoPorcentaje(t, total).visible}`;
+  relleno.style.setProperty('--p', fraccion(tengo));
   bloque.classList.toggle('progreso--completo', completo);
-  cifra.textContent = completo
-    ? `✓ Completo · ${tengo} / ${total}`
-    : `${tengo} / ${total} · ${texto.visible}`;
+  cifra.textContent = completo ? `✓ Completo · ${tengo} / ${total}` : cifraDe(tengo);
 
   if (progreso.master) {
     const master = document.createElement('p');
@@ -82,6 +90,7 @@ function crearBarraProgreso(progreso, idEtiqueta) {
     master.textContent = `Master set: ${progreso.master.tengo} / ${progreso.master.total}`;
     bloque.append(master);
   }
+  animarBarra(bloque, { clave, tengo, total, completo, fraccion, texto: cifraDe });
   return bloque;
 }
 
@@ -179,7 +188,7 @@ function dibujarListaObjetivos(contenedor, items, prefijo, enfocar = null) {
     ver.setAttribute('aria-hidden', 'true');
     ver.textContent = 'Ver faltantes ›';
 
-    enlace.append(tipo, nombre, crearBarraProgreso(progreso, idNombre), ver);
+    enlace.append(tipo, nombre, crearBarraProgreso(progreso, idNombre, `${prefijo}:${objetivo.tipo}:${objetivo.clave}`), ver);
     const item = document.createElement('li');
     item.append(enlace);
     return item;
@@ -347,7 +356,7 @@ export function mostrarCabeceraObjetivo({ tipo, clave, nombre, progreso, base = 
   $('#objetivo-incluye').textContent = incluye;
   $('#objetivo-incluye').hidden = !incluye;
 
-  $('#objetivo-barra').replaceChildren(crearBarraProgreso(progreso, 'objetivo-titulo'));
+  $('#objetivo-barra').replaceChildren(crearBarraProgreso(progreso, 'objetivo-titulo', `cabecera:${tipo}:${clave}`));
 }
 
 /** Texto de estado del detalle ("Cargando cartas…", errores). */

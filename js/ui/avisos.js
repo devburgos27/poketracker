@@ -13,13 +13,12 @@
 // carta) el resto de la página queda inerte y no se anunciaría: la
 // región se mueve adentro del diálogo antes de agregar el aviso.
 //
-// Animación: hoy es una transición CSS simple (aparece y sube unos
-// pixeles; con prefers-reduced-motion, sin movimiento). La animación
-// tipo burbuja del bloque 11.8 va en animarEntrada y animarSalida, que
-// ya reciben el control que provocó el aviso (origen).
+// Animación: la burbuja sube desde abajo con rebote y se va rápido
+// (animaciones.js; con prefers-reduced-motion, sin movimiento).
 // =============================================================
 
 import { $ } from './base.js';
+import { entrarAviso, salirAviso } from '../animaciones.js';
 
 const DURACION = 4000;   // ms que queda visible
 const MAXIMO = 3;        // avisos a la vez; el más viejo se va primero
@@ -39,8 +38,8 @@ const ICONOS = {
  * Muestra un aviso breve.
  * @param {string} texto
  * @param {{tipo?: 'exito'|'neutro'|'error', duracion?: number, origen?: Element|null}} [opciones]
- *   origen: el control que lo provocó (para la animación de 11.8; hoy
- *   no cambia nada)
+ *   origen: el control que lo provocó (hoy la burbuja siempre sube desde
+ *   abajo, donde están los avisos)
  */
 export function avisar(texto, { tipo = 'exito', duracion = DURACION, origen = null } = {}) {
   const { region, movida } = regionActual();
@@ -87,20 +86,19 @@ function regionActual() {
   return { region, movida };
 }
 
-// --- Animación (punto de enganche del bloque 11.8) -------------------
+// --- Animación ---------------------------------------------------------
 
-/** Hace aparecer el aviso. 11.8: burbuja que sale desde `origen`. */
+/** Hace aparecer el aviso: la burbuja sube desde abajo. */
 function animarEntrada(aviso, origen) {
   aviso.classList.add('aviso--visible');
+  entrarAviso(aviso);
 }
 
 /**
- * Hace desaparecer el aviso; se resuelve cuando termina la transición
- * (al instante con prefers-reduced-motion). 11.8: la burbuja se desinfla.
+ * Hace desaparecer el aviso; se resuelve cuando termina la animación
+ * (al instante con prefers-reduced-motion).
  * @returns {Promise<void>}
  */
 function animarSalida(aviso, origen) {
-  aviso.classList.remove('aviso--visible');
-  const ms = parseFloat(getComputedStyle(aviso).transitionDuration) * 1000 || 0;
-  return new Promise((listo) => setTimeout(listo, ms + 50));
+  return salirAviso(aviso);
 }

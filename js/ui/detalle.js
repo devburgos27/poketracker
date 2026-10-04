@@ -14,6 +14,7 @@ import { ESPERA_REINTENTO, conReintento, crearRespaldo, esReintento, esperarImag
 import { mostrarPosicion, prepararNavegacion } from './detalle-navegacion.js';
 import { prepararCopias, reiniciarCopias } from './copias.js';
 import { reiniciarVistaAcabado } from './acabados.js';
+import { abrirBurbuja, cerrarBurbuja, deslizar, prepararBurbuja } from '../animaciones.js';
 
 /**
  * Conecta el detalle con detalle-carta.js.
@@ -33,7 +34,8 @@ export function prepararDetalle(acciones) {
   prepararCopias(acciones);
 
   const dialogo = $('#dialogo-carta');
-  $('#dialogo-cerrar').addEventListener('click', () => dialogo.close());
+  prepararBurbuja(dialogo);
+  $('#dialogo-cerrar').addEventListener('click', () => cerrarBurbuja(dialogo));
   dialogo.addEventListener('click', (e) => {
     // Clic en el fondo oscurecido: fuera del rectángulo del <dialog>. En
     // escritorio el <dialog> incluye los canales de las flechas, a los
@@ -41,7 +43,7 @@ export function prepararDetalle(acciones) {
     if (e.target !== dialogo) return;
     const r = dialogo.getBoundingClientRect();
     const dentro = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-    if (!dentro) dialogo.close();
+    if (!dentro) cerrarBurbuja(dialogo);
   });
   dialogo.addEventListener('close', acciones.alCerrar);
   $('#copias-sumar').addEventListener('click', acciones.alSumar);
@@ -154,17 +156,15 @@ function mostrarNotaImagen(idioma) {
 export function abrirDetalle(carta, posicion) {
   $('#detalle-anuncio').textContent = '';
   mostrarCartaDetalle(carta, posicion);
-  $('#dialogo-carta').showModal();
+  abrirBurbuja($('#dialogo-carta'));
 }
 
 /** Con el detalle abierto, pasa a otra carta de la lista. */
 export function cambiarCartaDetalle(carta, posicion) {
+  const direccion = posicion.indice < indiceActual ? -1 : 1;
   mostrarCartaDetalle(carta, posicion);
-  // Transición breve (sin movimiento con prefers-reduced-motion)
-  const cuerpo = $('#dialogo-carta .detalle__cuerpo');
-  cuerpo.classList.remove('detalle__cuerpo--entrando');
-  void cuerpo.offsetWidth; // reinicia la animación si se cambia rápido
-  cuerpo.classList.add('detalle__cuerpo--entrando');
+  // Desplazamiento corto hacia el lado de la flecha (nada con prefers-reduced-motion)
+  deslizar($('#dialogo-carta .detalle__cuerpo'), direccion);
   // El título cambia sin mover el foco: se anuncia para lectores de pantalla
   $('#detalle-anuncio').textContent = `${carta.nombre}, ${posicion.indice + 1} de ${posicion.total}`;
 }
@@ -181,7 +181,10 @@ export function conservarFocoDetalle() {
   (flecha ?? $('#dialogo-cerrar')).focus();
 }
 
+let indiceActual = 0; // posición de la carta abierta en su lista
+
 function mostrarCartaDetalle(carta, posicion) {
+  indiceActual = posicion.indice;
   reiniciarVistaAcabado();
   cargarImagenDetalle(carta);
   mostrarDatosDetalle(carta);
@@ -192,7 +195,7 @@ function mostrarCartaDetalle(carta, posicion) {
 /** Cierra el detalle (por ejemplo, al cerrar sesión). */
 export function cerrarDetalle() {
   const dialogo = $('#dialogo-carta');
-  if (dialogo.open) dialogo.close();
+  cerrarBurbuja(dialogo);
 }
 
 /** Nombre, expansión, número y rareza (se llama de nuevo si llega la rareza). */

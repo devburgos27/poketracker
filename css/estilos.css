@@ -39,7 +39,8 @@
   --brillo-principal: 0 0 0 transparent;
   /* Relleno de la barra de progreso: ámbar oscuro en claro (5,4:1 contra
      la pista), amarillo con brillo en oscuro */
-  --progreso-relleno: linear-gradient(90deg, #6f4700, var(--progreso));
+  --progreso-inicio: #6f4700;
+  --progreso-relleno: linear-gradient(90deg, var(--progreso-inicio), var(--progreso));
   --progreso-brillo: none;
   --acento-fondo: #fff4c2;      /* acabado elegido en el detalle */
   /* Brillo eléctrico: solo en tema oscuro (en claro, sombras neutras) */
@@ -160,7 +161,8 @@
   --info-fondo: #10283f;
   --telarana-opacidad: 0.12;
   --brillo-principal: 0 0 0 1px rgb(255 214 10 / 0.4), 0 8px 26px -8px rgb(255 214 10 / 0.7);
-  --progreso-relleno: linear-gradient(90deg, #ffb300, var(--progreso));
+  --progreso-inicio: #ffb300;
+  --progreso-relleno: linear-gradient(90deg, var(--progreso-inicio), var(--progreso));
   --progreso-brillo: 0 0 12px rgb(255 214 10 / 0.5);
   --acento-fondo: #2e2a14;
   --brillo-tarjeta: 0 0 0 1px rgb(255 214 10 / 0.55), 0 0 28px rgb(255 214 10 / 0.35);
@@ -604,6 +606,33 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   background: var(--superficie);
   color: var(--texto);
   box-shadow: var(--sombra-menu);
+}
+/* Burbuja (como los <dialog> de animaciones.js, pero en CSS: también se
+   cierran solos con Esc o al tocar fuera). Crece desde el botón (arriba
+   a la derecha) con rebote; se va rápido y sin rebote. display y overlay
+   (allow-discrete) solo lo mantienen visible mientras se va; donde no
+   existe, se cierra al instante. --curva-burbuja la pone animaciones.js */
+.menu-flotante[popover] {
+  transform-origin: top right;
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity 150ms ease-in, transform 150ms ease-in,
+    overlay 150ms allow-discrete, display 150ms allow-discrete;
+}
+.menu-flotante[popover]:popover-open {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 200ms ease-out, transform 400ms var(--curva-burbuja, cubic-bezier(0.34, 1.56, 0.64, 1)),
+    overlay 400ms allow-discrete, display 400ms allow-discrete;
+}
+@starting-style {
+  .menu-flotante[popover]:popover-open { opacity: 0; transform: scale(0.85); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-flotante[popover],
+  .menu-flotante[popover]:popover-open { transition: none; }
 }
 .menu-cuenta {
   width: max-content;
@@ -1118,6 +1147,10 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   transition: transform 0.2s;
 }
 .carta__imagen:hover img { transform: scale(1.03); }
+@media (prefers-reduced-motion: reduce) {
+  .carta__imagen img { transition: none; }
+  .carta__imagen:hover img { transform: none; }
+}
 
 .carta__sin-imagen {
   aspect-ratio: 245 / 342;
@@ -1243,7 +1276,18 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
    y Me falta) o la insignia "En tu colección ✓". La tarjeta que tengo no
    cambia de borde: el estado lo dice la insignia. Ambos ocupan la misma
    altura, así las filas de la grilla no saltan al agregar. */
+/* Al agregar: chispas que salen de "En tu colección ✓" (animaciones.js) */
+.chispa {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 1px;
+  background: var(--primario);
+  box-shadow: 0 0 0 1px var(--marca-texto);
+  pointer-events: none;
+}
 .marcado {
+  position: relative;
   container-type: inline-size;
   display: flex;
   align-items: center;
@@ -1531,13 +1575,6 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   outline-offset: 2px;
 }
 
-/* Al pasar a otra carta: aparece suave (0 ms con prefers-reduced-motion) */
-.detalle__cuerpo--entrando { animation: detalle-entrar var(--duracion) ease-out; }
-@keyframes detalle-entrar {
-  from { opacity: 0.3; }
-  to { opacity: 1; }
-}
-
 .detalle__datos {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1702,21 +1739,54 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
    solo del color. Pista con borde de 3:1 contra el fondo. */
 .progreso { display: grid; gap: var(--esp-1); }
 .progreso__barra {
+  position: relative;
   height: 16px;
   border: 1px solid var(--borde-control);
   border-radius: var(--radio-pill);
   background: var(--superficie-2);
   overflow: hidden;
 }
+/* El relleno mide el doble de la barra, empieza una barra a la izquierda
+   y corre con translateX hasta que su punta queda en --p (0 a 1, lo pone
+   progreso.js). Así se anima solo con transform (animaciones.js) sin
+   deformar la punta redondeada, y si el rebote pasa de largo no queda
+   un hueco al inicio (para eso, el color de inicio de fondo). El
+   degradado ocupa solo el tramo visible, como si midiera --p de ancho.
+   --p-ahora: el valor de partida mientras espera para animarse. */
 .progreso__relleno {
+  position: relative;
+  width: 200%;
   height: 100%;
-  width: 0;
+  margin-left: -100%;
   border-radius: var(--radio-pill);
-  background: var(--progreso-relleno);
+  background:
+    var(--progreso-relleno) right / calc(var(--p, 0) * 50%) 100% no-repeat,
+    var(--progreso-inicio);
   box-shadow: var(--progreso-brillo);
-  transition: width var(--duracion) ease-out;
+  transform: translateX(calc((var(--p-ahora, var(--p, 0)) - 1) * 50%));
 }
 .progreso--completo .progreso__relleno { background: var(--exito); }
+/* Chispa en la punta mientras se llena; pulso de brillo al completar.
+   Invisibles salvo durante su animación */
+.progreso__chispa {
+  position: absolute;
+  top: 50%;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 25%, var(--primario) 45%, transparent 70%);
+  opacity: 0;
+}
+.progreso__pulso {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgb(255 255 255 / 0.55);
+  opacity: 0;
+  pointer-events: none;
+}
 .progreso--sin-datos .progreso__barra { border-style: dashed; }
 .progreso__cifra {
   margin: 0;
@@ -1921,13 +1991,6 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   box-shadow: var(--sombra-menu);
 }
 .hoja::backdrop { background: rgb(0 0 0 / 0.6); }
-.hoja[open] { animation: hoja-subir 200ms ease-out; }
-@keyframes hoja-subir {
-  from { transform: translateY(100%); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hoja[open] { animation: none; }
-}
 /* Asa decorativa arriba (identidad de "hoja", no es un control) */
 .hoja::before {
   content: "";
@@ -2031,14 +2094,12 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 .confirmar[open] {
   display: grid;
   place-items: center;
-  animation: confirmar-fundido 180ms ease-out;
 }
 .confirmar::backdrop { background: transparent; }
 
 .confirmar__contenido {
   max-width: var(--ancho-angosto);
   text-align: center;
-  animation: confirmar-entrada 220ms ease-out;
 }
 
 /* Telaraña con rayo; el brillo (solo en oscuro) va en el contenedor
@@ -2077,16 +2138,6 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 }
 .confirmar__acciones .btn { min-width: 10rem; }
 
-@keyframes confirmar-fundido {
-  from { opacity: 0; }
-}
-@keyframes confirmar-entrada {
-  from { opacity: 0; transform: scale(0.96); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .confirmar[open],
-  .confirmar__contenido { animation: none; }
-}
 
 /* --- Avisos breves (toast) --------------------------------- */
 /* Abajo al centro, sobre la barra de navegación en móvil. No reciben
@@ -2117,15 +2168,11 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   color: var(--texto);
   box-shadow: var(--sombra-menu), var(--brillo-tarjeta);
   font-weight: 600;
-  /* Transición simple (11.8 la reemplaza por la burbuja): aparece y sube */
+  /* Invisible hasta que llega su texto (avisos.js); la burbuja que sube
+     la anima animaciones.js */
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 200ms ease-out, transform 200ms ease-out;
 }
-.aviso--visible { opacity: 1; transform: none; }
-@media (prefers-reduced-motion: reduce) {
-  .aviso { transform: none; transition: opacity 0ms; }
-}
+.aviso--visible { opacity: 1; }
 /* Ícono en un círculo de color, con el trazo de los íconos de la barra.
    La forma dice el tipo (✓ o rayo, −, !); el trazo contra su círculo
    tiene al menos 3:1 en ambos temas */
