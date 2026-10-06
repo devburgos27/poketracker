@@ -88,3 +88,10 @@ export {
   mostrarSeguir,
 } from './ui/progreso.js';
 export { avisar } from './ui/avisos.js';
+export {
+  prepararInstalar,
+  mostrarBotonesInstalar,
+  prepararPasosMenu,
+  mostrarPasosMenu,
+  mostrarAvisoInstalar,
+} from './ui/instalar.js';

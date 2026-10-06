@@ -6,11 +6,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>PokéTracker · Tu colección de cartas Pokémon</title>
   <meta name="description" content="Lleva el registro de tu colección de cartas Pokémon TCG: busca un Pokémon, mira todas sus cartas y agrega a tu colección las que tienes.">
-  <meta name="theme-color" content="#ffffff">
+  <!-- Color de la barra del navegador (y de la de estado, instalada): el de la cabecera.
+       Estos dos valen hasta que corre la app; luego pagina.js pone el del tema elegido -->
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#151b2e" media="(prefers-color-scheme: dark)">
+  <!-- App instalable: manifiesto (nombre, íconos, colores de la pantalla de inicio en Android)
+       y, para iPhone/iPad, ícono y nombre propios en la pantalla de inicio -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="PokéTracker">
   <!-- Tema antes de pintar (sin parpadeo): data-bs-theme="light" | "dark" en <html>,
        el atributo que entienden Bootstrap y estilos.css. La elección guardada ('pt-tema')
        manda; sin ella, el sistema, también si cambia con la página abierta. -->
   <script>(function(){var d=document.documentElement,m=matchMedia('(prefers-color-scheme: dark)');function g(){try{var t=localStorage.getItem('pt-tema');return t==='claro'||t==='oscuro'?t:null}catch(e){return null}}function a(){d.setAttribute('data-bs-theme',(g()||(m.matches?'oscuro':'claro'))==='oscuro'?'dark':'light')}a();m.addEventListener('change',function(){if(!g())a()})})();</script>
+  <!-- Pantalla de carga: CSS en línea, no depende de estilos.css, Bootstrap ni la app: es lo
+       primero que se pinta (los dos CSS de abajo igual bloquean ese primer pintado; antes, en
+       Android instalada se ve la pantalla de inicio del manifiesto). Fondo del tema (los mismos colores que
+       --fondo en estilos.css); el logo aparece recién a los 300 ms, así que si la app
+       carga rápido solo se ve el fondo. La retira el script que va junto a #carga -->
+  <style>
+    html { background: #f5f7fb; }
+    html[data-bs-theme="dark"] { background: #0b1020; }
+    .carga {
+      position: fixed; inset: 0; z-index: 2000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      background: #f5f7fb; color: #121829;
+      font: 700 1.5rem/1.2 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: -0.02em;
+      transition: opacity 200ms ease-out;
+    }
+    [data-bs-theme="dark"] .carga { background: #0b1020; color: #eef1f8; }
+    .carga__marca { color: #8a5a00; }
+    [data-bs-theme="dark"] .carga__marca { color: #ffd60a; }
+    .carga__icono, .carga__nombre { animation: carga-aparece 300ms ease-out 300ms both; }
+    .carga__icono { width: 72px; height: 72px; }
+    .carga__rayo { animation: carga-pulso 1.1s ease-in-out 600ms infinite alternate; transform-origin: center; transform-box: fill-box; }
+    .carga--fuera { opacity: 0; pointer-events: none; }
+    /* Lo de abajo no se ve mientras carga: así lo que se acomoda al dibujar la primera
+       pantalla (el pie baja) no cuenta como salto de diseño (CLS) */
+    .cargando body > :not(.carga) { visibility: hidden; }
+    @keyframes carga-aparece { from { opacity: 0; transform: translateY(6px); } }
+    @keyframes carga-pulso { to { opacity: 0.8; transform: scale(0.94); } }
+    @media (prefers-reduced-motion: reduce) {
+      .carga { transition: none; }
+      .carga__icono, .carga__nombre { animation: carga-aparece 1ms linear 300ms both; }
+      .carga__rayo { animation: none; }
+    }
+  </style>
+  <!-- Sin JS nadie retira la pantalla de carga: no se muestra -->
+  <noscript><style>.carga { display: none; }</style></noscript>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <!-- Bootstrap 5.3.8, solo CSS (sin su JS), versión fija y con integrity. Va antes de
        estilos.css: con la misma especificidad, ganan nuestras reglas por orden. -->
@@ -22,6 +67,19 @@
   <link rel="preconnect" href="https://assets.tcgdex.net">
 </head>
 <body>
+
+  <!-- Pantalla de carga (estilos en el <head>): tapa la página hasta que la app dibujó su
+       primera pantalla. Decorativa: el lector de pantalla no la anuncia -->
+  <div id="carga" class="carga" aria-hidden="true">
+    <svg class="carga__icono" viewBox="0 0 32 32">
+      <rect x=".5" y=".5" width="31" height="31" rx="7" fill="#121829" stroke="#ffffff" stroke-opacity=".12"/>
+      <path class="carga__rayo" fill="#ffd60a" d="M18.7 3 5.3 19h8l-2.7 10L24 13h-8z"/>
+    </svg>
+    <span class="carga__nombre">Poké<span class="carga__marca">Tracker</span></span>
+  </div>
+  <!-- main.js (módulo) corre antes de DOMContentLoaded: a esa altura la pantalla ya está
+       dibujada. Si la app no carga, igual se retira y queda a la vista lo que haya -->
+  <script>(function(){var d=document.documentElement,c=document.getElementById('carga');d.classList.add('cargando');document.addEventListener('DOMContentLoaded',function(){d.classList.remove('cargando');if(matchMedia('(prefers-reduced-motion: reduce)').matches){c.remove();return}c.classList.add('carga--fuera');setTimeout(function(){c.remove()},250)})})();</script>
 
   <!-- Íconos que se repiten: se dibujan una vez y se usan con <use href="#..."> -->
   <svg width="0" height="0" style="position: absolute" aria-hidden="true">
@@ -83,6 +141,15 @@
       <rect x="8" y="3" width="12" height="16" rx="2"/>
       <path d="M4 7v12a2 2 0 0 0 2 2h9"/>
     </symbol>
+    <symbol id="icono-instalar" viewBox="0 0 24 24">
+      <rect x="6" y="2.5" width="12" height="19" rx="2.5"/>
+      <path d="M12 7v7M9 11l3 3 3-3"/>
+    </symbol>
+    <!-- Botón Compartir de Safari (cuadro con flecha hacia arriba) -->
+    <symbol id="icono-compartir" viewBox="0 0 24 24">
+      <path d="M12 3v12M8 7l4-4 4 4"/>
+      <path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H16"/>
+    </symbol>
     <symbol id="icono-descargar" viewBox="0 0 24 24">
       <path d="M12 4v11M7 10l5 5 5-5"/>
       <path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2"/>
@@ -137,6 +204,15 @@
           <div id="menu-cuenta" class="menu-flotante menu-cuenta" popover>
             <p class="menu-cuenta__titulo">Conectado como</p>
             <p id="usuario-email" class="menu-cuenta__email"></p>
+            <!-- Solo si se puede instalar (instalar.js). En iPhone/iPad muestra los pasos -->
+            <button id="menu-instalar" type="button" class="btn btn-outline-secondary menu-cuenta__instalar" data-instalar hidden>
+              <svg class="icono" aria-hidden="true"><use href="#icono-instalar"/></svg>
+              Instalar app
+            </button>
+            <p id="menu-instalar-pasos" class="menu-cuenta__pasos" hidden>
+              Toca <b>Compartir</b> <svg class="icono" aria-hidden="true"><use href="#icono-compartir"/></svg>
+              (en el menú ⋯ si no lo ves) y luego <b>Agregar a pantalla de inicio</b>.
+            </p>
             <button id="btn-salir" type="button" class="btn btn-outline-secondary menu-cuenta__salir">Salir</button>
           </div>
         </div>
@@ -183,6 +259,23 @@
 
     <!-- Pantalla: inicio -->
     <div id="vista-inicio" hidden>
+      <!-- iPhone/iPad: cómo instalar (Safari no tiene botón para hacerlo desde la página).
+           Se muestra hasta que se cierra; lo maneja instalar.js -->
+      <aside id="aviso-instalar" class="aviso-instalar" aria-labelledby="aviso-instalar-titulo" hidden>
+        <span class="aviso-instalar__icono" aria-hidden="true">
+          <svg class="icono"><use href="#icono-instalar"/></svg>
+        </span>
+        <div class="aviso-instalar__texto">
+          <p id="aviso-instalar-titulo" class="aviso-instalar__titulo" tabindex="-1">Instala PokéTracker en tu <span data-dispositivo>iPhone</span></p>
+          <p class="aviso-instalar__pasos">
+            Toca <b>Compartir</b> <svg class="icono" aria-hidden="true"><use href="#icono-compartir"/></svg>
+            (en el menú ⋯ si no lo ves) y luego <b>Agregar a pantalla de inicio</b>.
+          </p>
+        </div>
+        <button id="aviso-instalar-cerrar" type="button" class="btn btn-icono aviso-instalar__cerrar"
+                aria-label="Cerrar aviso de instalación" title="Cerrar"><span aria-hidden="true">×</span></button>
+      </aside>
+
       <!-- Sin sesión: presentación (mismo panel que "Tu colección") -->
       <section class="resumen" data-solo="visitante">
         <p class="resumen__antetitulo">
@@ -199,6 +292,11 @@
             Entrar con Google
           </button>
           <a href="#/buscar" class="btn btn-primary" data-enlace-buscar>Buscar cartas</a>
+          <!-- Solo si se puede instalar (instalar.js) -->
+          <button type="button" class="btn btn-outline-secondary" data-instalar hidden>
+            <svg class="icono" aria-hidden="true"><use href="#icono-instalar"/></svg>
+            Instalar app
+          </button>
         </div>
       </section>
 

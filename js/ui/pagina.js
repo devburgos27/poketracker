@@ -107,9 +107,10 @@ function pintarTema() {
   document.querySelectorAll('#menu-tema input[name="tema"]').forEach((radio) => {
     radio.checked = radio.value === preferencia;
   });
-  // Toma el fondo de la cabecera del CSS, así no se repiten colores aquí
+  // Toma el fondo de la cabecera del CSS, así no se repiten colores aquí.
+  // Las dos etiquetas (una por tema del sistema) quedan con el del tema que se ve
   const fondo = getComputedStyle(document.documentElement).getPropertyValue('--superficie').trim();
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', fondo);
+  document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => meta.setAttribute('content', fondo));
 }
 
 /**

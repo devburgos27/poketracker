@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Privacidad · PokéTracker</title>
   <meta name="description" content="Qué datos guarda PokéTracker, para qué se usan y cómo borrarlos.">
-  <meta name="theme-color" content="#ffffff">
+  <!-- Color de la cabecera según el tema del sistema (esta página no tiene JS que lo ajuste) -->
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#151b2e" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
   <!-- Tema antes de pintar (sin parpadeo): data-bs-theme="light" | "dark" en <html>,
        el atributo que entienden Bootstrap y estilos.css. La elección guardada ('pt-tema')
        manda; sin ella, el sistema, también si cambia con la página abierta. -->
@@ -69,7 +73,8 @@
       </ul>
       <p>
         Para mantener tu sesión abierta, tu navegador guarda un token de acceso en su
-        almacenamiento local. También guarda ahí si prefieres el tema claro u oscuro y, por un día,
+        almacenamiento local. También guarda ahí si prefieres el tema claro u oscuro, si cerraste el aviso
+        para instalar la app en iPhone o iPad y, por un día,
         las listas de cartas de tus objetivos (que son públicas, de TCGdex), para no pedirlas cada vez.
         Para sugerirte qué seguir, también guarda qué Pokémon aparece en cada una de tus cartas
         (dato público de TCGdex) y, por 30 días, en qué idiomas tiene imagen cada expansión

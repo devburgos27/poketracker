@@ -653,6 +653,58 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   overflow-wrap: anywhere;
 }
 .menu-cuenta__salir { width: 100%; }
+/* "Instalar app" (instalar.js): solo si se puede instalar; en iPhone/iPad
+   muestra debajo los pasos de Safari */
+/* En bloque (flex, no inline-flex): en línea, con el ícono adentro, el botón
+   ensanchaba el menú y en 320 px este se salía por la izquierda */
+.menu-cuenta__instalar { display: flex; width: 100%; margin-bottom: var(--esp-2); }
+/* width 0 + min-width 100 %: ocupa el ancho del menú sin ensancharlo (el
+   menú se alinea al botón por la derecha y en 320 px se saldría por la izquierda) */
+.menu-cuenta__pasos {
+  width: 0;
+  min-width: 100%;
+  margin: 0 0 var(--esp-3);
+  font-size: var(--texto-s);
+  color: var(--texto-suave);
+}
+.menu-cuenta__pasos b,
+.aviso-instalar__pasos b { color: var(--texto); }
+.menu-cuenta__pasos .icono,
+.aviso-instalar__pasos .icono {
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+  color: var(--texto);
+}
+
+/* Aviso de Inicio en iPhone/iPad: cómo instalar. Una tarjeta baja sobre
+   el panel de Inicio, con "×" para cerrarlo para siempre */
+.aviso-instalar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-3);
+  margin-top: var(--esp-5);
+  padding: var(--esp-3) var(--esp-2) var(--esp-3) var(--esp-4);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-l);
+  background: var(--superficie);
+  box-shadow: var(--sombra);
+}
+.aviso-instalar__icono {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primario);
+  color: var(--sobre-primario);
+}
+.aviso-instalar__texto { flex: 1; min-width: 0; padding-top: 2px; }
+.aviso-instalar__titulo { margin: 0; font-weight: 700; }
+.aviso-instalar__titulo:focus { outline: none; }
+.aviso-instalar__pasos { margin: var(--esp-1) 0 0; font-size: var(--texto-s); color: var(--texto-suave); }
+.aviso-instalar__cerrar { flex-shrink: 0; border-color: transparent; font-size: var(--texto-l); }
 
 /* Tema: el botón muestra el sol o la luna del tema que se ve (también
    en Automático) y abre un menú con Automático / Claro / Oscuro */

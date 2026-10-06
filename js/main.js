@@ -7,7 +7,8 @@
 //
 // Cada pantalla vive en su módulo: busqueda.js (Buscar), listas.js
 // (Colección y recientes de Inicio), objetivos.js (Progreso y "Tu
-// progreso"), detalle-carta.js (detalle de carta) y router.js (rutas).
+// progreso"), detalle-carta.js (detalle de carta), instalar.js
+// ("Instalar app") y router.js (rutas).
 // Lo que comparten (cartas del usuario, pantalla actual) está en
 // estado.js. Aquí se conectan entre sí y se maneja el login.
 // =============================================================
@@ -18,6 +19,7 @@ import * as objetivos from './objetivos.js';
 import * as busqueda from './busqueda.js';
 import * as listas from './listas.js';
 import * as detalleCarta from './detalle-carta.js';
+import * as instalar from './instalar.js';
 import { estado, guardarCambio } from './estado.js';
 import { iniciarRouter, actualizarPantalla, mostrarRuta, guardarRutaParaVolver, hayTokenEnUrl } from './router.js';
 
@@ -44,6 +46,7 @@ objetivos.preparar({
 
 ui.prepararConfirmacion();
 detalleCarta.preparar();
+instalar.preparar();
 
 /**
  * ¿Hay una sesión de Supabase guardada en este navegador? Se mira
