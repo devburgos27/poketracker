@@ -479,6 +479,32 @@ async function pedirCartasObjetivo(o) {
   return { nombre: set.name, cartas, lista };
 }
 
+// --- Nombre de cada Pokémon por número de Pokédex ----------------
+// Un objetivo de tipo Pokémon sigue un número: su nombre es el del
+// Pokémon ("Charizard"), no el de una carta ("Dark Charizard"). TCGdex
+// no lo tiene aparte: va en una lista fija, datos/pokemon.json, armada
+// con herramientas/generar-nombres-pokemon.mjs. Se descarga una vez por
+// sesión y solo si hace falta ("Seguir" en Buscar y sugerencias).
+
+const URL_NOMBRES = 'datos/pokemon.json';
+let nombresGuardados = null; // Promise<string[]> de la sesión
+
+/**
+ * Nombres por número de Pokédex: nombres[dex - 1] (null si no hay).
+ * @returns {Promise<Array<string|null>>}
+ */
+export function nombresPokemon() {
+  nombresGuardados ??= fetch(URL_NOMBRES).then((r) => {
+    if (!r.ok) throw new Error(`No se pudo cargar ${URL_NOMBRES} (${r.status}).`);
+    return r.json();
+  }).then((datos) => {
+    if (!Array.isArray(datos?.nombres)) throw new Error(`${URL_NOMBRES} no tiene la lista de nombres.`);
+    return datos.nombres;
+  });
+  nombresGuardados.catch(() => { nombresGuardados = null; }); // si falló, se reintenta la próxima vez
+  return nombresGuardados;
+}
+
 // --- Pokémon de cada carta (sugerencias) -----------------------
 // La colección no guarda el número de Pokédex: para sugerir Pokémon se
 // pide a TCGdex el dexId y el nombre de cada carta, varias por pedido

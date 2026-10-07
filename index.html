@@ -204,19 +204,18 @@
           <div id="menu-cuenta" class="menu-flotante menu-cuenta" popover>
             <p class="menu-cuenta__titulo">Conectado como</p>
             <p id="usuario-email" class="menu-cuenta__email"></p>
-            <!-- Solo si se puede instalar (instalar.js). En iPhone/iPad muestra los pasos -->
-            <button id="menu-instalar" type="button" class="btn btn-outline-secondary menu-cuenta__instalar" data-instalar hidden>
-              <svg class="icono" aria-hidden="true"><use href="#icono-instalar"/></svg>
-              Instalar app
-            </button>
-            <p id="menu-instalar-pasos" class="menu-cuenta__pasos" hidden>
-              Toca <b>Compartir</b> <svg class="icono" aria-hidden="true"><use href="#icono-compartir"/></svg>
-              (en el menú ⋯ si no lo ves) y luego <b>Agregar a pantalla de inicio</b>.
-            </p>
             <button id="btn-salir" type="button" class="btn btn-outline-secondary menu-cuenta__salir">Salir</button>
           </div>
         </div>
       </div>
+
+      <!-- Instalar la app: solo si se puede (instalar.js). En escritorio con texto; en
+           móvil solo el ícono (el nombre accesible sigue siendo "Instalar app") -->
+      <button type="button" class="btn btn-outline-secondary cabecera-instalar" data-instalar
+              aria-label="Instalar app" title="Instalar app" hidden>
+        <svg class="icono" aria-hidden="true"><use href="#icono-instalar"/></svg>
+        <span class="cabecera-instalar__texto" aria-hidden="true">Instalar app</span>
+      </button>
 
       <!-- Tema: Automático / Claro / Oscuro. El botón muestra el tema que se
            ve y abre el menú (popover nativo: Esc o tocar fuera lo cierran) -->
@@ -259,23 +258,6 @@
 
     <!-- Pantalla: inicio -->
     <div id="vista-inicio" hidden>
-      <!-- iPhone/iPad: cómo instalar (Safari no tiene botón para hacerlo desde la página).
-           Se muestra hasta que se cierra; lo maneja instalar.js -->
-      <aside id="aviso-instalar" class="aviso-instalar" aria-labelledby="aviso-instalar-titulo" hidden>
-        <span class="aviso-instalar__icono" aria-hidden="true">
-          <svg class="icono"><use href="#icono-instalar"/></svg>
-        </span>
-        <div class="aviso-instalar__texto">
-          <p id="aviso-instalar-titulo" class="aviso-instalar__titulo" tabindex="-1">Instala PokéTracker en tu <span data-dispositivo>iPhone</span></p>
-          <p class="aviso-instalar__pasos">
-            Toca <b>Compartir</b> <svg class="icono" aria-hidden="true"><use href="#icono-compartir"/></svg>
-            (en el menú ⋯ si no lo ves) y luego <b>Agregar a pantalla de inicio</b>.
-          </p>
-        </div>
-        <button id="aviso-instalar-cerrar" type="button" class="btn btn-icono aviso-instalar__cerrar"
-                aria-label="Cerrar aviso de instalación" title="Cerrar"><span aria-hidden="true">×</span></button>
-      </aside>
-
       <!-- Sin sesión: presentación (mismo panel que "Tu colección") -->
       <section class="resumen" data-solo="visitante">
         <p class="resumen__antetitulo">
@@ -292,11 +274,6 @@
             Entrar con Google
           </button>
           <a href="#/buscar" class="btn btn-primary" data-enlace-buscar>Buscar cartas</a>
-          <!-- Solo si se puede instalar (instalar.js) -->
-          <button type="button" class="btn btn-outline-secondary" data-instalar hidden>
-            <svg class="icono" aria-hidden="true"><use href="#icono-instalar"/></svg>
-            Instalar app
-          </button>
         </div>
       </section>
 
@@ -491,7 +468,11 @@
     <p>Datos e imágenes de cartas: <a href="https://tcgdex.dev" target="_blank" rel="noopener">TCGdex</a>
        y, cuando TCGdex no tiene la imagen, <a href="https://pokemontcg.io" target="_blank" rel="noopener">pokemontcg.io</a>.
        Pokémon y sus marcas pertenecen a Nintendo, Game Freak y The Pokémon Company. Proyecto sin fines comerciales.</p>
-    <p><a href="privacidad.html" class="enlace-suelto">Privacidad</a></p>
+    <p class="pie__enlaces">
+      <a href="privacidad.html" class="enlace-suelto">Privacidad</a>
+      <!-- Igual que el de la cabecera: solo si se puede instalar (instalar.js) -->
+      <button type="button" class="enlace-suelto pie__instalar" data-instalar hidden>Instalar app</button>
+    </p>
   </footer>
 
   <!-- Detalle de una carta: imagen grande, datos y "Tus copias" -->
@@ -575,6 +556,22 @@
       <div class="confirmar__acciones">
         <button id="confirmar-cancelar" type="button" class="btn btn-outline-secondary" autofocus>Cancelar</button>
         <button id="confirmar-aceptar" type="button" class="btn btn-primary"></button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- iPhone/iPad: cómo instalar (Safari no tiene botón para hacerlo desde la página).
+       Lo abren "Instalar app" de la cabecera y del pie (instalar.js) -->
+  <dialog id="dialogo-instalar" class="confirmar" aria-labelledby="instalar-titulo" aria-describedby="instalar-pasos">
+    <div class="confirmar__contenido">
+      <span class="confirmar__icono" aria-hidden="true"></span>
+      <h2 id="instalar-titulo" class="confirmar__titulo">Instala PokéTracker en tu <span data-dispositivo>iPhone</span></h2>
+      <p id="instalar-pasos" class="confirmar__mensaje instalar__pasos">
+        Toca <b>Compartir</b> <svg class="icono" aria-hidden="true"><use href="#icono-compartir"/></svg>
+        (en el menú ⋯ si no lo ves) y luego <b>Agregar a pantalla de inicio</b>.
+      </p>
+      <div class="confirmar__acciones">
+        <button id="instalar-entendido" type="button" class="btn btn-primary" autofocus>Entendido</button>
       </div>
     </div>
   </dialog>

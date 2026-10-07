@@ -42,6 +42,10 @@ objetivos.preparar({
     else if (estado.rutaActual === 'inicio') objetivos.mostrarInicio();
     detalleCarta.actualizarSeguir();
   },
+  // Llegó la lista de nombres de Pokémon: aparece "Seguir Charizard" en Buscar
+  alLlegarNombres: () => {
+    if (estado.rutaActual === 'buscar') busqueda.actualizarSeguir();
+  },
 });
 
 ui.prepararConfirmacion();

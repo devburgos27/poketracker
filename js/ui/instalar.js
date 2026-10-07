@@ -1,69 +1,54 @@
 // =============================================================
-// Interfaz: "Instalar app" y el aviso para iPhone/iPad
+// Interfaz: "Instalar app" (cabecera y pie) y los pasos de iOS
 // =============================================================
-// Los botones (data-instalar) están en la presentación de Inicio para
-// visitantes y en el menú de cuenta; parten ocultos y solo aparecen si
-// se puede instalar. En iPhone/iPad no hay instalación desde la página:
-// el aviso de Inicio y el botón del menú muestran los pasos de Safari.
-// La lógica (cuándo se puede, qué hace el botón) está en instalar.js.
+// Dos botones con data-instalar: en la cabecera, junto al tema (con
+// texto en escritorio, solo el ícono en móvil) y en el pie, junto a
+// Privacidad. Parten ocultos y se muestran juntos, solo si se puede
+// instalar. En iPhone/iPad no hay instalación desde la página: abren
+// un <dialog> con los pasos de Safari. La lógica (cuándo se ven, qué
+// hace el botón) está en instalar.js.
 // =============================================================
 
 import { $ } from './base.js';
+import { prepararBurbuja, abrirBurbuja, cerrarBurbuja } from '../animaciones.js';
 
 /**
- * Muestra u oculta los botones "Instalar app". Si uno tenía el foco y
- * se oculta, el foco pasa a otro control de su grupo.
+ * Muestra u oculta los dos botones. Si uno tenía el foco y se oculta,
+ * el foco pasa al vecino: el botón de tema o el enlace a Privacidad.
  */
-export function mostrarBotonesInstalar(visibles) {
+export function mostrarInstalar(visibles) {
   document.querySelectorAll('[data-instalar]').forEach((boton) => {
     if (!visibles && boton === document.activeElement) {
-      boton.parentElement.querySelector('a, button:not([data-instalar])')?.focus();
+      (boton.closest('.pie') ? boton.parentElement.querySelector('a') : $('#btn-tema')).focus();
     }
     boton.hidden = !visibles;
   });
 }
 
 /**
- * iPhone/iPad: el botón del menú de cuenta pasa a mostrar y ocultar los
- * pasos de Safari (el de Inicio no se usa: está el aviso).
+ * Pasos de Safari en iPhone/iPad. Al cerrar, el foco vuelve al botón
+ * que lo abrió.
+ * @param {HTMLElement} origen
+ * @param {'iPhone'|'iPad'} dispositivo
  */
-export function prepararPasosMenu() {
-  const boton = $('#menu-instalar');
-  boton.setAttribute('aria-controls', 'menu-instalar-pasos');
-  boton.hidden = false;
-  mostrarPasosMenu(false);
+export function mostrarPasosInstalar(origen, dispositivo) {
+  const dialogo = $('#dialogo-instalar');
+  dialogo.querySelector('[data-dispositivo]').textContent = dispositivo;
+  abrirBurbuja(dialogo, origen);
+  $('#instalar-entendido').focus();
+  dialogo.addEventListener('close', () => origen.focus(), { once: true });
 }
 
-/** Pasos de iOS dentro del menú de cuenta. */
-export function mostrarPasosMenu(visibles) {
-  $('#menu-instalar-pasos').hidden = !visibles;
-  $('#menu-instalar').setAttribute('aria-expanded', String(visibles));
-}
-
-/**
- * Aviso de Inicio con los pasos para iPhone/iPad.
- * @param {boolean} visible
- * @param {{dispositivo?: string, enfocar?: boolean}} [opciones]
- */
-export function mostrarAvisoInstalar(visible, { dispositivo, enfocar = false } = {}) {
-  const aviso = $('#aviso-instalar');
-  if (dispositivo) aviso.querySelector('[data-dispositivo]').textContent = dispositivo;
-  aviso.hidden = !visible;
-  if (visible && enfocar) $('#aviso-instalar-titulo').focus();
-}
-
-/**
- * @param {{alPedirInstalar: (boton: HTMLElement) => void, alCerrarAviso: () => void}} acciones
- */
-export function prepararInstalar({ alPedirInstalar, alCerrarAviso }) {
+/** @param {{alPedirInstalar: (boton: HTMLElement) => void}} acciones */
+export function prepararInstalar({ alPedirInstalar }) {
   document.querySelectorAll('[data-instalar]').forEach((boton) => {
     boton.addEventListener('click', () => alPedirInstalar(boton));
   });
-  $('#aviso-instalar-cerrar').addEventListener('click', () => {
-    mostrarAvisoInstalar(false);
-    // El foco iba en el botón que desapareció: pasa al título de Inicio
-    [...document.querySelectorAll('#vista-inicio [data-titulo]')]
-      .find((el) => el.offsetParent !== null)?.focus();
-    alCerrarAviso();
+  const dialogo = $('#dialogo-instalar');
+  // Como la confirmación: la capa es el propio <dialog> y se desvanece aparte
+  prepararBurbuja(dialogo, { panel: dialogo.querySelector('.confirmar__contenido'), fondo: dialogo });
+  $('#instalar-entendido').addEventListener('click', () => cerrarBurbuja(dialogo));
+  dialogo.addEventListener('click', (e) => {
+    if (e.target === dialogo) cerrarBurbuja(dialogo);
   });
 }

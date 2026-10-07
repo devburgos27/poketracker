@@ -653,58 +653,32 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
   overflow-wrap: anywhere;
 }
 .menu-cuenta__salir { width: 100%; }
-/* "Instalar app" (instalar.js): solo si se puede instalar; en iPhone/iPad
-   muestra debajo los pasos de Safari */
-/* En bloque (flex, no inline-flex): en línea, con el ícono adentro, el botón
-   ensanchaba el menú y en 320 px este se salía por la izquierda */
-.menu-cuenta__instalar { display: flex; width: 100%; margin-bottom: var(--esp-2); }
-/* width 0 + min-width 100 %: ocupa el ancho del menú sin ensancharlo (el
-   menú se alinea al botón por la derecha y en 320 px se saldría por la izquierda) */
-.menu-cuenta__pasos {
-  width: 0;
-  min-width: 100%;
-  margin: 0 0 var(--esp-3);
-  font-size: var(--texto-s);
-  color: var(--texto-suave);
+/* "Instalar app" en la cabecera (instalar.js): junto al tema, solo si se
+   puede instalar. Con borde, como los botones de al lado (no compite con
+   el amarillo de "Buscar cartas"); el ícono, en el color de la marca.
+   Bajo 1100 px queda solo el ícono, de 44 px (nombre en aria-label): con
+   el texto, entre 961 y 1099 px la cabecera del visitante (navegación y
+   "Entrar con Google") pasaba a dos filas */
+.cabecera-instalar { --bs-btn-padding-x: var(--esp-4); }
+.cabecera-instalar .icono { color: var(--marca-texto); }
+@media (max-width: 1099px) {
+  .cabecera-instalar { width: var(--alto-toque); --bs-btn-padding-x: 0; }
+  .cabecera-instalar__texto { display: none; }
 }
-.menu-cuenta__pasos b,
-.aviso-instalar__pasos b { color: var(--texto); }
-.menu-cuenta__pasos .icono,
-.aviso-instalar__pasos .icono {
+/* Bajo 360 px: logo, cuenta, instalar y tema (3 × 44 px) en una fila. Logo
+   algo más chico y 8 px entre elementos (a 320 px quedan ~12 px libres) */
+@media (max-width: 359px) {
+  .cabecera__fila { column-gap: var(--esp-2); }
+  .logo { font-size: var(--texto-ml); }
+}
+
+/* Pasos de Safari en iPhone/iPad: <dialog> con el aspecto de la
+   confirmación. El ícono de Compartir va en la línea del texto */
+.instalar__pasos .icono {
   width: 1.15em;
   height: 1.15em;
   vertical-align: -0.2em;
-  color: var(--texto);
 }
-
-/* Aviso de Inicio en iPhone/iPad: cómo instalar. Una tarjeta baja sobre
-   el panel de Inicio, con "×" para cerrarlo para siempre */
-.aviso-instalar {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--esp-3);
-  margin-top: var(--esp-5);
-  padding: var(--esp-3) var(--esp-2) var(--esp-3) var(--esp-4);
-  border: 1px solid var(--borde);
-  border-radius: var(--radio-l);
-  background: var(--superficie);
-  box-shadow: var(--sombra);
-}
-.aviso-instalar__icono {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--primario);
-  color: var(--sobre-primario);
-}
-.aviso-instalar__texto { flex: 1; min-width: 0; padding-top: 2px; }
-.aviso-instalar__titulo { margin: 0; font-weight: 700; }
-.aviso-instalar__titulo:focus { outline: none; }
-.aviso-instalar__pasos { margin: var(--esp-1) 0 0; font-size: var(--texto-s); color: var(--texto-suave); }
-.aviso-instalar__cerrar { flex-shrink: 0; border-color: transparent; font-size: var(--texto-l); }
 
 /* Tema: el botón muestra el sol o la luna del tema que se ve (también
    en Automático) y abre un menú con Automático / Claro / Oscuro */
@@ -2257,6 +2231,26 @@ h1, h2, h3, h4, h5, h6 { font-weight: 700; }
 
 .pie p { margin: 0; }
 .pie p + p { margin-top: var(--esp-1); }
+/* Privacidad e "Instalar app" (un botón con aspecto de enlace: es una acción) */
+.pie__enlaces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  column-gap: var(--esp-5);
+}
+.pie__instalar {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--info);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: var(--subrayado-separacion);
+  cursor: pointer;
+}
+.pie__instalar:hover { text-decoration-thickness: 2px; }
 
 /* --- Página de privacidad ---------------------------------- */
 

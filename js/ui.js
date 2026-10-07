@@ -90,8 +90,6 @@ export {
 export { avisar } from './ui/avisos.js';
 export {
   prepararInstalar,
-  mostrarBotonesInstalar,
-  prepararPasosMenu,
-  mostrarPasosMenu,
-  mostrarAvisoInstalar,
+  mostrarInstalar,
+  mostrarPasosInstalar,
 } from './ui/instalar.js';

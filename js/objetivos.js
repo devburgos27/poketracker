@@ -13,7 +13,7 @@
 // (colección, sesión) llega por preparar().
 // =============================================================
 
-import { cargarListasObjetivos, obtenerCartasObjetivo, olvidarLista, datosCartasGuardados, pedirDatosCartas } from './api.js';
+import { cargarListasObjetivos, obtenerCartasObjetivo, olvidarLista, datosCartasGuardados, pedirDatosCartas, nombresPokemon } from './api.js';
 import * as ui from './ui.js';
 import * as filtrado from './filtros.js';
 
@@ -23,6 +23,7 @@ import * as filtrado from './filtros.js';
  *   coleccion: () => object,
  *   guardarCambio: (carta: object, tengo: boolean) => Promise<void>,
  *   alCambiarObjetivos: () => void,
+ *   alLlegarNombres: () => void,   // llegó la lista de nombres de Pokémon ("Seguir" de Buscar)
  * }}
  */
 let dep = null;
@@ -44,6 +45,10 @@ const MAX_SUGERENCIAS = 5;
 const estadoSugerencias = new Map(); // "tipo:clave" → { ocupado?, mensaje? }
 let pidiendoDatosCartas = false;
 let enfocarLuego = null;  // href del objetivo recién seguido desde una sugerencia
+let nombres = null;       // nombre de cada Pokémon por número de Pokédex (nombres[dex - 1])
+let pidiendoNombres = false;
+let fallaNombres = 0;     // cuándo falló la última vez (para no reintentar en cada redibujo)
+const ESPERA_NOMBRES = 30 * 1000;
 
 const claveDe = (o) => `${o.tipo}:${o.clave}`;
 
@@ -285,6 +290,41 @@ function dibujarInicio() {
   ui.mostrarInicioProgreso(items.length ? { sugerencias: items, alSeguir: (s) => seguirSugerencia(s, 'inicio') } : null);
 }
 
+// --- Nombre del Pokémon -----------------------------------------
+// Un objetivo de tipo Pokémon sigue un número de Pokédex: su nombre es
+// el del Pokémon ("Charizard"), nunca el de una carta ("Dark Charizard",
+// "Lt. Surge's Eevee"), que se guardaría y mostraría como si siguiera
+// solo esas cartas. Sale de datos/pokemon.json (api.nombresPokemon).
+
+/**
+ * Nombre del Pokémon de un número de Pokédex, o null si todavía no
+ * llegó la lista (la pide; al llegar se redibuja lo que la usa) o el
+ * número no está en ella.
+ */
+function nombrePokemon(dex) {
+  if (nombres) return nombres[Number(dex) - 1] ?? null;
+  cargarNombres();
+  return null;
+}
+
+async function cargarNombres() {
+  if (pidiendoNombres || Date.now() - fallaNombres < ESPERA_NOMBRES) return;
+  pidiendoNombres = true;
+  try {
+    nombres = await nombresPokemon();
+    redibujarSugerencias();
+    dep.alLlegarNombres();
+  } catch (error) {
+    // Sin la lista no se ofrece seguir Pokémon (sí expansiones). Se vuelve
+    // a pedir cuando haga falta, pero no antes de 30 s: sin conexión, cada
+    // redibujo de las sugerencias sería otro pedido fallido
+    console.error(error);
+    fallaNombres = Date.now();
+  } finally {
+    pidiendoNombres = false;
+  }
+}
+
 // --- Sugerencias -----------------------------------------------
 // Se arman con la colección: las expansiones por set_id (ya está en
 // misCartas) y los Pokémon por dexId, que la colección no guarda: se
@@ -303,24 +343,24 @@ function sugerencias() {
   const grupos = new Map();
   const sumar = (tipo, clave, nombre) => {
     const g = grupos.get(`${tipo}:${clave}`);
-    if (!g) {
-      grupos.set(`${tipo}:${clave}`, { tipo, clave, nombre, cantidad: 1 });
-      return;
-    }
-    g.cantidad++;
-    // Pokémon: el nombre más corto ("Joltik" antes que "N's Joltik" o "Pikachu V")
-    if (nombre.length < g.nombre.length) g.nombre = nombre;
+    if (g) g.cantidad++;
+    else grupos.set(`${tipo}:${clave}`, { tipo, clave, nombre, cantidad: 1 });
   };
 
   for (const [id, guardada] of mias) {
     if (guardada.setId && guardada.nombreSet) sumar('expansion', guardada.setId, guardada.nombreSet);
-    // Cartas con varios Pokémon (Tag Team) no suman a ninguno
+    // Cartas con varios Pokémon (Tag Team) no suman a ninguno. El nombre
+    // es el del Pokémon, no el de la carta: hasta que llega la lista de
+    // nombres solo se sugieren expansiones
     const carta = datos.get(id);
-    if (carta?.dex.length === 1 && carta.nombre) sumar('pokemon', String(carta.dex[0]), carta.nombre);
+    if (carta?.dex.length === 1) sumar('pokemon', String(carta.dex[0]), null);
+  }
+  for (const g of grupos.values()) {
+    if (g.tipo === 'pokemon') g.nombre = nombrePokemon(g.clave);
   }
 
   return [...grupos.values()]
-    .filter((g) => claveValida(g.tipo, g.clave) && !buscarObjetivo(g.tipo, g.clave))
+    .filter((g) => g.nombre && claveValida(g.tipo, g.clave) && !buscarObjetivo(g.tipo, g.clave))
     .sort((a, b) => b.cantidad - a.cantidad || a.nombre.localeCompare(b.nombre))
     .slice(0, MAX_SUGERENCIAS);
 }
@@ -577,8 +617,11 @@ async function dejarDeSeguir(selector, candidato, opciones) {
 }
 
 /**
- * Objetivo que se puede seguir desde una búsqueda: el Pokémon cuyo
- * nombre coincide EXACTO con lo buscado ("Joltik" sí; "jolt" no).
+ * Objetivo que se puede seguir desde una búsqueda: el Pokémon de las
+ * cartas cuyo nombre coincide EXACTO con lo buscado ("Joltik" sí;
+ * "jolt" no). Con el nombre del Pokémon: buscar "Dark Charizard"
+ * ofrece "Seguir Charizard" (sigue el #6, todas sus cartas). Hasta que
+ * llega la lista de nombres no se ofrece (al llegar se redibuja).
  * @returns {null | {tipo: 'pokemon', clave: string, nombre: string}}
  */
 export function candidatoDeBusqueda(texto, cartas) {
@@ -589,7 +632,8 @@ export function candidatoDeBusqueda(texto, cartas) {
   const cuenta = new Map();
   exactas.forEach((c) => cuenta.set(c.dexIds[0], (cuenta.get(c.dexIds[0]) ?? 0) + 1));
   const [dex] = [...cuenta].sort((a, b) => b[1] - a[1])[0];
-  return { tipo: 'pokemon', clave: String(dex), nombre: exactas.find((c) => c.dexIds[0] === dex).nombre };
+  const nombre = nombrePokemon(dex);
+  return nombre ? { tipo: 'pokemon', clave: String(dex), nombre } : null;
 }
 
 /** Objetivo que se puede seguir desde el detalle de una carta: su expansión. */

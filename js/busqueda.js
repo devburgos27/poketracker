@@ -80,6 +80,11 @@ export function dibujarBusqueda() {
     );
   }
   mostrarResumen(visibles);
+  actualizarSeguir();
+}
+
+/** "Seguir Joltik" sobre los resultados, sin redibujar las cartas. */
+export function actualizarSeguir() {
   objetivos.mostrarSeguir('#seguir-busqueda', objetivos.candidatoDeBusqueda(busquedaActual, cartasActuales));
 }
 
